@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Clody_Mobile_Expo",
-    "slug": "Clody_Mobile_Expo",
+    "slug": "clodymobileexpo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -48,8 +48,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "f711ab13-642b-4553-b63b-1f1790c252a7"
+        "projectId": "32473cd1-e225-4303-b3b1-8c52103eded6"
       }
-    }
+    },
+    "owner": "clodymobile"
   }
 }
