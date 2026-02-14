@@ -7,6 +7,7 @@ import {
   getKeyHashAndroid,
 } from "@react-native-kakao/core";
 import authService from "@/services/authService";
+import { StatusBar } from "expo-status-bar";
 SplashScreen.preventAutoHideAsync().catch(() => {});
 export const AuthContext = createContext<{
   login: (platform: string) => Promise<void>;
@@ -48,6 +49,7 @@ function AppLoader({ children }: { children: React.ReactNode }) {
           }
         }
         setIsLoggedIn(false);
+
         return;
       } catch (e) {
         console.error(e);
@@ -95,6 +97,7 @@ function AppLoader({ children }: { children: React.ReactNode }) {
 export default function RootLayout() {
   return (
     <AppLoader>
+      <StatusBar style="auto" animated translucent={true} />
       <Stack screenOptions={{ headerShown: false }} />
     </AppLoader>
   );

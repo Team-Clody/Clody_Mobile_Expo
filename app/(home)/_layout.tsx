@@ -1,4 +1,4 @@
-import { useContext, useRef, useState } from "react";
+import { useContext, useState } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from "react-native";
+import { useFonts } from "expo-font";
 import { AuthContext } from "../_layout";
 import { Slot } from "expo-router";
 import KakaoLoginButton from "@/components/KakaoLoginButton";
@@ -22,6 +23,11 @@ import img3 from "@/assets/images/img_signin_pager_3.png";
 const { width } = Dimensions.get("window");
 
 export default function HomeLayout() {
+  const [fontsLoaded] = useFonts({
+    PretendardRegular: require("../../assets/fonts/Pretendard-Regular.otf"),
+    PretendardBold: require("../../assets/fonts/Pretendard-Bold.otf"),
+    PretendardMedium: require("../../assets/fonts/Pretendard-Medium.otf"),
+  });
   const { login, isLoggedIn } = useContext(AuthContext);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -67,8 +73,6 @@ export default function HomeLayout() {
 
                 <Text style={styles.title}>{slide.title}</Text>
               </View>
-
-              {/* 🔹 이미지 */}
               <Image
                 source={slide.image}
                 style={styles.slideImage}
@@ -89,7 +93,10 @@ export default function HomeLayout() {
 
       <View style={styles.bottom}>
         {Platform.OS === "android" && (
-          <KakaoLoginButton onPress={() => login("kakao")} />
+          <>
+            <KakaoLoginButton onPress={() => login("kakao")} />
+            <KakaoLoginButton onPress={() => login("apple")} />
+          </>
         )}
 
         {Platform.OS === "ios" && (
@@ -106,20 +113,22 @@ export default function HomeLayout() {
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: 110,
     flex: 1,
     backgroundColor: "#fff",
+    justifyContent: "space-between",
   },
-  /* 🔼 슬라이드 영역 */
   top: {
-    flex: 0.82,
+    flex: 0.695,
     justifyContent: "center",
+    height: 80,
   },
   slideImage: {
     width: width * 1.05,
-    height: width * 1.05,
+    height: 235, // 👈 고정
+    resizeMode: "contain",
   },
 
-  /* 🔘 dot */
   dots: {
     position: "absolute",
     bottom: 20,
@@ -141,8 +150,8 @@ const styles = StyleSheet.create({
 
   /* 🔽 하단 버튼 영역 */
   bottom: {
-    paddingHorizontal: 24,
-    paddingBottom: 28,
+    paddingHorizontal: 16,
+    paddingBottom: 75,
   },
   slide: {
     flex: 1,
@@ -152,20 +161,21 @@ const styles = StyleSheet.create({
 
   textArea: {
     alignItems: "center",
-    marginBottom: 30,
   },
 
   labelBox: {
     backgroundColor: "#F1F1F1",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 4,
+    marginBottom: 20,
   },
 
   label: {
-    fontSize: 12,
-    color: "#666",
+    fontSize: 15,
+    color: "#4C4C4C",
+    fontWeight: "500",
+    fontFamily: "PretendardMedium",
   },
 
   title: {
@@ -173,5 +183,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "center",
     lineHeight: 28,
+    fontFamily: "PretendardBold",
   },
 });
