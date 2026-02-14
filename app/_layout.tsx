@@ -8,46 +8,17 @@ function AppLoader({ children }: { children: React.ReactNode }) {
   const [isAppReady, setAppReady] = useState(false);
   useEffect(() => {
     async function prepare() {
+      // 여기에 로그인 로직 스타트
       setTimeout(async () => {
         setAppReady(true);
         await SplashScreen.hideAsync();
-      }, 2000);
+      }, 10000);
     }
     prepare();
   }, []);
 
-  if (!isAppReady) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "#8FF76F",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Image
-          source={require("../assets/bootsplash/logo4x.png")}
-          style={{
-            width: 160,
-            resizeMode: "contain",
-          }}
-        />
-      </View>
-    );
-  }
-  return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: "#8FF76F",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      {children}
-    </View>
-  );
+  if (!isAppReady) return null;
+  return <View style={{ flex: 1 }}>{children}</View>;
 }
 
 export default function RootLayout() {
