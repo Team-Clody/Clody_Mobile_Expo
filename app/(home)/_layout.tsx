@@ -50,7 +50,6 @@ export default function HomeLayout() {
 
   return (
     <View style={styles.container}>
-      {/* 🔼 슬라이드 영역 */}
       <View style={styles.top}>
         <ScrollView
           horizontal
@@ -78,8 +77,6 @@ export default function HomeLayout() {
             </View>
           ))}
         </ScrollView>
-
-        {/* dot */}
         <View style={styles.dots}>
           {slides.map((_, i) => (
             <View
@@ -90,15 +87,16 @@ export default function HomeLayout() {
         </View>
       </View>
 
-      {/* 🔽 하단 로그인 영역 */}
       <View style={styles.bottom}>
-        {Platform.OS === "android" && <KakaoLoginButton onPress={login} />}
+        {Platform.OS === "android" && (
+          <KakaoLoginButton onPress={() => login("kakao")} />
+        )}
 
         {Platform.OS === "ios" && (
           <>
-            <KakaoLoginButton onPress={login} />
+            <KakaoLoginButton onPress={() => login("kakao")} />
             <View style={{ height: 12 }} />
-            <AppleLoginButton onPress={login} />
+            <AppleLoginButton onPress={() => login("apple")} />
           </>
         )}
       </View>

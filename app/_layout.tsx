@@ -1,24 +1,83 @@
-import { Stack, Redirect } from "expo-router";
+import { Stack } from "expo-router";
 import { useEffect, useState, createContext } from "react";
-import { View, Image, Text } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import * as SecureStore from "expo-secure-store";
-
+import {
+  initializeKakaoSDK,
+  getKeyHashAndroid,
+} from "@react-native-kakao/core";
+import authService from "@/services/authService";
+SplashScreen.preventAutoHideAsync().catch(() => {});
 export const AuthContext = createContext<{
-  login?: () => Promise<any>;
+  login: (platform: string) => Promise<void>;
   logout?: () => Promise<any>;
   isLoggedIn: boolean;
 }>({});
 
-SplashScreen.preventAutoHideAsync().catch(() => {});
 function AppLoader({ children }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const login = () => {
-    setIsLoggedIn(true);
-    return Promise.all([
-      SecureStore.setItemAsync("accessToken", "12313"),
-      SecureStore.setItemAsync("refreshToken", "1231"),
-    ]);
+  useEffect(() => {
+    initializeKakaoSDK("eb5b3511f81201dba4850861989793f6");
+  }, []);
+  useEffect(() => {
+    const checkLogin = async () => {
+      try {
+        const id = await getKeyHashAndroid();
+        console.log(id);
+        let accessToken = await SecureStore.getItemAsync("accessToken");
+        let refreshToken = await SecureStore.getItemAsync("refreshToken");
+        if (accessToken) {
+          if (await authService.isAccessTokenValid(accessToken)) {
+            // 1. 토큰이 유효함
+            setIsLoggedIn(true);
+            return;
+          } else {
+            if (refreshToken) {
+              authService.reissueWithRefreshToken(refreshToken);
+            } else {
+              setIsLoggedIn(false);
+              return;
+            }
+          }
+        } else {
+          if (refreshToken) {
+            authService.reissueWithRefreshToken(refreshToken);
+          } else {
+            setIsLoggedIn(false);
+            return;
+          }
+        }
+        setIsLoggedIn(false);
+        return;
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    async function prepare() {
+      await checkLogin();
+      await SplashScreen.hideAsync();
+    }
+    prepare();
+  }, []);
+
+  const login = async (platform: string) => {
+    try {
+      let result;
+      if (platform === "kakao") {
+        result = await authService.kakaoLogin();
+      } else if (platform === "apple") {
+        result = await authService.AppleLogin();
+      }
+      if (!result) {
+        setIsLoggedIn(false);
+        return;
+      }
+      setIsLoggedIn(true);
+    } catch (e) {
+      console.error("login error:", e);
+      setIsLoggedIn(false);
+    }
   };
   const logout = () => {
     setIsLoggedIn(false);
@@ -27,25 +86,6 @@ function AppLoader({ children }: { children: React.ReactNode }) {
       SecureStore.deleteItemAsync("refreshToken"),
     ]);
   };
-
-  useEffect(() => {
-    const checkLogin = async () => {
-      try {
-        const accessToken = await SecureStore.getItemAsync("accessToken");
-        if (accessToken) setIsLoggedIn(true);
-      } catch (e) {
-        console.error(e);
-      }
-    };
-
-    async function prepare() {
-      await checkLogin();
-      setTimeout(async () => {
-        await SplashScreen.hideAsync();
-      }, 2000);
-    }
-    prepare();
-  }, []);
 
   return (
     <AuthContext value={{ login, logout, isLoggedIn }}>{children}</AuthContext>

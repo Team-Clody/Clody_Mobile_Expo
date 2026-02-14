@@ -3,7 +3,7 @@ import { View, Text, Pressable } from "react-native";
 import { AuthContext } from "../_layout";
 
 export default function Index() {
-  const { login, logout, isLoggedIn } = useContext(AuthContext);
+  const { logout } = useContext(AuthContext);
 
   return (
     <View style={{ alignItems: "center", gap: 20, marginTop: 100 }}>
