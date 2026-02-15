@@ -210,6 +210,7 @@ const styles = StyleSheet.create({
     width: "47%",
     flexDirection: "row",
     justifyContent: "space-around",
+    paddingHorizontal: 15,
     gap: 8,
   },
   dot: {
