@@ -70,7 +70,12 @@ export default function BirthScreen() {
       text1={"생년월일/성별을\n입력해 주세요"}
       text2={"맞춤형 감사일기 소재를 추천하기 위해 필요해요"}
     >
-      <View style={styles.box}>
+      <View
+        style={[
+          styles.box,
+          back.length > 0 && !isValid && { borderColor: "#FF4D4F" },
+        ]}
+      >
         <View
           style={{
             flexDirection: "row",
@@ -82,7 +87,7 @@ export default function BirthScreen() {
             ref={frontRef}
             placeholder="생년월일 6자리"
             maxLength={6}
-            style={styles.front}
+            style={[styles.front]}
             value={birth}
             onSelectionChange={(e) => {
               const { start } = e.nativeEvent.selection;

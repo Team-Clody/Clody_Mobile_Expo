@@ -31,7 +31,12 @@ export default function NameScreen() {
       text1={"만나서 반가워요\n어떻게 불러드릴까요?"}
       text2={"프로필에 보일 닉네임이에요"}
     >
-      <View style={styles.inputWrap}>
+      <View
+        style={[
+          styles.inputWrap,
+          nickname.length !== 0 && !isValid && { borderColor: "#FF4D4F" },
+        ]}
+      >
         <TextInput
           value={nickname}
           onChangeText={(text) => {
