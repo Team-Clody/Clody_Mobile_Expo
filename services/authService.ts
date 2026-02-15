@@ -1,10 +1,11 @@
-import { login as KakaoLogin } from "@react-native-kakao/user";
+import { login as KakaoLogin, me } from "@react-native-kakao/user";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
 
 const kakaoLogin = async () => {
   const { accessToken, refreshToken } = await onKakaoLogin();
-
+  const user = await me();
+  console.log(user.email);
   return Promise.all([
     SecureStore.setItemAsync("accessToken", accessToken),
     SecureStore.setItemAsync("refreshToken", refreshToken),
@@ -19,11 +20,12 @@ const AppleLogin = async () => {
   ]);
 };
 const onKakaoLogin = async (): Promise<{
-  accessToken: string;
-  refreshToken: string;
+  accessToken: string | null;
+  refreshToken: string | null;
 }> => {
   //console.log(await getKeyHashAndroid());
   try {
+    throw new Error("강제 에러 발생");
     const result = await KakaoLogin();
     const accessToken = result.accessToken;
 
@@ -50,8 +52,8 @@ const onKakaoLogin = async (): Promise<{
   }
 };
 const onAppleLogin = async (): Promise<{
-  accessToken: string;
-  refreshToken: string;
+  accessToken: string | null;
+  refreshToken: string | null;
 }> => {
   //console.log(await getKeyHashAndroid());
   try {

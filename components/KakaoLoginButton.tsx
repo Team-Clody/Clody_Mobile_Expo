@@ -13,7 +13,7 @@ export default function KakaoLoginButton({ onPress }: any) {
           style={styles.icon}
           resizeMode="contain"
         />
-        <Text style={styles.text}>카카오 로그인</Text>
+        <Text style={styles.text}>카카오로 로그인</Text>
       </View>
     </Pressable>
   );
@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
   },
   text: {
     color: "#000",
-    fontSize: 16,
+    fontSize: 19,
     fontWeight: "600",
     fontFamily: "PretendardSemiBold",
   },

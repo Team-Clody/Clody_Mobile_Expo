@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { useEffect, useState, createContext } from "react";
+import { useEffect, useState, createContext, useCallback } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import * as SecureStore from "expo-secure-store";
 import {
@@ -12,11 +12,22 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 export const AuthContext = createContext<{
   login: (platform: string) => Promise<void>;
   logout?: () => Promise<any>;
+  resetAuthState: () => {};
+  finIntroduce: boolean;
   isLoggedIn: boolean;
+  finRegister: boolean;
 }>({});
 
-function AppLoader({ children }: { children: React.ReactNode }) {
+export default function RootLayout() {
+  const [finIntroduce, setFinIsIntroduce] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [finRegister, setFinRegister] = useState(true);
+
+  const resetAuthState = () => {
+    setFinIsIntroduce(false);
+    setFinRegister(true);
+  };
+
   useEffect(() => {
     initializeKakaoSDK("eb5b3511f81201dba4850861989793f6");
   }, []);
@@ -77,8 +88,19 @@ function AppLoader({ children }: { children: React.ReactNode }) {
       }
       setIsLoggedIn(true);
     } catch (e) {
+      // if (axios.isAxiosError(e)) {
+      //   const status = e.response?.status;
+      //   if (status === 404) {
+      //     setIsRegistering(true);
+      //   } else {
+      //     console.log("API 에러:", status);
+      //   }
+      // } else {
+      //   console.log("axios 아님:", e);
+      // }
+      setFinIsIntroduce(true);
+      setFinRegister(false);
       console.error("login error:", e);
-      setIsLoggedIn(false);
     }
   };
   const logout = () => {
@@ -90,15 +112,18 @@ function AppLoader({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext value={{ login, logout, isLoggedIn }}>{children}</AuthContext>
-  );
-}
-
-export default function RootLayout() {
-  return (
-    <AppLoader>
+    <AuthContext
+      value={{
+        login,
+        logout,
+        finIntroduce,
+        isLoggedIn,
+        finRegister,
+        resetAuthState,
+      }}
+    >
       <StatusBar style="auto" animated translucent={true} />
-      <Stack screenOptions={{ headerShown: false }} />
-    </AppLoader>
+      <Stack screenOptions={{ headerShown: false }}></Stack>
+    </AuthContext>
   );
 }

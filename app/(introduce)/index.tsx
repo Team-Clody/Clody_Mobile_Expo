@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,26 +10,32 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from "react-native";
-import { useFonts } from "expo-font";
+import { isLoading, useFonts } from "expo-font";
 import { AuthContext } from "../_layout";
-import { Slot } from "expo-router";
+import { router, Slot } from "expo-router";
 import KakaoLoginButton from "@/components/KakaoLoginButton";
 import AppleLoginButton from "@/components/AppleLoginButton";
-
 import img1 from "@/assets/images/img_signin_pager_1.png";
 import img2 from "@/assets/images/img_signin_pager_2.png";
 import img3 from "@/assets/images/img_signin_pager_3.png";
 
 const { width } = Dimensions.get("window");
 
-export default function HomeLayout() {
+export default function Introduce() {
   const [fontsLoaded] = useFonts({
     PretendardRegular: require("../../assets/fonts/Pretendard-Regular.otf"),
     PretendardBold: require("../../assets/fonts/Pretendard-Bold.otf"),
     PretendardMedium: require("../../assets/fonts/Pretendard-Medium.otf"),
   });
-  const { login, isLoggedIn } = useContext(AuthContext);
+  const { login, finRegister } = useContext(AuthContext);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (!finRegister) {
+      router.push("/name");
+      return;
+    }
+  }, [finRegister]);
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(e.nativeEvent.contentOffset.x / width);
@@ -52,7 +58,6 @@ export default function HomeLayout() {
       title: "오늘과 전날 일기만\n작성할 수 있어요",
     },
   ];
-  if (isLoggedIn) return <Slot />;
 
   return (
     <View style={styles.container}>
