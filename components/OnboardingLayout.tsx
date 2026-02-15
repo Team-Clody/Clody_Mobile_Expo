@@ -31,6 +31,7 @@ export default function OnboardingLayout({
     PretendardRegular: require("../assets/fonts/Pretendard-Regular.otf"),
     PretendardBold: require("../assets/fonts/Pretendard-Bold.otf"),
     PretendardMedium: require("../assets/fonts/Pretendard-Medium.otf"),
+    PretendardSemiBold: require("../assets/fonts/Pretendard-SemiBold.otf"),
   });
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [keyboardShow, setKeyboardShow] = useState(false);
@@ -83,7 +84,7 @@ export default function OnboardingLayout({
         {/* 하단 버튼 */}
         <View
           style={{
-            paddingHorizontal: 14,
+            paddingHorizontal: keyboardShow ? 0 : 14,
             paddingBottom: keyboardShow ? keyboardHeight : 20,
           }}
         >
@@ -93,12 +94,19 @@ export default function OnboardingLayout({
               styles.button,
               { backgroundColor: isValid ? "#2B2F36" : "#E5E7EB" },
             ]}
-            onPress={() => {}}
+            onPress={() => {
+              if (pathname === "/name") {
+                router.push("/birth");
+              } else if (pathname == "/birth") {
+                router.push("/alarm");
+              }
+            }}
           >
             <Text
               style={{
-                color: isValid ? "#fff" : "#9CA3AF",
-                fontWeight: "600",
+                color: isValid ? "#fff" : "#757980",
+                fontFamily: "PretendardSemiBold",
+                fontSize: 18,
               }}
             >
               다음

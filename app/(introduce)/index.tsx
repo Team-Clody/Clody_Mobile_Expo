@@ -10,9 +10,9 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from "react-native";
-import { isLoading, useFonts } from "expo-font";
+import { useFonts } from "expo-font";
 import { AuthContext } from "../_layout";
-import { router, Slot } from "expo-router";
+import { router } from "expo-router";
 import KakaoLoginButton from "@/components/KakaoLoginButton";
 import AppleLoginButton from "@/components/AppleLoginButton";
 import img1 from "@/assets/images/img_signin_pager_1.png";
@@ -100,7 +100,7 @@ export default function Introduce() {
         {Platform.OS === "android" && (
           <>
             <KakaoLoginButton onPress={() => login("kakao")} />
-            <KakaoLoginButton onPress={() => login("apple")} />
+            <KakaoLoginButton onPress={() => login("kakao")} />
           </>
         )}
 
@@ -153,7 +153,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#333",
   },
 
-  /* 🔽 하단 버튼 영역 */
   bottom: {
     paddingHorizontal: 16,
     paddingBottom: 75,

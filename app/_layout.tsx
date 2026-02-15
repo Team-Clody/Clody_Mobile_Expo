@@ -8,11 +8,12 @@ import {
 } from "@react-native-kakao/core";
 import authService from "@/services/authService";
 import { StatusBar } from "expo-status-bar";
+import axios from "axios";
 SplashScreen.preventAutoHideAsync().catch(() => {});
 export const AuthContext = createContext<{
   login: (platform: string) => Promise<void>;
   logout?: () => Promise<any>;
-  resetAuthState: () => {};
+  resetAuthState: () => void;
   finIntroduce: boolean;
   isLoggedIn: boolean;
   finRegister: boolean;
@@ -91,7 +92,7 @@ export default function RootLayout() {
       // if (axios.isAxiosError(e)) {
       //   const status = e.response?.status;
       //   if (status === 404) {
-      //     setIsRegistering(true);
+      //     setFinRegister(true);
       //   } else {
       //     console.log("API 에러:", status);
       //   }

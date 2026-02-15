@@ -1,16 +1,15 @@
 import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
 import { useContext, useEffect, useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
-import { router, useNavigation } from "expo-router";
+import {} from "@expo/vector-icons";
+import { useNavigation } from "expo-router";
 import OnboardingLayout from "@/components/OnboardingLayout";
 import { AuthContext } from "../_layout";
 import { useFonts } from "expo-font";
 import { RegisterContext } from "./_layout";
 export default function NameScreen() {
   const { resetAuthState } = useContext(AuthContext);
-  const { form, setForm } = useContext(RegisterContext)!;
-
-  const [nickname, setNickname] = useState("");
+  const { form } = useContext(RegisterContext)!;
+  console.log(form);
   const navigation = useNavigation();
   const [isValid, setIsValid] = useState(false);
   const [fontsLoaded] = useFonts({
@@ -32,47 +31,7 @@ export default function NameScreen() {
       text2={"프로필에 보일 닉네임이에요"}
     >
       <View style={styles.inputWrap}>
-        <TextInput
-          value={nickname}
-          onChangeText={(text) => {
-            if (/^[a-zA-Z0-9가-힣]{1,10}$/.test(text)) {
-              setIsValid(true);
-            } else {
-              setIsValid(false);
-            }
-            setNickname(text);
-            setForm({ ...form, nickname: text });
-          }}
-          placeholder="닉네임을 입력해주세요."
-          placeholderTextColor="#9CA3AF"
-          maxLength={10}
-          style={styles.input}
-        />
-
-        {nickname.length >= 0 && (
-          <Pressable onPress={() => setNickname("")}>
-            <Ionicons name="close-circle" size={20} color="#C7CDD6" />
-          </Pressable>
-        )}
-      </View>
-      <View
-        style={{
-          width: "100%",
-          flexDirection: "row",
-          justifyContent: "space-between",
-        }}
-      >
-        {
-          <Text
-            style={[
-              styles.errorText,
-              (nickname.length === 0 || isValid) && styles.errorHidden,
-            ]}
-          >
-            닉네임은 한글, 영문, 숫자만 가능해요.
-          </Text>
-        }
-        <Text style={styles.counter}>{nickname.length}/10</Text>
+        <Text>알람!!</Text>
       </View>
     </OnboardingLayout>
   );
@@ -107,7 +66,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 13,
     color: "#FF4D4F",
-    fontFamily: "PretendardMedium",
   },
   errorHidden: {
     opacity: 0, // 🔥 자리 유지하면서 안보이게
