@@ -55,10 +55,13 @@
           "android": {
             "authCodeHandlerActivity": true
           },
-          "ios": { "authCodeHandlerActivity": true }
+          "ios": {
+            "authCodeHandlerActivity": true
+          }
         }
       ],
-      "@react-native-kakao/core"
+      "@react-native-kakao/core",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

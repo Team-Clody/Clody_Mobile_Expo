@@ -1,16 +1,25 @@
-import { login as KakaoLogin, me } from "@react-native-kakao/user";
+import { login, me } from "@react-native-kakao/user";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { RegisterContext } from "@/app/(register)/_layout";
+import { useContext } from "react";
+function convertBirth(raw: string) {
+  if (!raw) {
+    return "";
+  }
+  const yy = Number(raw.slice(0, 2));
+  const mm = raw.slice(2, 4);
+  const dd = raw.slice(4, 6);
 
-const kakaoLogin = async () => {
-  const { accessToken, refreshToken } = await onKakaoLogin();
-  const user = await me();
-  console.log(user.email);
-  return Promise.all([
-    SecureStore.setItemAsync("accessToken", accessToken),
-    SecureStore.setItemAsync("refreshToken", refreshToken),
-  ]);
-};
+  const currentYear = new Date().getFullYear() % 100;
+
+  const fullYear =
+    yy <= currentYear ? `20${raw.slice(0, 2)}` : `19${raw.slice(0, 2)}`;
+
+  return `${fullYear}-${mm}-${dd}`;
+}
+
 const AppleLogin = async () => {
   const { accessToken, refreshToken } = await onAppleLogin();
 
@@ -19,16 +28,13 @@ const AppleLogin = async () => {
     SecureStore.setItemAsync("refreshToken", refreshToken),
   ]);
 };
-const onKakaoLogin = async (): Promise<{
-  accessToken: string | null;
-  refreshToken: string | null;
-}> => {
-  //console.log(await getKeyHashAndroid());
-  try {
-    throw new Error("강제 에러 발생");
-    const result = await KakaoLogin();
-    const accessToken = result.accessToken;
 
+const kakaoLogin = async () => {
+  try {
+    const { accessToken } = await login();
+    const user = await me();
+    await AsyncStorage.setItem("email", user.email);
+    await AsyncStorage.setItem("kakao_accessToken", accessToken);
     const res = await axios.post(
       "https://test.clodycorp.com/api/v1/auth/signin",
       {
@@ -41,7 +47,6 @@ const onKakaoLogin = async (): Promise<{
         },
       },
     );
-
     return {
       accessToken: res.data.data.accessToken,
       refreshToken: res.data.data.refreshToken,
@@ -82,7 +87,6 @@ const isAccessTokenValid = async (accessToken: string): Promise<boolean> => {
       return false;
     }
 
-    // 네트워크 에러 등은 일단 false 처리
     return false;
   }
 };
@@ -90,7 +94,6 @@ const reissueWithRefreshToken = async (
   refreshToken: string | null,
 ): Promise<boolean> => {
   if (!refreshToken) return false;
-
   try {
     const res = await axios.get(
       "https://test.clodycorp.com/api/v1/auth/reissue",
@@ -106,18 +109,48 @@ const reissueWithRefreshToken = async (
 
     await SecureStore.setItemAsync("accessToken", newAccessToken);
     await SecureStore.setItemAsync("refreshToken", newRefreshToken);
-
+    console;
     return true;
   } catch (err) {
     console.error("reissue failed:", err);
     return false;
   }
 };
+const kakaoSignUp = async (form) => {
+  try {
+    const { nickname, birthDate, fcmToken, gender } = form;
+    const accessToken = await AsyncStorage.getItem("kakao_accessToken");
+    const email = await AsyncStorage.getItem("email");
 
+    const res = await axios.post(
+      "https://test.clodycorp.com/api/v1/auth/signup",
+      {
+        platform: "kakao",
+        fcmToken: "FCM_TOKEN",
+        name: nickname,
+        gender: gender,
+        birthDate: convertBirth(birthDate),
+        email: email,
+      },
+      {
+        headers: {
+          Authorization: "Bearer " + accessToken,
+        },
+      },
+    );
+    return {
+      accessToken: res.data.data.accessToken,
+      refreshToken: res.data.data.refreshToken,
+    };
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
+};
 export default {
   kakaoLogin,
+  kakaoSignUp,
   AppleLogin,
-  onKakaoLogin,
   onAppleLogin,
   isAccessTokenValid,
   reissueWithRefreshToken,

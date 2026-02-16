@@ -27,8 +27,16 @@ export default function Introduce() {
     PretendardBold: require("../../assets/fonts/Pretendard-Bold.otf"),
     PretendardMedium: require("../../assets/fonts/Pretendard-Medium.otf"),
   });
-  const { login, finRegister } = useContext(AuthContext);
+  const { login, finRegister, isLoggedIn } = useContext(AuthContext);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      console.log("가즈아");
+      router.replace("/main");
+      return;
+    }
+  }, [isLoggedIn]);
 
   useEffect(() => {
     if (!finRegister) {
@@ -36,7 +44,6 @@ export default function Introduce() {
       return;
     }
   }, [finRegister]);
-
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(e.nativeEvent.contentOffset.x / width);
     setCurrentIndex(index);

@@ -1,10 +1,31 @@
-import { View, Text } from "react-native";
+import { View, Text, Pressable } from "react-native";
+import { AuthContext } from "../_layout";
+import { useContext } from "react";
 
 export default function Main() {
-  console.log();
+  const { logout } = useContext(AuthContext);
+
   return (
-    <View style={{ alignItems: "center", gap: 20, marginTop: 200 }}>
-      <Text style={{ color: "white", fontSize: 16 }}>main</Text>
+    <View
+      style={{
+        alignItems: "center",
+        gap: 20,
+        marginTop: 200,
+      }}
+    >
+      <Text style={{ color: "black", fontSize: 16 }}>main</Text>
+
+      <Pressable
+        onPress={logout}
+        style={{
+          backgroundColor: "#282A31",
+          paddingVertical: 12,
+          paddingHorizontal: 30,
+          borderRadius: 10,
+        }}
+      >
+        <Text style={{ color: "white", fontSize: 16 }}>로그아웃</Text>
+      </Pressable>
     </View>
   );
 }

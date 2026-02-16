@@ -1,11 +1,12 @@
 import { Slot, Stack } from "expo-router";
-import { createContext, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 interface RegisterForm {
   email: string;
   nickname: string;
   birthDate: string;
   fcmToken: string;
-  gender: "male" | "female";
+  gender: "male" | "female" | "none";
+  alarm: string;
 }
 interface RegisterContextType {
   form: RegisterForm;
@@ -18,8 +19,10 @@ export default function Register() {
     nickname: "",
     birthDate: "",
     fcmToken: "",
-    gender: "male",
+    gender: "none",
+    alarm: "",
   });
+
   return (
     <RegisterContext value={{ form, setForm }}>
       <Stack

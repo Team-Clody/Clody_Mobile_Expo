@@ -1,12 +1,11 @@
 import {
   View,
   KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   Pressable,
   Text,
   Keyboard,
-  Dimensions,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,16 +13,31 @@ import { router, usePathname } from "expo-router";
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "@/app/_layout";
 import { useFonts } from "expo-font";
+import { RegisterContext } from "@/app/(register)/_layout";
+import * as Notifications from "expo-notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import authService from "@/services/authService";
+import * as SecureStore from "expo-secure-store";
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 export default function OnboardingLayout({
   children,
   showBack = true,
   isValid,
+  ready,
   text1,
   text2,
 }: {
   children: React.ReactNode;
   showBack?: boolean;
   isValid?: boolean;
+  ready?: boolean;
   text1: string;
   text2: string;
 }) {
@@ -54,6 +68,7 @@ export default function OnboardingLayout({
   }, []);
   const { resetAuthState } = useContext(AuthContext);
   const pathname = usePathname();
+  const { form, setForm } = useContext(RegisterContext)!;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -72,6 +87,58 @@ export default function OnboardingLayout({
               <Ionicons name="chevron-back" size={28} color="#111827" />
             </Pressable>
           )}
+          {pathname !== "/name" && ready ? (
+            <Text
+              style={styles.skip}
+              onPress={async () => {
+                if (pathname == "/birth") {
+                  setForm({
+                    ...form,
+                    birthDate: "",
+                    gender: "none",
+                  });
+                  router.push("/alarm");
+                } else if (pathname == "/alarm") {
+                  const alarmId = await AsyncStorage.getItem("alarmId");
+                  if (alarmId) {
+                    await Notifications.cancelScheduledNotificationAsync(
+                      alarmId,
+                    );
+                    await AsyncStorage.removeItem("alarmId");
+                  }
+
+                  const d = new Date();
+                  d.setHours(21, 30, 0, 0);
+                  const id = await Notifications.scheduleNotificationAsync({
+                    content: {
+                      title: "클로디",
+                      body: "하루를 돌아보며 감사했던 순간을 적어보세요 ✍️",
+                    },
+                    trigger: {
+                      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+                      hour: d.getHours(),
+                      minute: d.getMinutes(),
+                    },
+                  });
+
+                  await AsyncStorage.setItem("alarmId", id);
+                  setForm({
+                    ...form,
+                    alarm: String(d),
+                  });
+                  const result = await authService.kakaoSignUp(form);
+                  await SecureStore.setItem("accessToken", result.accessToken);
+                  await SecureStore.setItem(
+                    "refreshToken",
+                    result.refreshToken,
+                  );
+                  router.replace("/main");
+                }
+              }}
+            >
+              건너뛰기
+            </Text>
+          ) : null}
         </View>
 
         {/* 콘텐츠 */}
@@ -80,7 +147,6 @@ export default function OnboardingLayout({
           <Text style={styles.sub}>{text2}</Text>
           {children}
         </View>
-
         {/* 하단 버튼 */}
         <View
           style={{
@@ -94,11 +160,40 @@ export default function OnboardingLayout({
               styles.button,
               { backgroundColor: isValid ? "#2B2F36" : "#E5E7EB" },
             ]}
-            onPress={() => {
+            onPress={async () => {
               if (pathname === "/name") {
                 router.push("/birth");
               } else if (pathname == "/birth") {
                 router.push("/alarm");
+              } else if (pathname == "/alarm") {
+                const { status } =
+                  await Notifications.requestPermissionsAsync();
+                if (status !== "granted") {
+                  Linking.openSettings();
+                  return;
+                }
+                const alarmId = await AsyncStorage.getItem("alarmId");
+                if (alarmId) {
+                  await Notifications.cancelScheduledNotificationAsync(alarmId);
+                  await AsyncStorage.removeItem("alarmId");
+                }
+                const d = new Date(form.alarm);
+                const id = await Notifications.scheduleNotificationAsync({
+                  content: {
+                    title: "클로디",
+                    body: "하루를 돌아보며 감사했던 순간을 적어보세요 ✍️",
+                  },
+                  trigger: {
+                    type: Notifications.SchedulableTriggerInputTypes.DAILY,
+                    hour: d.getHours(),
+                    minute: d.getMinutes(),
+                  },
+                });
+                await AsyncStorage.setItem("alarmId", id);
+                const result = await authService.kakaoSignUp(form);
+                await SecureStore.setItem("accessToken", result.accessToken);
+                await SecureStore.setItem("refreshToken", result.refreshToken);
+                router.replace("/main");
               }
             }}
           >
@@ -128,7 +223,10 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingLeft: 10,
-    justifyContent: "center",
+    paddingRight: 14,
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexDirection: "row",
   },
   content: {
     flex: 1,
@@ -154,5 +252,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     color: "#6B7280",
+  },
+  skip: {
+    fontFamily: "PretendardSemiBold",
+    fontSize: 16,
   },
 });

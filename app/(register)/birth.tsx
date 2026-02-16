@@ -1,8 +1,9 @@
 import { View, Text, TextInput, StyleSheet } from "react-native";
-import { useContext, useState, useRef } from "react";
+import { useContext, useState, useRef, useEffect } from "react";
 import OnboardingLayout from "@/components/OnboardingLayout";
 import { useFonts } from "expo-font";
 import { RegisterContext } from "./_layout";
+import { useNavigation } from "expo-router";
 function getGenderFromRRN(code: string) {
   const num = Number(code);
   return num % 2 === 1 ? "male" : "female";
@@ -63,10 +64,23 @@ export default function BirthScreen() {
   const backRef = useRef<TextInput>(null);
   const [active, setActive] = useState(1);
   const [cursorPos, setCursorPos] = useState(0);
+  const navigation = useNavigation() as any;
+  const [isReady, setIsReady] = useState(false);
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("transitionEnd", (e) => {
+      if (e.data.closing === false) {
+        if (!isReady) {
+          setIsReady(!isReady);
+        }
+      }
+    });
+    return unsubscribe;
+  }, [navigation, isReady]);
   return (
     <OnboardingLayout
       showBack={true}
       isValid={isValid}
+      ready={isReady}
       text1={"생년월일/성별을\n입력해 주세요"}
       text2={"맞춤형 감사일기 소재를 추천하기 위해 필요해요"}
     >

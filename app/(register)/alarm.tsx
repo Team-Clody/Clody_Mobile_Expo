@@ -1,73 +1,117 @@
-import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
+import { Text, Pressable, StyleSheet, Platform } from "react-native";
 import { useContext, useEffect, useState } from "react";
-import {} from "@expo/vector-icons";
-import { useNavigation } from "expo-router";
 import OnboardingLayout from "@/components/OnboardingLayout";
-import { AuthContext } from "../_layout";
 import { useFonts } from "expo-font";
 import { RegisterContext } from "./_layout";
+import DateTimePicker, {
+  DateTimePickerAndroid,
+} from "@react-native-community/datetimepicker";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "expo-router";
 export default function NameScreen() {
-  const { resetAuthState } = useContext(AuthContext);
-  const { form } = useContext(RegisterContext)!;
-  console.log(form);
-  const navigation = useNavigation();
-  const [isValid, setIsValid] = useState(false);
+  const { form, setForm } = useContext(RegisterContext)!;
+  const [isValid, setIsValid] = useState(true);
   const [fontsLoaded] = useFonts({
     PretendardMedium: require("../../assets/fonts/Pretendard-Medium.otf"),
   });
-  // 뒤로가기 상태 리셋
+  const navigation = useNavigation() as any;
+  const [isReady, setIsReady] = useState(false);
   useEffect(() => {
-    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
-      resetAuthState();
+    const unsubscribe = navigation.addListener("transitionEnd", (e) => {
+      if (e.data.closing === false) {
+        if (!isReady) {
+          setIsReady(!isReady);
+        }
+      }
     });
-
     return unsubscribe;
-  }, [navigation, resetAuthState]);
+  }, [navigation, isReady]);
+  const [date, setDate] = useState(new Date());
+  const [showIOSPicker, setShowIOSPicker] = useState(false);
+
+  const onChange = (event: any, selectedDate?: Date) => {
+    if (selectedDate) {
+      setDate(selectedDate);
+    }
+
+    if (Platform.OS === "ios") {
+      setShowIOSPicker(false);
+    }
+  };
+  useEffect(() => {
+    setForm({ ...form, alarm: String(date) });
+  }, [date]);
+
+  const openPicker = () => {
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        value: date,
+        mode: "time",
+        is24Hour: false,
+        display: "spinner",
+        onChange,
+        positiveButton: { label: "확인", textColor: "#111" },
+        negativeButton: { label: "취소", textColor: "#999" },
+      });
+    } else {
+      setShowIOSPicker(true);
+    }
+  };
+
+  const formatTime = (d: Date) => {
+    const hours = d.getHours();
+    const minutes = d.getMinutes();
+    const period = hours >= 12 ? "오후" : "오전";
+    const displayHour = hours % 12 === 0 ? 12 : hours % 12;
+
+    return `${period} ${displayHour}시 ${minutes
+      .toString()
+      .padStart(2, "0")}분`;
+  };
+
   return (
     <OnboardingLayout
       showBack={true}
       isValid={isValid}
-      text1={"만나서 반가워요\n어떻게 불러드릴까요?"}
-      text2={"프로필에 보일 닉네임이에요"}
+      ready={isReady}
+      text1={"몇 시에 감사일기\n작성 알림을 드릴까요?"}
+      text2={"잊지 않고 감사일기를 작성할 수 있도록 알림을 보내드려요"}
     >
-      <View style={styles.inputWrap}>
-        <Text>알람!!</Text>
-      </View>
+      <Pressable style={styles.selectBox} onPress={openPicker}>
+        <Text style={styles.selectText}>{formatTime(date)}</Text>
+        <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
+      </Pressable>
+
+      {Platform.OS === "ios" && showIOSPicker && (
+        <DateTimePicker
+          value={date}
+          mode="time"
+          is24Hour={false}
+          display="spinner"
+          onChange={onChange}
+        />
+      )}
     </OnboardingLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  inputWrap: {
-    marginTop: 50,
+  selectBox: {
     borderWidth: 1,
     borderColor: "#929ca0",
-    borderRadius: 6,
+    borderRadius: 8,
+    marginTop: 50,
     paddingHorizontal: 14,
-    height: 52,
+    height: 56,
+    backgroundColor: "#F9FAFB",
+
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#fff",
+    justifyContent: "space-between",
   },
-  input: {
-    fontFamily: "PretendardMedium",
-    flex: 1,
+
+  selectText: {
     fontSize: 16,
     color: "#111827",
-  },
-  counter: {
-    marginTop: 4,
-    fontSize: 14,
-    color: "#9CA3AF",
-    textAlign: "right",
-  },
-  errorText: {
-    marginTop: 6,
-    fontSize: 13,
-    color: "#FF4D4F",
-  },
-  errorHidden: {
-    opacity: 0, // 🔥 자리 유지하면서 안보이게
   },
 });
