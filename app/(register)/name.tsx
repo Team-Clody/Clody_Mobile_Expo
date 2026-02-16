@@ -1,7 +1,7 @@
 import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
 import { useContext, useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useNavigation } from "expo-router";
+import { useNavigation } from "expo-router";
 import OnboardingLayout from "@/components/OnboardingLayout";
 import { AuthContext } from "../_layout";
 import { useFonts } from "expo-font";

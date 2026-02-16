@@ -1,5 +1,5 @@
-import { Slot, Stack } from "expo-router";
-import { createContext, useEffect, useState } from "react";
+import { Stack } from "expo-router";
+import { createContext, useState } from "react";
 interface RegisterForm {
   email: string;
   nickname: string;

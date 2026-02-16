@@ -2,8 +2,6 @@ import { login, me } from "@react-native-kakao/user";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { RegisterContext } from "@/app/(register)/_layout";
-import { useContext } from "react";
 function convertBirth(raw: string) {
   if (!raw) {
     return "";
