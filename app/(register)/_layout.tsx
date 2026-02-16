@@ -1,4 +1,4 @@
-import { Slot } from "expo-router";
+import { Slot, Stack } from "expo-router";
 import { createContext, useState } from "react";
 interface RegisterForm {
   email: string;
@@ -22,7 +22,12 @@ export default function Register() {
   });
   return (
     <RegisterContext value={{ form, setForm }}>
-      <Slot />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: "slide_from_right",
+        }}
+      />
     </RegisterContext>
   );
 }
