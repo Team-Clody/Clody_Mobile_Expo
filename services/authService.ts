@@ -2,6 +2,9 @@ import { login, me } from "@react-native-kakao/user";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
 function convertBirth(raw: string) {
   if (!raw) {
     return "";
@@ -116,15 +119,15 @@ const reissueWithRefreshToken = async (
 };
 const kakaoSignUp = async (form) => {
   try {
-    const { nickname, birthDate, fcmToken, gender } = form;
+    const { nickname, birthDate, gender } = form;
     const accessToken = await AsyncStorage.getItem("kakao_accessToken");
     const email = await AsyncStorage.getItem("email");
-
+    // let fcmToken = await getPushToken();
     const res = await axios.post(
       "https://test.clodycorp.com/api/v1/auth/signup",
       {
         platform: "kakao",
-        fcmToken: "FCM_TOKEN",
+        fcmToken: "fcmToken",
         name: nickname,
         gender: gender,
         birthDate: convertBirth(birthDate),
@@ -145,6 +148,13 @@ const kakaoSignUp = async (form) => {
     throw e;
   }
 };
+async function getPushToken() {
+  let fcmToken = (await Notifications.getDevicePushTokenAsync()).data;
+  console.log(fcmToken);
+  return {
+    fcmToken,
+  };
+}
 export default {
   kakaoLogin,
   kakaoSignUp,
@@ -152,4 +162,5 @@ export default {
   onAppleLogin,
   isAccessTokenValid,
   reissueWithRefreshToken,
+  getPushToken,
 };

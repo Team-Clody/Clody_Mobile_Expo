@@ -8,6 +8,7 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "expo-router";
+
 export default function NameScreen() {
   const { form, setForm } = useContext(RegisterContext)!;
   const [isValid, setIsValid] = useState(true);
@@ -16,6 +17,7 @@ export default function NameScreen() {
   });
   const navigation = useNavigation() as any;
   const [isReady, setIsReady] = useState(false);
+
   useEffect(() => {
     const unsubscribe = navigation.addListener("transitionEnd", (e) => {
       if (e.data.closing === false) {
@@ -81,7 +83,7 @@ export default function NameScreen() {
         <Text style={styles.selectText}>{formatTime(date)}</Text>
         <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
       </Pressable>
-
+      // use DatePicker
       {Platform.OS === "ios" && showIOSPicker && (
         <DateTimePicker
           value={date}

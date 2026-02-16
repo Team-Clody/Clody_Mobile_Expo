@@ -9,7 +9,7 @@ import {
 import authService from "@/services/authService";
 import { StatusBar } from "expo-status-bar";
 import axios from "axios";
-
+import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
