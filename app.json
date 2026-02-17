@@ -61,8 +61,7 @@
           }
         }
       ],
-      "@react-native-kakao/core",
-      "@react-native-community/datetimepicker"
+      "@react-native-kakao/core"
     ],
     "experiments": {
       "typedRoutes": true,

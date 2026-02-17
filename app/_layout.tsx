@@ -9,8 +9,8 @@ import {
 import authService from "@/services/authService";
 import { StatusBar } from "expo-status-bar";
 import axios from "axios";
-import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
+import * as Localization from "expo-localization";
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 Notifications.setNotificationHandler({
@@ -25,6 +25,7 @@ export const AuthContext = createContext<{
   login: (platform: string) => Promise<void>;
   logout?: () => Promise<any>;
   signup?: () => void;
+  locale: Localization.Locale;
   resetAuthState: () => void;
   finIntroduce: boolean;
   isLoggedIn: boolean;
@@ -32,6 +33,7 @@ export const AuthContext = createContext<{
 }>({});
 
 export default function RootLayout() {
+  const locale = Localization.getLocales()[0];
   const [finIntroduce, setFinIsIntroduce] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [finRegister, setFinRegister] = useState(true);
@@ -138,6 +140,7 @@ export default function RootLayout() {
     <AuthContext
       value={{
         login,
+        locale,
         logout,
         signup,
         finIntroduce,

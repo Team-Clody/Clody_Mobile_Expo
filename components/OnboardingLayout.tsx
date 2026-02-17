@@ -99,14 +99,6 @@ export default function OnboardingLayout({
                   });
                   router.push("/alarm");
                 } else if (pathname == "/alarm") {
-                  const alarmId = await AsyncStorage.getItem("alarmId");
-                  if (alarmId) {
-                    await Notifications.cancelScheduledNotificationAsync(
-                      alarmId,
-                    );
-                    await AsyncStorage.removeItem("alarmId");
-                  }
-
                   const d = new Date();
                   d.setHours(21, 30, 0, 0);
                   const id = await Notifications.scheduleNotificationAsync({

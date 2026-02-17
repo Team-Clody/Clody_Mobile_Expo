@@ -1,23 +1,32 @@
-import { Text, Pressable, StyleSheet, Platform } from "react-native";
+import {
+  Text,
+  Pressable,
+  StyleSheet,
+  View,
+  Modal,
+  Animated,
+} from "react-native";
 import { useContext, useEffect, useState } from "react";
 import OnboardingLayout from "@/components/OnboardingLayout";
 import { useFonts } from "expo-font";
 import { RegisterContext } from "./_layout";
-import DateTimePicker, {
-  DateTimePickerAndroid,
-} from "@react-native-community/datetimepicker";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "expo-router";
-
+import TimePicker from "@/components/TimePicker";
 export default function NameScreen() {
   const { form, setForm } = useContext(RegisterContext)!;
   const [isValid, setIsValid] = useState(true);
   const [fontsLoaded] = useFonts({
+    PretendardRegular: require("../../assets/fonts/Pretendard-Regular.otf"),
+    PretendardBold: require("../../assets/fonts/Pretendard-Bold.otf"),
     PretendardMedium: require("../../assets/fonts/Pretendard-Medium.otf"),
+    PretendardSemiBold: require("../../assets/fonts/Pretendard-SemiBold.otf"),
   });
   const navigation = useNavigation() as any;
   const [isReady, setIsReady] = useState(false);
-
+  const [visible, setVisible] = useState(false);
+  const slideAnim = useState(new Animated.Value(300))[0]; // 아래에서 시작
   useEffect(() => {
     const unsubscribe = navigation.addListener("transitionEnd", (e) => {
       if (e.data.closing === false) {
@@ -29,37 +38,48 @@ export default function NameScreen() {
     return unsubscribe;
   }, [navigation, isReady]);
   const [date, setDate] = useState(new Date());
-  const [showIOSPicker, setShowIOSPicker] = useState(false);
+  const [selectedTime, setSelectedTime] = useState<{
+    ampm: string;
+    hour: string;
+    minute: string;
+  } | null>(null);
 
-  const onChange = (event: any, selectedDate?: Date) => {
-    if (selectedDate) {
-      setDate(selectedDate);
-    }
+  const dateToTime = (d: Date) => {
+    const hours = d.getHours();
+    const minutes = d.getMinutes();
 
-    if (Platform.OS === "ios") {
-      setShowIOSPicker(false);
-    }
+    const ampm = hours >= 12 ? "오후" : "오전";
+    const displayHour = hours % 12 === 0 ? 12 : hours % 12;
+
+    return {
+      ampm,
+      hour: displayHour.toString().padStart(2, "0"),
+      minute: minutes.toString().padStart(2, "0"),
+    };
   };
   useEffect(() => {
     setForm({ ...form, alarm: String(date) });
+    console.log(form);
   }, [date]);
 
   const openPicker = () => {
-    if (Platform.OS === "android") {
-      DateTimePickerAndroid.open({
-        value: date,
-        mode: "time",
-        is24Hour: false,
-        display: "spinner",
-        onChange,
-        positiveButton: { label: "확인", textColor: "#111" },
-        negativeButton: { label: "취소", textColor: "#999" },
-      });
-    } else {
-      setShowIOSPicker(true);
-    }
+    setVisible(true);
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
   };
 
+  const closePicker = () => {
+    Animated.timing(slideAnim, {
+      toValue: 300,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setVisible(false);
+    });
+  };
   const formatTime = (d: Date) => {
     const hours = d.getHours();
     const minutes = d.getMinutes();
@@ -70,7 +90,40 @@ export default function NameScreen() {
       .toString()
       .padStart(2, "0")}분`;
   };
+  const handleConfirm = () => {
+    if (!selectedTime) return;
 
+    const { ampm, hour, minute } = selectedTime;
+
+    let h = parseInt(hour, 10);
+    const m = parseInt(minute, 10);
+
+    // 12시간 → 24시간 변환
+    if (ampm === "오후" && h !== 12) {
+      h += 12;
+    }
+    if (ampm === "오전" && h === 12) {
+      h = 0;
+    }
+
+    const now = new Date();
+    const newDate = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      h,
+      m,
+      0,
+    );
+
+    console.log("최종 Date:", newDate);
+    console.log("ISO:", newDate.toISOString());
+
+    setDate(newDate); // 기존 date 상태 업데이트
+    setForm({ ...form, alarm: newDate.toISOString() });
+
+    closePicker();
+  };
   return (
     <OnboardingLayout
       showBack={true}
@@ -83,16 +136,40 @@ export default function NameScreen() {
         <Text style={styles.selectText}>{formatTime(date)}</Text>
         <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
       </Pressable>
-      // use DatePicker
-      {Platform.OS === "ios" && showIOSPicker && (
-        <DateTimePicker
-          value={date}
-          mode="time"
-          is24Hour={false}
-          display="spinner"
-          onChange={onChange}
-        />
-      )}
+      <Modal transparent visible={visible} animationType="none">
+        <View style={styles.overlay}>
+          {/* 바깥 클릭 영역 */}
+          <Pressable style={StyleSheet.absoluteFill} onPress={closePicker} />
+
+          {/* 실제 바텀시트 */}
+          <Animated.View
+            style={[
+              styles.bottomSheet,
+              { transform: [{ translateY: slideAnim }] },
+            ]}
+          >
+            <Text style={styles.sheetTitle}>알림 시간을 선택해주세요</Text>
+            <TimePicker
+              itemHeight={40}
+              initValue={dateToTime(date)} // 👈 여기 추가
+              onTimeChange={(time) => {
+                setSelectedTime(time);
+              }}
+            />
+            <Pressable style={styles.confirmBtn} onPress={handleConfirm}>
+              <Text
+                style={{
+                  color: "#FFFFFF",
+                  fontFamily: "PretendardSemiBold",
+                  fontSize: 16,
+                }}
+              >
+                확인
+              </Text>
+            </Pressable>
+          </Animated.View>
+        </View>
+      </Modal>
     </OnboardingLayout>
   );
 }
@@ -115,5 +192,33 @@ const styles = StyleSheet.create({
   selectText: {
     fontSize: 16,
     color: "#111827",
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+
+  bottomSheet: {
+    height: 350, // 원하는 높이
+    backgroundColor: "white",
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingHorizontal: 15,
+    paddingVertical: 23,
+  },
+
+  sheetTitle: {
+    fontSize: 18,
+    marginBottom: 30,
+    fontFamily: "PretendardBold",
+  },
+
+  confirmBtn: {
+    marginTop: 20,
+    backgroundColor: "#293038",
+    paddingVertical: 18,
+    borderRadius: 7,
+    alignItems: "center",
   },
 });
