@@ -18,7 +18,7 @@ import AppleLoginButton from "@/components/AppleLoginButton";
 import img1 from "@/assets/images/img_signin_pager_1.png";
 import img2 from "@/assets/images/img_signin_pager_2.png";
 import img3 from "@/assets/images/img_signin_pager_3.png";
-
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Localization from "expo-localization";
 import GoogleLoginButton from "@/components/googleLoginButton";
 const { width } = Dimensions.get("window");
@@ -72,7 +72,7 @@ export default function Introduce() {
           : "오늘과 전날 일기만 \n작성할 수 있어요",
     },
   ];
-
+  const insets = useSafeAreaInsets();
   return (
     <View style={styles.container}>
       <View style={styles.top}>
@@ -138,7 +138,9 @@ export default function Introduce() {
       <View
         style={[
           styles.bottom,
-          { paddingBottom: languageTag === "en-US" ? 30 : 50 },
+          {
+            paddingBottom: (languageTag === "en-US" ? 30 : 50) + insets.bottom,
+          },
         ]}
       >
         {Platform.OS === "android" && languageTag === "en-US" && (
