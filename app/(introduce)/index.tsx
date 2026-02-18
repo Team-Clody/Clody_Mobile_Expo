@@ -47,7 +47,7 @@ export default function Introduce() {
   const slides = [
     {
       image: img1,
-      label: languageTag === "en-US" ? "Your friend Lody" : "AI 친구 로디",
+      label: languageTag === "en-US" ? "Your friend Lody " : "AI 친구 로디",
       title:
         languageTag === "en-US"
           ? "Replies filled with\ncompliments and\nencouragement."
@@ -55,7 +55,7 @@ export default function Introduce() {
     },
     {
       image: img2,
-      label: languageTag === "en-US" ? "Lucky Clover" : "행운의 클로버",
+      label: languageTag === "en-US" ? "Lucky Clover " : "행운의 클로버",
       title:
         languageTag === "en-US"
           ? "The more you confide in \nLody, the luckier your \nclover becomes"
@@ -63,7 +63,7 @@ export default function Introduce() {
     },
     {
       image: img3,
-      label: languageTag === "en-US" ? "Gratitude journal" : "감사일기",
+      label: languageTag === "en-US" ? "Gratitude journal " : "감사일기",
       title:
         languageTag === "en-US"
           ? "You can only journal \nfor today and yesterday"
@@ -84,7 +84,17 @@ export default function Introduce() {
             <View key={i} style={[styles.slide, { width }]}>
               {/* 🔹 상단 텍스트 */}
               <View style={[styles.textArea, { width: "100%" }]}>
-                <View style={styles.labelBox}>
+                <View
+                  style={[
+                    styles.labelBox,
+                    {
+                      paddingVertical: languageTag === "en-US" ? 5 : 5,
+                      paddingHorizontal: languageTag === "en-US" ? 9 : 9,
+                      paddingTop: languageTag === "en-US" ? 5 : 4,
+                      paddingRight: languageTag === "en-US" ? 9 : 8,
+                    },
+                  ]}
+                >
                   <Text style={styles.label}>{slide.label}</Text>
                 </View>
 
@@ -112,7 +122,7 @@ export default function Introduce() {
           ))}
         </ScrollView>
         <View
-          style={[styles.dots, { bottom: languageTag === "en-US" ? 5 : 20 }]}
+          style={[styles.dots, { bottom: languageTag === "en-US" ? -5 : 27 }]}
         >
           {slides.map((_, i) => (
             <View
@@ -196,9 +206,7 @@ const styles = StyleSheet.create({
 
   labelBox: {
     backgroundColor: "#F1F1F1",
-    paddingLeft: 9,
-    paddingRight: 8,
-    paddingVertical: 4,
+    display: "flex",
     borderRadius: 4,
     marginBottom: 20,
     justifyContent: "center",
@@ -207,8 +215,8 @@ const styles = StyleSheet.create({
 
   label: {
     fontSize: 15,
+    lineHeight: 22,
     color: "#4C4C4C",
-    fontWeight: "500",
     fontFamily: "PretendardMedium",
   },
   title: {},
