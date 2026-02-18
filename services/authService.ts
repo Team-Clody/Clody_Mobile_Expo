@@ -122,12 +122,12 @@ const kakaoSignUp = async (form) => {
     const { nickname, birthDate, gender } = form;
     const accessToken = await AsyncStorage.getItem("kakao_accessToken");
     const email = await AsyncStorage.getItem("email");
-    // let fcmToken = await getPushToken();
+    let fcmToken = await getPushToken();
     const res = await axios.post(
       "https://test.clodycorp.com/api/v1/auth/signup",
       {
         platform: "kakao",
-        fcmToken: "fcmToken",
+        fcmToken: fcmToken ? fcmToken : null,
         name: nickname,
         gender: gender,
         birthDate: convertBirth(birthDate),
@@ -149,11 +149,13 @@ const kakaoSignUp = async (form) => {
   }
 };
 async function getPushToken() {
-  let fcmToken = (await Notifications.getDevicePushTokenAsync()).data;
-  console.log(fcmToken);
-  return {
-    fcmToken,
-  };
+  try {
+    let fcmToken = (await Notifications.getDevicePushTokenAsync()).data;
+    return fcmToken;
+  } catch (e) {
+    console.log(e);
+    return null;
+  }
 }
 export default {
   kakaoLogin,
