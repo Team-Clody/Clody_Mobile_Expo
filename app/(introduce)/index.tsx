@@ -52,7 +52,7 @@ export default function Introduce() {
       label: languageTag === "en-US" ? "Your friend Lody " : "AI 친구 로디",
       title:
         languageTag === "en-US"
-          ? "Replies filled with\ncompliments and\nencouragement."
+          ? "Replies filled with\ncompliments and\nencouragement"
           : "감사일기에 칭찬과 응원의\n답장을 작성해요",
     },
     {
@@ -139,13 +139,13 @@ export default function Introduce() {
         style={[
           styles.bottom,
           {
-            paddingBottom: (languageTag === "en-US" ? 30 : 50) + insets.bottom,
+            paddingBottom: insets.bottom,
           },
         ]}
       >
         {Platform.OS === "android" && languageTag === "en-US" && (
           <>
-            <GoogleLoginButton onPress={() => login("kakao")} />
+            <GoogleLoginButton onPress={() => login("google")} />
             <GoogleLoginButton onPress={() => login("kakao")} />
           </>
         )}
@@ -214,7 +214,6 @@ const styles = StyleSheet.create({
 
   bottom: {
     paddingHorizontal: 16,
-    paddingBottom: 50,
   },
   slide: {
     flex: 1,

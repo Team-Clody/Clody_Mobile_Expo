@@ -5,6 +5,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import {
+  GoogleSignin,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
+
 function convertBirth(raw: string) {
   if (!raw) {
     return "";
@@ -36,11 +41,12 @@ const kakaoLogin = async () => {
     const user = await me();
     await AsyncStorage.setItem("email", user.email);
     await AsyncStorage.setItem("kakao_accessToken", accessToken);
+    let fcmToken = await getPushToken();
     const res = await axios.post(
       "https://test.clodycorp.com/api/v1/auth/signin",
       {
         platform: "kakao",
-        fcmToken: "FCM_TOKEN",
+        fcmToken: fcmToken,
       },
       {
         headers: {
@@ -48,6 +54,34 @@ const kakaoLogin = async () => {
         },
       },
     );
+    return {
+      accessToken: res.data.data.accessToken,
+      refreshToken: res.data.data.refreshToken,
+    };
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
+};
+const googleLogin = async () => {
+  try {
+    const userInfo = await GoogleSignin.signIn();
+    const { idToken } = userInfo.data;
+    const email = userInfo.data?.user.email;
+    const accessToken = idToken;
+    console.log("idToken: ", idToken);
+    let fcmToken = await getPushToken();
+    await AsyncStorage.setItem("email", email);
+    await AsyncStorage.setItem("google_accessToken", accessToken);
+    const res = await axios.post(
+      "https://test.clodycorp.com/api/v1/oauth2/google",
+      {
+        idToken: idToken,
+        fcmToken: fcmToken,
+      },
+    );
+    console.log("here");
+    console.log();
     return {
       accessToken: res.data.data.accessToken,
       refreshToken: res.data.data.refreshToken,
@@ -139,6 +173,39 @@ const kakaoSignUp = async (form) => {
         },
       },
     );
+    await AsyncStorage.removeItem("kakao_accessToken");
+    return {
+      accessToken: res.data.data.accessToken,
+      refreshToken: res.data.data.refreshToken,
+    };
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
+};
+const googleSignUp = async (form) => {
+  try {
+    const { nickname, birthDate, gender } = form;
+    const accessToken = await AsyncStorage.getItem("google_accessToken");
+    const email = await AsyncStorage.getItem("email");
+    let fcmToken = await getPushToken();
+    const res = await axios.post(
+      "https://test.clodycorp.com/api/v1/auth/signup",
+      {
+        platform: "google",
+        fcmToken: fcmToken ? fcmToken : null,
+        name: nickname,
+        gender: gender,
+        birthDate: convertBirth(birthDate),
+        email: email,
+      },
+      {
+        headers: {
+          Authorization: "Bearer " + accessToken,
+        },
+      },
+    );
+    await AsyncStorage.removeItem("google_accessToken");
     return {
       accessToken: res.data.data.accessToken,
       refreshToken: res.data.data.refreshToken,
@@ -161,7 +228,9 @@ export default {
   kakaoLogin,
   kakaoSignUp,
   AppleLogin,
+  googleLogin,
   onAppleLogin,
+  googleSignUp,
   isAccessTokenValid,
   reissueWithRefreshToken,
   getPushToken,

@@ -37,26 +37,18 @@ export default function NameScreen() {
     });
     return unsubscribe;
   }, [navigation, isReady]);
-  const [date, setDate] = useState(new Date());
+
+  const [date, setDate] = useState(() => {
+    const d = new Date();
+    d.setHours(21, 30, 0, 0);
+    return d;
+  });
   const [selectedTime, setSelectedTime] = useState<{
     ampm: string;
     hour: string;
     minute: string;
   } | null>(null);
 
-  const dateToTime = (d: Date) => {
-    const hours = d.getHours();
-    const minutes = d.getMinutes();
-
-    const ampm = hours >= 12 ? "오후" : "오전";
-    const displayHour = hours % 12 === 0 ? 12 : hours % 12;
-
-    return {
-      ampm,
-      hour: displayHour.toString().padStart(2, "0"),
-      minute: minutes.toString().padStart(2, "0"),
-    };
-  };
   useEffect(() => {
     setForm({ ...form, alarm: String(date) });
     console.log(form);
@@ -116,9 +108,6 @@ export default function NameScreen() {
       0,
     );
 
-    console.log("최종 Date:", newDate);
-    console.log("ISO:", newDate.toISOString());
-
     setDate(newDate); // 기존 date 상태 업데이트
     setForm({ ...form, alarm: newDate.toISOString() });
 
@@ -151,7 +140,6 @@ export default function NameScreen() {
             <Text style={styles.sheetTitle}>알림 시간을 선택해주세요</Text>
             <TimePicker
               itemHeight={40}
-              initValue={dateToTime(date)} // 👈 여기 추가
               onTimeChange={(time) => {
                 setSelectedTime(time);
               }}

@@ -12,6 +12,10 @@ import axios from "axios";
 import * as Notifications from "expo-notifications";
 import * as Localization from "expo-localization";
 import * as Font from "expo-font";
+import {
+  GoogleSignin,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 Notifications.setNotificationHandler({
@@ -47,7 +51,14 @@ export default function RootLayout() {
   useEffect(() => {
     initializeKakaoSDK("eb5b3511f81201dba4850861989793f6");
   }, []);
-
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId:
+        "430648671385-528nt4hgbsmiufvcvi4tt9h648pcl3no.apps.googleusercontent.com",
+      offlineAccess: true, // refresh token 필요하면 true
+      forceCodeForRefreshToken: true,
+    });
+  }, []);
   useEffect(() => {
     const checkLogin = async () => {
       try {
@@ -108,7 +119,9 @@ export default function RootLayout() {
         result = await authService.kakaoLogin();
       } else if (platform === "apple") {
         result = await authService.AppleLogin();
+      } else if (platform === "google") {
       }
+      result = await authService.googleLogin();
       if (!result) {
         setIsLoggedIn(false);
         return;

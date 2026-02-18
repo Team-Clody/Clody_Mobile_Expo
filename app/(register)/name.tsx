@@ -40,7 +40,7 @@ export default function NameScreen() {
         <TextInput
           value={nickname}
           onChangeText={(text) => {
-            if (/^[a-zA-Z0-9가-힣]{1,10}$/.test(text)) {
+            if (/^[a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ]{1,10}$/.test(text)) {
               setIsValid(true);
             } else {
               setIsValid(false);

@@ -112,13 +112,22 @@ export default function OnboardingLayout({
                       minute: d.getMinutes(),
                     },
                   });
-
+                  console.log(form);
                   await AsyncStorage.setItem("alarmId", id);
                   setForm({
                     ...form,
                     alarm: String(d),
                   });
-                  const result = await authService.kakaoSignUp(form);
+                  const kakao = await AsyncStorage.getItem("kakao_accessToken");
+                  const google =
+                    await AsyncStorage.getItem("google_accessToken");
+                  let result;
+                  if (kakao) {
+                    result = await authService.kakaoSignUp(form);
+                  } else if (google) {
+                    result = await authService.googleSignUp(form);
+                  }
+
                   await SecureStore.setItem("accessToken", result.accessToken);
                   await SecureStore.setItem(
                     "refreshToken",
@@ -182,7 +191,15 @@ export default function OnboardingLayout({
                   },
                 });
                 await AsyncStorage.setItem("alarmId", id);
-                const result = await authService.kakaoSignUp(form);
+                console.log(form);
+                const kakao = await AsyncStorage.getItem("kakao_accessToken");
+                const google = await AsyncStorage.getItem("google_accessToken");
+                let result;
+                if (kakao) {
+                  result = await authService.kakaoSignUp(form);
+                } else if (google) {
+                  result = await authService.googleSignUp(form);
+                }
                 await SecureStore.setItem("accessToken", result.accessToken);
                 await SecureStore.setItem("refreshToken", result.refreshToken);
                 router.replace("/main");
