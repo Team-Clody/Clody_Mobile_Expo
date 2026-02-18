@@ -18,7 +18,9 @@ import AppleLoginButton from "@/components/AppleLoginButton";
 import img1 from "@/assets/images/img_signin_pager_1.png";
 import img2 from "@/assets/images/img_signin_pager_2.png";
 import img3 from "@/assets/images/img_signin_pager_3.png";
+
 import * as Localization from "expo-localization";
+import GoogleLoginButton from "@/components/googleLoginButton";
 const { width } = Dimensions.get("window");
 
 export default function Introduce() {
@@ -133,15 +135,33 @@ export default function Introduce() {
         </View>
       </View>
 
-      <View style={styles.bottom}>
-        {Platform.OS === "android" && (
+      <View
+        style={[
+          styles.bottom,
+          { paddingBottom: languageTag === "en-US" ? 30 : 50 },
+        ]}
+      >
+        {Platform.OS === "android" && languageTag === "en-US" && (
+          <>
+            <GoogleLoginButton onPress={() => login("kakao")} />
+            <GoogleLoginButton onPress={() => login("kakao")} />
+          </>
+        )}
+        {Platform.OS === "android" && languageTag !== "en-US" && (
           <>
             <KakaoLoginButton onPress={() => login("kakao")} />
             <KakaoLoginButton onPress={() => login("kakao")} />
           </>
         )}
 
-        {Platform.OS === "ios" && (
+        {Platform.OS === "ios" && languageTag === "en-US" && (
+          <>
+            <KakaoLoginButton onPress={() => login("kakao")} />
+            <View style={{ height: 12 }} />
+            <AppleLoginButton onPress={() => login("apple")} />
+          </>
+        )}
+        {Platform.OS === "ios" && languageTag !== "en-US" && (
           <>
             <KakaoLoginButton onPress={() => login("kakao")} />
             <View style={{ height: 12 }} />

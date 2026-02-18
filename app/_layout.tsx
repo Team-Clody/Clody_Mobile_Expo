@@ -90,6 +90,7 @@ export default function RootLayout() {
         PretendardRegular: require("../assets/fonts/Pretendard-Regular.otf"),
         PretendardBold: require("../assets/fonts/Pretendard-Bold.otf"),
         PretendardMedium: require("../assets/fonts/Pretendard-Medium.otf"),
+        PretendardSemiBold: require("../assets/fonts/Pretendard-SemiBold.otf"),
       });
     }
     async function prepare() {
