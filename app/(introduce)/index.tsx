@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -18,21 +18,17 @@ import AppleLoginButton from "@/components/AppleLoginButton";
 import img1 from "@/assets/images/img_signin_pager_1.png";
 import img2 from "@/assets/images/img_signin_pager_2.png";
 import img3 from "@/assets/images/img_signin_pager_3.png";
-
+import * as Localization from "expo-localization";
 const { width } = Dimensions.get("window");
 
 export default function Introduce() {
-  const [fontsLoaded] = useFonts({
-    PretendardRegular: require("../../assets/fonts/Pretendard-Regular.otf"),
-    PretendardBold: require("../../assets/fonts/Pretendard-Bold.otf"),
-    PretendardMedium: require("../../assets/fonts/Pretendard-Medium.otf"),
-  });
   const { login, finRegister, isLoggedIn } = useContext(AuthContext);
+  const locale = Localization.getLocales()[0];
+  console.log(locale);
+  const { languageTag } = locale;
   const [currentIndex, setCurrentIndex] = useState(0);
-
   useEffect(() => {
     if (isLoggedIn) {
-      console.log("가즈아");
       router.replace("/main");
       return;
     }
@@ -51,18 +47,27 @@ export default function Introduce() {
   const slides = [
     {
       image: img1,
-      label: "AI 친구 로디",
-      title: "감사일기에 칭찬과 응원의\n답장을 작성해요",
+      label: languageTag === "en-US" ? "Your friend Lody" : "AI 친구 로디",
+      title:
+        languageTag === "en-US"
+          ? "Replies filled with\ncompliments and\nencouragement."
+          : "감사일기에 칭찬과 응원의\n답장을 작성해요",
     },
     {
       image: img2,
-      label: "행운의 클로버",
-      title: "하루에 기록한 감사가\n쌓일수록 클로버가 진해져요",
+      label: languageTag === "en-US" ? "Lucky Clover" : "행운의 클로버",
+      title:
+        languageTag === "en-US"
+          ? "The more you confide in \nLody, the luckier your \nclover becomes"
+          : "하루에 기록한 감사가\n쌓일수록 클로버가 진해져요",
     },
     {
       image: img3,
-      label: "감사일기",
-      title: "오늘과 전날 일기만\n작성할 수 있어요",
+      label: languageTag === "en-US" ? "Gratitude journal" : "감사일기",
+      title:
+        languageTag === "en-US"
+          ? "You can only journal \nfor today and yesterday"
+          : "오늘과 전날 일기만 \n작성할 수 있어요",
     },
   ];
 
@@ -78,12 +83,25 @@ export default function Introduce() {
           {slides.map((slide, i) => (
             <View key={i} style={[styles.slide, { width }]}>
               {/* 🔹 상단 텍스트 */}
-              <View style={styles.textArea}>
+              <View style={[styles.textArea, { width: "100%" }]}>
                 <View style={styles.labelBox}>
                   <Text style={styles.label}>{slide.label}</Text>
                 </View>
 
-                <Text style={styles.title}>{slide.title}</Text>
+                <Text
+                  style={[
+                    {
+                      fontSize: 22,
+                      textAlign: "center",
+                      lineHeight: 31,
+                      fontFamily: "PretendardBold",
+                      width: "100%",
+                      paddingTop: 2,
+                    },
+                  ]}
+                >
+                  {slide.title}
+                </Text>
               </View>
               <Image
                 source={slide.image}
@@ -93,7 +111,9 @@ export default function Introduce() {
             </View>
           ))}
         </ScrollView>
-        <View style={styles.dots}>
+        <View
+          style={[styles.dots, { bottom: languageTag === "en-US" ? 5 : 20 }]}
+        >
           {slides.map((_, i) => (
             <View
               key={i}
@@ -162,7 +182,7 @@ const styles = StyleSheet.create({
 
   bottom: {
     paddingHorizontal: 16,
-    paddingBottom: 75,
+    paddingBottom: 50,
   },
   slide: {
     flex: 1,
@@ -176,10 +196,13 @@ const styles = StyleSheet.create({
 
   labelBox: {
     backgroundColor: "#F1F1F1",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingLeft: 9,
+    paddingRight: 8,
+    paddingVertical: 4,
     borderRadius: 4,
     marginBottom: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   label: {
@@ -188,12 +211,5 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     fontFamily: "PretendardMedium",
   },
-
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    textAlign: "center",
-    lineHeight: 28,
-    fontFamily: "PretendardBold",
-  },
+  title: {},
 });

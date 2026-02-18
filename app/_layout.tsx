@@ -11,6 +11,7 @@ import { StatusBar } from "expo-status-bar";
 import axios from "axios";
 import * as Notifications from "expo-notifications";
 import * as Localization from "expo-localization";
+import * as Font from "expo-font";
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 Notifications.setNotificationHandler({
@@ -84,9 +85,16 @@ export default function RootLayout() {
         console.error(e);
       }
     };
-
+    async function loadFonts() {
+      await Font.loadAsync({
+        PretendardRegular: require("../assets/fonts/Pretendard-Regular.otf"),
+        PretendardBold: require("../assets/fonts/Pretendard-Bold.otf"),
+        PretendardMedium: require("../assets/fonts/Pretendard-Medium.otf"),
+      });
+    }
     async function prepare() {
       await checkLogin();
+      await loadFonts();
       await SplashScreen.hideAsync();
     }
     prepare();
