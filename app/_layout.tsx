@@ -54,7 +54,7 @@ export default function RootLayout() {
   useEffect(() => {
     GoogleSignin.configure({
       webClientId:
-        "430648671385-528nt4hgbsmiufvcvi4tt9h648pcl3no.apps.googleusercontent.com",
+        "30648671385-fpd7ugcuko0dphopbt329mh9r7lml8bc.apps.googleusercontent.com",
       offlineAccess: true, // refresh token 필요하면 true
       forceCodeForRefreshToken: true,
     });
