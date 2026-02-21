@@ -109,7 +109,7 @@ export default function NameScreen() {
     );
 
     setDate(newDate); // 기존 date 상태 업데이트
-    setForm({ ...form, alarm: newDate.toISOString() });
+    setForm({ ...form, alarm: newDate.toString() });
 
     closePicker();
   };

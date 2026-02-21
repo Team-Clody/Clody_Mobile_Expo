@@ -48,11 +48,11 @@ export default {
             extraMavenRepos: [
               "https://devrepo.kakao.com/nexus/content/groups/public/",
             ],
-            newArchEnabled: true
+            newArchEnabled: true,
           },
           ios: {
-            newArchEnabled: true
-          }
+            newArchEnabled: true,
+          },
         },
       ],
       [
