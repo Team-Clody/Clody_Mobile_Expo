@@ -120,8 +120,9 @@ export default function RootLayout() {
       } else if (platform === "apple") {
         result = await authService.AppleLogin();
       } else if (platform === "google") {
+      } else {
+        result = await authService.googleLogin();
       }
-      result = await authService.googleLogin();
       if (!result) {
         setIsLoggedIn(false);
         return;
