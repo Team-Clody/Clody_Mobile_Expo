@@ -18,7 +18,10 @@ import AppleLoginButton from "@/components/AppleLoginButton";
 import img1 from "@/assets/images/img_signin_pager_1.png";
 import img2 from "@/assets/images/img_signin_pager_2.png";
 import img3 from "@/assets/images/img_signin_pager_3.png";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import * as Localization from "expo-localization";
 import GoogleLoginButton from "@/components/googleLoginButton";
 
@@ -28,8 +31,8 @@ export default function Introduce() {
   const { login, finRegister, isLoggedIn } = useContext(AuthContext);
   const locale = Localization.getLocales()[0];
   console.log(locale);
-  let{ languageTag } = locale;
-  languageTag = languageTag.split('-')[0].toLowerCase();
+  let { languageTag } = locale;
+  languageTag = languageTag.split("-")[0].toLowerCase();
   const [currentIndex, setCurrentIndex] = useState(0);
   useEffect(() => {
     if (isLoggedIn) {
@@ -125,7 +128,19 @@ export default function Introduce() {
           ))}
         </ScrollView>
         <View
-          style={[styles.dots, { bottom: languageTag === "en" ? (Platform.OS === "ios" ? 105 : 210) : (Platform.OS === "ios" ? 150 : 210)}]}
+          style={[
+            styles.dots,
+            {
+              bottom:
+                languageTag === "en"
+                  ? Platform.OS === "ios"
+                    ? 105
+                    : 210
+                  : Platform.OS === "ios"
+                    ? 150
+                    : 210,
+            },
+          ]}
         >
           {slides.map((_, i) => (
             <View
@@ -136,15 +151,13 @@ export default function Introduce() {
         </View>
       </View>
 
-      <View
-        style={[
-          styles.bottom,
-         
-        ]}
-      >
+      <View style={[styles.bottom]}>
         {Platform.OS === "android" && languageTag === "en" && (
           <>
-            <GoogleLoginButton disabled={true}  onPress={() => login("google")} />
+            <GoogleLoginButton
+              disabled={true}
+              onPress={() => login("google")}
+            />
             <GoogleLoginButton onPress={() => login("kakao")} />
           </>
         )}
@@ -165,7 +178,7 @@ export default function Introduce() {
         {Platform.OS === "ios" && languageTag !== "en" && (
           <>
             <KakaoLoginButton onPress={() => login("kakao")} />
-      
+
             <AppleLoginButton onPress={() => login("apple")} />
           </>
         )}

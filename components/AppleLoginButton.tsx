@@ -11,7 +11,7 @@ import { useFonts } from "expo-font";
 
 interface Props {
   onPress?: (event: GestureResponderEvent) => void;
-   disabled?: boolean;
+  disabled?: boolean;
 }
 
 export default function GoogleLoginButton({ onPress, disabled }: Props) {
@@ -23,15 +23,15 @@ export default function GoogleLoginButton({ onPress, disabled }: Props) {
   if (!fontsLoaded) return null;
 
   return (
-<Pressable
-  disabled={disabled}
-  style={({ pressed }) => [
-    styles.button,
-    pressed && !disabled && styles.pressed,
-    disabled && styles.disabled,
-  ]}
-  onPress={onPress}
->
+    <Pressable
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.button,
+        pressed && !disabled && styles.pressed,
+        disabled && styles.disabled,
+      ]}
+      onPress={onPress}
+    >
       <View style={styles.inner}>
         <Image
           source={require("@/assets/images/ic_signin_btn_apple.png")}
@@ -77,6 +77,6 @@ const styles = StyleSheet.create({
     fontFamily: "PretendardSemiBold",
   },
   disabled: {
-  opacity: 0, // 흐리게
-},
+    opacity: 0, // 흐리게
+  },
 });

@@ -6,7 +6,7 @@ import {
   Text,
   Keyboard,
   Linking,
-  Platform
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -51,10 +51,10 @@ export default function OnboardingLayout({
     PretendardMedium: require("../assets/fonts/Pretendard-Medium.otf"),
     PretendardSemiBold: require("../assets/fonts/Pretendard-SemiBold.otf"),
   });
-    const locale = Localization.getLocales()[0];
-    console.log(locale);
-    let{ languageTag } = locale;
-    languageTag = languageTag.split('-')[0].toLowerCase();
+  const locale = Localization.getLocales()[0];
+  console.log(locale);
+  let { languageTag } = locale;
+  languageTag = languageTag.split("-")[0].toLowerCase();
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [keyboardShow, setKeyboardShow] = useState(false);
@@ -146,7 +146,7 @@ export default function OnboardingLayout({
                 }
               }}
             >
-              {languageTag === 'en' ? "Skip" : "건너뛰기"}
+              {languageTag === "en" ? "Skip" : "건너뛰기"}
             </Text>
           ) : null}
         </View>
@@ -161,7 +161,11 @@ export default function OnboardingLayout({
         <View
           style={{
             paddingHorizontal: keyboardShow ? 0 : 14,
-            paddingBottom: keyboardShow ? (Platform.OS === 'ios' ? keyboardHeight-insets.bottom : keyboardHeight)  : 0,
+            paddingBottom: keyboardShow
+              ? Platform.OS === "ios"
+                ? keyboardHeight - insets.bottom
+                : keyboardHeight
+              : 0,
           }}
         >
           <Pressable
@@ -222,7 +226,7 @@ export default function OnboardingLayout({
                 fontSize: 18,
               }}
             >
-              {languageTag === 'en' ? 'Next' : '다음'}
+              {languageTag === "en" ? "Next" : "다음"}
             </Text>
           </Pressable>
         </View>
