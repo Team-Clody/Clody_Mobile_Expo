@@ -51,14 +51,16 @@ export default function RootLayout() {
   useEffect(() => {
     initializeKakaoSDK("eb5b3511f81201dba4850861989793f6");
   }, []);
-  // useEffect(() => {
-  //   GoogleSignin.configure({
-  //     webClientId:
-  //       "30648671385-fpd7ugcuko0dphopbt329mh9r7lml8bc.apps.googleusercontent.com",
-  //     offlineAccess: true, // refresh token 필요하면 true
-  //     forceCodeForRefreshToken: true,
-  //   });
-  // }, []);
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId:
+        "430648671385-fpd7ugcuko0dphopbt329mh9r7lml8bc.apps.googleusercontent.com",
+      iosClientId:
+        "430648671385-2l5bjp3apfjp0bed20646vk3orvj04e3.apps.googleusercontent.com",
+      offlineAccess: true,
+      forceCodeForRefreshToken: true,
+    });
+  }, []);
   useEffect(() => {
     const checkLogin = async () => {
       try {

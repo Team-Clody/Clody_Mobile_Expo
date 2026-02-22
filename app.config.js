@@ -42,6 +42,13 @@ export default {
       ],
       "expo-secure-store",
       [
+        "@react-native-google-signin/google-signin",
+        {
+          iosUrlScheme:
+            "com.googleusercontent.apps.430648671385-2l5bjp3apfjp0bed20646vk3orvj04e3",
+        },
+      ],
+      [
         "expo-build-properties",
         {
           android: {

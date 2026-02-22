@@ -158,7 +158,7 @@ export default function Introduce() {
               disabled={true}
               onPress={() => login("google")}
             />
-            <GoogleLoginButton onPress={() => login("kakao")} />
+            <GoogleLoginButton onPress={() => login("google")} />
           </>
         )}
         {Platform.OS === "android" && languageTag !== "en" && (
@@ -172,7 +172,7 @@ export default function Introduce() {
           <>
             <AppleLoginButton onPress={() => login("apple")} />
             <View style={{ height: 6 }} />
-            <GoogleLoginButton onPress={() => login("kakao")} />
+            <GoogleLoginButton onPress={() => login("google")} />
           </>
         )}
         {Platform.OS === "ios" && languageTag !== "en" && (

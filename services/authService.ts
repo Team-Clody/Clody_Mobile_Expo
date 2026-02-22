@@ -66,11 +66,15 @@ const kakaoLogin = async () => {
 const googleLogin = async () => {
   try {
     const userInfo = await GoogleSignin.signIn();
+    console.log(userInfo);
     const { idToken } = userInfo.data;
     const email = userInfo.data?.user.email;
     const accessToken = idToken;
+    console.log("here");
     console.log("idToken: ", idToken);
     let fcmToken = await getPushToken();
+    console.log("bye");
+    console.log(fcmToken);
     await AsyncStorage.setItem("email", email);
     await AsyncStorage.setItem("google_accessToken", accessToken);
     const res = await axios.post(
