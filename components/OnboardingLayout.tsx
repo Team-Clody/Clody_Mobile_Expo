@@ -6,6 +6,7 @@ import {
   Text,
   Keyboard,
   Linking,
+  Platform
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,6 +19,7 @@ import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import authService from "@/services/authService";
 import * as SecureStore from "expo-secure-store";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -48,6 +50,7 @@ export default function OnboardingLayout({
     PretendardMedium: require("../assets/fonts/Pretendard-Medium.otf"),
     PretendardSemiBold: require("../assets/fonts/Pretendard-SemiBold.otf"),
   });
+  const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [keyboardShow, setKeyboardShow] = useState(false);
   useEffect(() => {
@@ -153,7 +156,7 @@ export default function OnboardingLayout({
         <View
           style={{
             paddingHorizontal: keyboardShow ? 0 : 14,
-            paddingBottom: keyboardShow ? keyboardHeight : 0,
+            paddingBottom: keyboardShow ? (Platform.OS === 'ios' ? keyboardHeight-insets.bottom : keyboardHeight)  : 0,
           }}
         >
           <Pressable

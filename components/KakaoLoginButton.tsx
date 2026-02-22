@@ -1,12 +1,12 @@
 import { Pressable, Text, StyleSheet, Image, View } from "react-native";
 import { useFonts } from "expo-font";
 
-export default function KakaoLoginButton({ onPress }: any) {
+export default function KakaoLoginButton({ onPress,disabled }: any) {
   const [fontsLoaded] = useFonts({
     PretendardSemiBold: require("../assets/fonts/Pretendard-SemiBold.otf"),
   });
   return (
-    <Pressable style={styles.button} onPress={onPress}>
+    <Pressable disabled={disabled} style={[styles.button,  disabled && styles.disabled,]} onPress={onPress}>
       <View style={styles.content}>
         <Image
           source={require("@/assets/images/ic_signin_btn_kakao.png")}
@@ -44,4 +44,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontFamily: "PretendardSemiBold",
   },
+    disabled: {
+  opacity: 0, // 흐리게
+},
 });

@@ -125,7 +125,7 @@ export default function Introduce() {
           ))}
         </ScrollView>
         <View
-          style={[styles.dots, { bottom: languageTag === "en" ? (Platform.OS === "ios" ? 100 : 150) : -5}]}
+          style={[styles.dots, { bottom: languageTag === "en" ? (Platform.OS === "ios" ? 105 : 210) : (Platform.OS === "ios" ? 150 : 210)}]}
         >
           {slides.map((_, i) => (
             <View
@@ -144,28 +144,28 @@ export default function Introduce() {
       >
         {Platform.OS === "android" && languageTag === "en" && (
           <>
-            <GoogleLoginButton onPress={() => login("google")} />
+            <GoogleLoginButton disabled={true}  onPress={() => login("google")} />
             <GoogleLoginButton onPress={() => login("kakao")} />
           </>
         )}
         {Platform.OS === "android" && languageTag !== "en" && (
           <>
-            <KakaoLoginButton onPress={() => login("kakao")} />
+            <KakaoLoginButton disabled={true} onPress={() => login("kakao")} />
             <KakaoLoginButton onPress={() => login("kakao")} />
           </>
         )}
 
         {Platform.OS === "ios" && languageTag === "en" && (
           <>
-            <GoogleLoginButton onPress={() => login("kakao")} />
-            <View style={{ height: 12 }} />
             <AppleLoginButton onPress={() => login("apple")} />
+            <View style={{ height: 6 }} />
+            <GoogleLoginButton onPress={() => login("kakao")} />
           </>
         )}
         {Platform.OS === "ios" && languageTag !== "en" && (
           <>
             <KakaoLoginButton onPress={() => login("kakao")} />
-            <View style={{ height: 12 }} />
+      
             <AppleLoginButton onPress={() => login("apple")} />
           </>
         )}
