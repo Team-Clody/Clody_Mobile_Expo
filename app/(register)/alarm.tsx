@@ -10,11 +10,18 @@ import { useContext, useEffect, useState } from "react";
 import OnboardingLayout from "@/components/OnboardingLayout";
 import { useFonts } from "expo-font";
 import { RegisterContext } from "./_layout";
+import * as Localization from "expo-localization";
 
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "expo-router";
 import TimePicker from "@/components/TimePicker";
+import EnTimePicker from "@/components/EnTimePicker";
 export default function NameScreen() {
+  const locale = Localization.getLocales()[0];
+  console.log(locale);
+  let { languageTag } = locale;
+  languageTag = languageTag.split("-")[0].toLowerCase();
+
   const { form, setForm } = useContext(RegisterContext)!;
   const [isValid, setIsValid] = useState(true);
   const [fontsLoaded] = useFonts({
@@ -82,6 +89,14 @@ export default function NameScreen() {
       .toString()
       .padStart(2, "0")}분`;
   };
+  const formatTime2 = (d: Date) => {
+    const hours = d.getHours();
+    const minutes = d.getMinutes();
+    const period = hours >= 12 ? "PM" : "AM";
+    const displayHour = hours % 12 === 0 ? 12 : hours % 12;
+
+    return `${displayHour}:${minutes.toString().padStart(2, "0")} ${period}`;
+  };
   const handleConfirm = () => {
     if (!selectedTime) return;
 
@@ -113,16 +128,57 @@ export default function NameScreen() {
 
     closePicker();
   };
+  const handleConfirm2 = () => {
+    if (!selectedTime) return;
+
+    const { ampm, hour, minute } = selectedTime;
+
+    let h = parseInt(hour, 10);
+    const m = parseInt(minute, 10);
+
+    // 12시간 → 24시간 변환
+    if (ampm === "PM" && h !== 12) {
+      h += 12;
+    }
+    if (ampm === "AM" && h === 12) {
+      h = 0;
+    }
+
+    const now = new Date();
+    const newDate = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      h,
+      m,
+      0,
+    );
+
+    setDate(newDate); // 기존 date 상태 업데이트
+    setForm({ ...form, alarm: newDate.toString() });
+
+    closePicker();
+  };
   return (
     <OnboardingLayout
       showBack={true}
       isValid={isValid}
       ready={isReady}
-      text1={"몇 시에 감사일기\n작성 알림을 드릴까요?"}
-      text2={"잊지 않고 감사일기를 작성할 수 있도록 알림을 보내드려요"}
+      text1={
+        languageTag === "en"
+          ? "What time would you\nlike us to remind you to write?"
+          : "몇 시에 감사일기\n작성 알림을 드릴까요?"
+      }
+      text2={
+        languageTag === "en"
+          ? "Clody will remind you to write your gratitude journal."
+          : "잊지 않고 감사일기를 작성할 수 있도록 알림을 보내드려요"
+      }
     >
       <Pressable style={styles.selectBox} onPress={openPicker}>
-        <Text style={styles.selectText}>{formatTime(date)}</Text>
+        <Text style={styles.selectText}>
+          {languageTag === "en" ? formatTime2(date) : formatTime(date)}
+        </Text>
         <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
       </Pressable>
       <Modal transparent visible={visible} animationType="none">
@@ -137,14 +193,31 @@ export default function NameScreen() {
               { transform: [{ translateY: slideAnim }] },
             ]}
           >
-            <Text style={styles.sheetTitle}>알림 시간을 선택해주세요</Text>
-            <TimePicker
-              itemHeight={40}
-              onTimeChange={(time) => {
-                setSelectedTime(time);
-              }}
-            />
-            <Pressable style={styles.confirmBtn} onPress={handleConfirm}>
+            <Text style={styles.sheetTitle}>
+              {languageTag === "en"
+                ? "Change reminder time"
+                : "알림 시간을 선택해주세요"}
+            </Text>
+            {languageTag === "en" ? (
+              <EnTimePicker
+                itemHeight={40}
+                onTimeChange={(time) => {
+                  setSelectedTime(time);
+                }}
+              />
+            ) : (
+              <TimePicker
+                itemHeight={40}
+                onTimeChange={(time) => {
+                  setSelectedTime(time);
+                }}
+              />
+            )}
+
+            <Pressable
+              style={styles.confirmBtn}
+              onPress={languageTag === "en" ? handleConfirm2 : handleConfirm}
+            >
               <Text
                 style={{
                   color: "#FFFFFF",
@@ -152,7 +225,7 @@ export default function NameScreen() {
                   fontSize: 16,
                 }}
               >
-                확인
+                {languageTag === "en" ? "Save" : "확인"}
               </Text>
             </Pressable>
           </Animated.View>
@@ -188,7 +261,7 @@ const styles = StyleSheet.create({
   },
 
   bottomSheet: {
-    height: 350, // 원하는 높이
+    height: 300, // 원하는 높이
     backgroundColor: "white",
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,

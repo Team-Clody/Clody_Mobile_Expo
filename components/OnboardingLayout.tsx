@@ -20,6 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import authService from "@/services/authService";
 import * as SecureStore from "expo-secure-store";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Localization from "expo-localization";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -50,6 +51,10 @@ export default function OnboardingLayout({
     PretendardMedium: require("../assets/fonts/Pretendard-Medium.otf"),
     PretendardSemiBold: require("../assets/fonts/Pretendard-SemiBold.otf"),
   });
+    const locale = Localization.getLocales()[0];
+    console.log(locale);
+    let{ languageTag } = locale;
+    languageTag = languageTag.split('-')[0].toLowerCase();
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [keyboardShow, setKeyboardShow] = useState(false);
@@ -141,7 +146,7 @@ export default function OnboardingLayout({
                 }
               }}
             >
-              건너뛰기
+              {languageTag === 'en' ? "Skip" : "건너뛰기"}
             </Text>
           ) : null}
         </View>
@@ -217,7 +222,7 @@ export default function OnboardingLayout({
                 fontSize: 18,
               }}
             >
-              다음
+              {languageTag === 'en' ? 'Next' : '다음'}
             </Text>
           </Pressable>
         </View>
@@ -254,7 +259,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontSize: 26,
+    width: "100%",
+    fontSize: 24,
     fontWeight: "700",
     color: "#111827",
     lineHeight: 38,
@@ -268,6 +274,6 @@ const styles = StyleSheet.create({
   },
   skip: {
     fontFamily: "PretendardSemiBold",
-    fontSize: 16,
+    fontSize: 13,
   },
 });

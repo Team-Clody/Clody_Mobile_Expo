@@ -6,7 +6,13 @@ import OnboardingLayout from "@/components/OnboardingLayout";
 import { AuthContext } from "../_layout";
 import { useFonts } from "expo-font";
 import { RegisterContext } from "./_layout";
+import * as Localization from "expo-localization";
 export default function NameScreen() {
+  const locale = Localization.getLocales()[0];
+  console.log(locale);
+  let { languageTag } = locale;
+  languageTag = languageTag.split('-')[0].toLowerCase();
+
   const { resetAuthState } = useContext(AuthContext);
   const { form, setForm } = useContext(RegisterContext)!;
 
@@ -28,8 +34,8 @@ export default function NameScreen() {
     <OnboardingLayout
       showBack={true}
       isValid={isValid}
-      text1={"만나서 반가워요\n어떻게 불러드릴까요?"}
-      text2={"프로필에 보일 닉네임이에요"}
+      text1={languageTag === 'en' ? 'Nice to meet you!\nWhat should I call you ?': "만나서 반가워요\n어떻게 불러드릴까요?"}
+      text2={languageTag === 'en' ? 'Nickname shown on your profile':"프로필에 보일 닉네임이에요"}
     >
       <View
         style={[
@@ -48,7 +54,7 @@ export default function NameScreen() {
             setNickname(text);
             setForm({ ...form, nickname: text });
           }}
-          placeholder="닉네임을 입력해주세요."
+          placeholder={languageTag === 'en' ? 'Please enter your nickname':"닉네임을 입력해주세요."}
           placeholderTextColor="#9CA3AF"
           maxLength={10}
           style={styles.input}
