@@ -78,7 +78,7 @@ const googleLogin = async () => {
     await AsyncStorage.setItem("email", email);
     await AsyncStorage.setItem("google_accessToken", accessToken);
     const res = await axios.post(
-      "https://test.clodycorp.com/api/v1/oauth2/google",
+      "https://test.clodycorp.com/api/v1/auth/oauth2/google",
       {
         idToken: idToken,
         fcmToken: fcmToken,
