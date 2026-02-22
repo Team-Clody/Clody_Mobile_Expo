@@ -18,16 +18,18 @@ import AppleLoginButton from "@/components/AppleLoginButton";
 import img1 from "@/assets/images/img_signin_pager_1.png";
 import img2 from "@/assets/images/img_signin_pager_2.png";
 import img3 from "@/assets/images/img_signin_pager_3.png";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Localization from "expo-localization";
 import GoogleLoginButton from "@/components/googleLoginButton";
+
 const { width } = Dimensions.get("window");
 
 export default function Introduce() {
   const { login, finRegister, isLoggedIn } = useContext(AuthContext);
   const locale = Localization.getLocales()[0];
   console.log(locale);
-  const { languageTag } = locale;
+  let{ languageTag } = locale;
+  languageTag = languageTag.split('-')[0].toLowerCase();
   const [currentIndex, setCurrentIndex] = useState(0);
   useEffect(() => {
     if (isLoggedIn) {
@@ -49,32 +51,31 @@ export default function Introduce() {
   const slides = [
     {
       image: img1,
-      label: languageTag === "en-US" ? "Your friend Lody " : "AI 친구 로디",
+      label: languageTag === "en" ? "Your friend Lody " : "AI 친구 로디",
       title:
-        languageTag === "en-US"
+        languageTag === "en"
           ? "Replies filled with\ncompliments and\nencouragement"
           : "감사일기에 칭찬과 응원의\n답장을 작성해요",
     },
     {
       image: img2,
-      label: languageTag === "en-US" ? "Lucky Clover " : "행운의 클로버",
+      label: languageTag === "en" ? "Lucky Clover " : "행운의 클로버",
       title:
-        languageTag === "en-US"
+        languageTag === "en"
           ? "The more you confide in \nLody, the luckier your \nclover becomes"
           : "하루에 기록한 감사가\n쌓일수록 클로버가 진해져요",
     },
     {
       image: img3,
-      label: languageTag === "en-US" ? "Gratitude journal " : "감사일기",
+      label: languageTag === "en" ? "Gratitude journal " : "감사일기",
       title:
-        languageTag === "en-US"
+        languageTag === "en"
           ? "You can only journal \nfor today and yesterday"
           : "오늘과 전날 일기만 \n작성할 수 있어요",
     },
   ];
-  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.top}>
         <ScrollView
           horizontal
@@ -90,10 +91,10 @@ export default function Introduce() {
                   style={[
                     styles.labelBox,
                     {
-                      paddingVertical: languageTag === "en-US" ? 5 : 5,
-                      paddingHorizontal: languageTag === "en-US" ? 9 : 9,
-                      paddingTop: languageTag === "en-US" ? 5 : 4,
-                      paddingRight: languageTag === "en-US" ? 9 : 8,
+                      paddingVertical: languageTag === "en" ? 5 : 5,
+                      paddingHorizontal: languageTag === "en" ? 9 : 9,
+                      paddingTop: languageTag === "en" ? 5 : 4,
+                      paddingRight: languageTag === "en" ? 9 : 8,
                     },
                   ]}
                 >
@@ -124,7 +125,7 @@ export default function Introduce() {
           ))}
         </ScrollView>
         <View
-          style={[styles.dots, { bottom: languageTag === "en-US" ? -5 : 27 }]}
+          style={[styles.dots, { bottom: languageTag === "en" ? (Platform.OS === "ios" ? 100 : 150) : -5}]}
         >
           {slides.map((_, i) => (
             <View
@@ -138,32 +139,30 @@ export default function Introduce() {
       <View
         style={[
           styles.bottom,
-          {
-            paddingBottom: insets.bottom,
-          },
+         
         ]}
       >
-        {Platform.OS === "android" && languageTag === "en-US" && (
+        {Platform.OS === "android" && languageTag === "en" && (
           <>
             <GoogleLoginButton onPress={() => login("google")} />
             <GoogleLoginButton onPress={() => login("kakao")} />
           </>
         )}
-        {Platform.OS === "android" && languageTag !== "en-US" && (
+        {Platform.OS === "android" && languageTag !== "en" && (
           <>
             <KakaoLoginButton onPress={() => login("kakao")} />
             <KakaoLoginButton onPress={() => login("kakao")} />
           </>
         )}
 
-        {Platform.OS === "ios" && languageTag === "en-US" && (
+        {Platform.OS === "ios" && languageTag === "en" && (
           <>
-            <KakaoLoginButton onPress={() => login("kakao")} />
+            <GoogleLoginButton onPress={() => login("kakao")} />
             <View style={{ height: 12 }} />
             <AppleLoginButton onPress={() => login("apple")} />
           </>
         )}
-        {Platform.OS === "ios" && languageTag !== "en-US" && (
+        {Platform.OS === "ios" && languageTag !== "en" && (
           <>
             <KakaoLoginButton onPress={() => login("kakao")} />
             <View style={{ height: 12 }} />
@@ -171,19 +170,19 @@ export default function Introduce() {
           </>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 110,
+    paddingTop: 70,
     flex: 1,
     backgroundColor: "#fff",
     justifyContent: "space-between",
   },
   top: {
-    flex: 0.695,
+    flex: 1,
     justifyContent: "center",
     height: 80,
   },

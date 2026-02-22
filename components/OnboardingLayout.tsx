@@ -18,6 +18,7 @@ import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import authService from "@/services/authService";
 import * as SecureStore from "expo-secure-store";
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldPlaySound: true,
@@ -152,7 +153,7 @@ export default function OnboardingLayout({
         <View
           style={{
             paddingHorizontal: keyboardShow ? 0 : 14,
-            paddingBottom: keyboardShow ? keyboardHeight : 20,
+            paddingBottom: keyboardShow ? keyboardHeight : 0,
           }}
         >
           <Pressable

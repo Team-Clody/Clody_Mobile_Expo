@@ -51,14 +51,14 @@ export default function RootLayout() {
   useEffect(() => {
     initializeKakaoSDK("eb5b3511f81201dba4850861989793f6");
   }, []);
-  useEffect(() => {
-    GoogleSignin.configure({
-      webClientId:
-        "30648671385-fpd7ugcuko0dphopbt329mh9r7lml8bc.apps.googleusercontent.com",
-      offlineAccess: true, // refresh token 필요하면 true
-      forceCodeForRefreshToken: true,
-    });
-  }, []);
+  // useEffect(() => {
+  //   GoogleSignin.configure({
+  //     webClientId:
+  //       "30648671385-fpd7ugcuko0dphopbt329mh9r7lml8bc.apps.googleusercontent.com",
+  //     offlineAccess: true, // refresh token 필요하면 true
+  //     forceCodeForRefreshToken: true,
+  //   });
+  // }, []);
   useEffect(() => {
     const checkLogin = async () => {
       try {
@@ -120,8 +120,9 @@ export default function RootLayout() {
       } else if (platform === "apple") {
         result = await authService.AppleLogin();
       } else if (platform === "google") {
+          result = await authService.googleLogin();
       } else {
-        result = await authService.googleLogin();
+      
       }
       if (!result) {
         setIsLoggedIn(false);
