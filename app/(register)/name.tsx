@@ -49,7 +49,7 @@ export default function NameScreen() {
         style={[
           styles.inputWrap,
           nickname.length !== 0 && !isValid && { borderColor: "#FF4D4F" },
-          { marginTop: languageTag === "en" ? 35 : 50 },
+          { marginTop: languageTag === "en" ? 35 : 40 },
         ]}
       >
         <TextInput

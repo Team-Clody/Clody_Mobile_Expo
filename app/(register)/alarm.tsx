@@ -179,7 +179,7 @@ export default function NameScreen() {
       <Pressable
         style={[
           styles.selectBox,
-          { marginTop: languageTag === "en" ? 35 : 50 },
+          { marginTop: languageTag === "en" ? 35 : 40 },
         ]}
         onPress={openPicker}
       >

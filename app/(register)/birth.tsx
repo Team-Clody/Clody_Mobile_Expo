@@ -267,7 +267,7 @@ export default function BirthScreen() {
           <Pressable
             style={[
               styles.selectBox,
-              { marginTop: languageTag === "en" ? 35 : 50 },
+              { marginTop: languageTag === "en" ? 35 : 40 },
             ]}
             onPress={openPicker}
           >
@@ -328,7 +328,7 @@ export default function BirthScreen() {
           <View
             style={[
               styles.box,
-              { marginTop: languageTag === "en" ? 35 : 50 },
+              { marginTop: languageTag === "en" ? 35 : 40 },
               back.length > 0 && !isValid && { borderColor: "#FF4D4F" },
             ]}
           >
