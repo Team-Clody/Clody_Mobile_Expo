@@ -41,6 +41,7 @@ const kakaoLogin = async () => {
     const user = await me();
     await AsyncStorage.setItem("email", user.email);
     await AsyncStorage.setItem("kakao_accessToken", accessToken);
+    await AsyncStorage.setItem("platform", "kakao");
     let fcmToken = await getPushToken();
     const res = await axios.post(
       "https://test.clodycorp.com/api/v1/auth/signin",
@@ -77,6 +78,7 @@ const googleLogin = async () => {
     console.log(fcmToken);
     await AsyncStorage.setItem("email", email);
     await AsyncStorage.setItem("google_accessToken", accessToken);
+    await AsyncStorage.setItem("platform", "google");
     const res = await axios.post(
       "https://test.clodycorp.com/api/v1/auth/oauth2/google",
       {

@@ -97,6 +97,7 @@ export default function NameScreen() {
 
     return `${displayHour}:${minutes.toString().padStart(2, "0")} ${period}`;
   };
+
   const handleConfirm = () => {
     if (!selectedTime) return;
 
@@ -175,7 +176,13 @@ export default function NameScreen() {
           : "잊지 않고 감사일기를 작성할 수 있도록 알림을 보내드려요"
       }
     >
-      <Pressable style={styles.selectBox} onPress={openPicker}>
+      <Pressable
+        style={[
+          styles.selectBox,
+          { marginTop: languageTag === "en" ? 35 : 50 },
+        ]}
+        onPress={openPicker}
+      >
         <Text style={styles.selectText}>
           {languageTag === "en" ? formatTime2(date) : formatTime(date)}
         </Text>

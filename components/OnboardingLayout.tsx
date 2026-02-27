@@ -101,9 +101,23 @@ export default function OnboardingLayout({
               style={styles.skip}
               onPress={async () => {
                 if (pathname == "/birth") {
+                  if (languageTag === "en") {
+                    setForm({
+                      ...form,
+                      birthDate: "",
+                    });
+                    router.push("/gender");
+                  } else {
+                    setForm({
+                      ...form,
+                      birthDate: "",
+                      gender: "none",
+                    });
+                    router.push("/alarm");
+                  }
+                } else if (pathname === "/gender") {
                   setForm({
                     ...form,
-                    birthDate: "",
                     gender: "none",
                   });
                   router.push("/alarm");
@@ -127,13 +141,11 @@ export default function OnboardingLayout({
                     ...form,
                     alarm: String(d),
                   });
-                  const kakao = await AsyncStorage.getItem("kakao_accessToken");
-                  const google =
-                    await AsyncStorage.getItem("google_accessToken");
+                  const platform = await AsyncStorage.getItem("platform");
                   let result;
-                  if (kakao) {
+                  if (platform === "kakao") {
                     result = await authService.kakaoSignUp(form);
-                  } else if (google) {
+                  } else {
                     result = await authService.googleSignUp(form);
                   }
 
@@ -153,8 +165,19 @@ export default function OnboardingLayout({
 
         {/* 콘텐츠 */}
         <View style={styles.content}>
-          <Text style={styles.title}>{text1}</Text>
-          <Text style={styles.sub}>{text2}</Text>
+          <Text
+            style={[
+              styles.title,
+              { lineHeight: languageTag === "en" ? 34 : 38 },
+            ]}
+          >
+            {text1}
+          </Text>
+          <Text
+            style={[styles.sub, { fontSize: languageTag === "en" ? 13 : 14 }]}
+          >
+            {text2}
+          </Text>
           {children}
         </View>
         {/* 하단 버튼 */}
@@ -178,6 +201,13 @@ export default function OnboardingLayout({
               if (pathname === "/name") {
                 router.push("/birth");
               } else if (pathname == "/birth") {
+                if (languageTag === "en") {
+                  console.log("here");
+                  router.push("/gender");
+                } else {
+                  router.push("/alarm");
+                }
+              } else if (pathname == "/gender") {
                 router.push("/alarm");
               } else if (pathname == "/alarm") {
                 const { status } =
@@ -205,12 +235,11 @@ export default function OnboardingLayout({
                 });
                 await AsyncStorage.setItem("alarmId", id);
                 console.log(form);
-                const kakao = await AsyncStorage.getItem("kakao_accessToken");
-                const google = await AsyncStorage.getItem("google_accessToken");
+                const platform = await AsyncStorage.getItem("platform");
                 let result;
-                if (kakao) {
+                if (platform === "kakao") {
                   result = await authService.kakaoSignUp(form);
-                } else if (google) {
+                } else {
                   result = await authService.googleSignUp(form);
                 }
                 await SecureStore.setItem("accessToken", result.accessToken);

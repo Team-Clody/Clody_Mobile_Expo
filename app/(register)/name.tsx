@@ -49,6 +49,7 @@ export default function NameScreen() {
         style={[
           styles.inputWrap,
           nickname.length !== 0 && !isValid && { borderColor: "#FF4D4F" },
+          { marginTop: languageTag === "en" ? 35 : 50 },
         ]}
       >
         <TextInput
@@ -92,7 +93,9 @@ export default function NameScreen() {
               (nickname.length === 0 || isValid) && styles.errorHidden,
             ]}
           >
-            닉네임은 한글, 영문, 숫자만 가능해요.
+            {languageTag === "en"
+              ? "Only letters and numbers are allowed."
+              : "닉네임은 한글, 영문, 숫자만 가능해요."}
           </Text>
         }
         <Text style={styles.counter}>{nickname.length}/10</Text>
