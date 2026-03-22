@@ -30,6 +30,7 @@ export const AuthContext = createContext<{
   login: (platform: string) => Promise<void>;
   logout?: () => Promise<any>;
   signup?: () => void;
+  revoke?: () => void;
   locale: Localization.Locale;
   resetAuthState: () => void;
   finIntroduce: boolean;
@@ -160,7 +161,20 @@ export default function RootLayout() {
     ]);
   };
   const signup = () => {};
-
+  const revoke = async () => {
+    try {
+      const token = await SecureStore.getItem("accessToken");
+      const res = await axios.delete(
+        "https://test.clodycorp.com/api/v1/user/revoke",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      await logout();
+    } catch (e) {}
+  };
   return (
     <AuthContext
       value={{
@@ -168,6 +182,7 @@ export default function RootLayout() {
         locale,
         logout,
         signup,
+        revoke,
         finIntroduce,
         isLoggedIn,
         finRegister,

@@ -28,7 +28,8 @@ function convertBirth(raw: string) {
 
 const AppleLogin = async () => {
   const { accessToken, refreshToken } = await onAppleLogin();
-
+  console.log("eheheheh");
+  console.log(accessToken, refreshToken);
   return Promise.all([
     SecureStore.setItemAsync("accessToken", accessToken),
     SecureStore.setItemAsync("refreshToken", refreshToken),
@@ -86,6 +87,7 @@ const googleLogin = async () => {
         fcmToken: fcmToken,
       },
     );
+    console.log(res.data);
     console.log("here");
     console.log();
     return {
@@ -104,7 +106,6 @@ const onAppleLogin = async (): Promise<{
   //console.log(await getKeyHashAndroid());
   try {
     // 구현중
-
     return {
       accessToken: "123",
       refreshToken: "123",
@@ -116,7 +117,7 @@ const onAppleLogin = async (): Promise<{
 };
 const isAccessTokenValid = async (accessToken: string): Promise<boolean> => {
   try {
-    const res = await axios.get("https://test.clodycorp.com/api/v1/user/info", {
+    const res = await axios.get("https://test.clodycorp.com/api/v2/user/info", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },

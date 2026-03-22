@@ -30,7 +30,6 @@ const { width } = Dimensions.get("window");
 export default function Introduce() {
   const { login, finRegister, isLoggedIn } = useContext(AuthContext);
   const locale = Localization.getLocales()[0];
-  console.log(locale);
   let { languageTag } = locale;
   languageTag = languageTag.split("-")[0].toLowerCase();
   const [currentIndex, setCurrentIndex] = useState(0);
