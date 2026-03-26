@@ -93,10 +93,9 @@ export default function RootLayout() {
           }
           return;
         }
-        setIsLoggedIn(false);
-        return;
       } catch (e) {
         console.error(e);
+        setIsLoggedIn(false);
       }
     };
     async function loadFonts() {

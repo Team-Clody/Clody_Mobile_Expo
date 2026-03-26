@@ -1,9 +1,9 @@
 import { Stack } from "expo-router";
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useContext } from "react";
 import * as SecureStore from "expo-secure-store";
-
 import axios from "axios";
-
+import { request } from "../utils/request";
+import { AuthContext } from "../_layout";
 interface HomeForm {
   email: string;
   nickname: string;
@@ -31,26 +31,21 @@ export default function Home() {
     alarm: "",
     cloverCount: 0,
   });
-
+  const { setIsLoggedIn } = useContext(AuthContext);
   useEffect(() => {
     const loadUser = async () => {
       try {
-        // 1. 토큰 가져오기
-        const accessToken = await SecureStore.getItemAsync("accessToken");
-        console.log(accessToken);
-        if (!accessToken) return;
-
-        // 2. API 호출
-        const res = await axios.get(
-          "https://test.clodycorp.com/api/v2/user/info",
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          },
-        );
-
-        const user = res.data.data;
+        // 1. API 호출
+        const res = await request("/api/v2/user/info");
+        // const res = await axios.get(
+        //   "https://test.clodycorp.com/api/v2/user/info",
+        //   {
+        //     headers: {
+        //       Authorization: `Bearer ${accessToken}`,
+        //     },
+        //   },
+        // );
+        const user = res.data;
         console.log(user);
         // 3. form에 데이터 세팅
         setForm({
@@ -63,6 +58,9 @@ export default function Home() {
           cloverCount: user.cloverCount,
         });
       } catch (err) {
+        if (err?.message === "토큰 재발급 실패") {
+          setIsLoggedIn(false);
+        }
         console.log("유저 정보 가져오기 실패", err);
       }
     };

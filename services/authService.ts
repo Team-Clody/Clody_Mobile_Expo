@@ -122,13 +122,8 @@ const isAccessTokenValid = async (accessToken: string): Promise<boolean> => {
         Authorization: `Bearer ${accessToken}`,
       },
     });
-
     return res.status === 200;
   } catch (e: any) {
-    if (e.response?.status === 401) {
-      return false;
-    }
-
     return false;
   }
 };
@@ -145,17 +140,13 @@ const reissueWithRefreshToken = async (
         },
       },
     );
-
     const newAccessToken = res.data.data.accessToken;
     const newRefreshToken = res.data.data.refreshToken;
-
     await SecureStore.setItemAsync("accessToken", newAccessToken);
     await SecureStore.setItemAsync("refreshToken", newRefreshToken);
-    console;
     return true;
   } catch (err) {
-    console.error("reissue failed:", err);
-    return false;
+    throw err;
   }
 };
 const kakaoSignUp = async (form) => {
