@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { useContext } from "react";
 import { Pressable, Text, View } from "react-native";
-import { AuthContext } from "../../_layout";
+import { AuthContext } from "../../../_layout";
 
 export default function Main() {
   const { logout } = useContext(AuthContext);

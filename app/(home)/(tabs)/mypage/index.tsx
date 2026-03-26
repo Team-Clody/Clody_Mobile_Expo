@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useContext } from "react";
-import { HomeContext } from "../_layout";
+import { HomeContext } from "../../_layout";
 import { useRouter } from "expo-router";
 import { Image } from "react-native";
 import i18n from "@/app/i18n/i18n";
