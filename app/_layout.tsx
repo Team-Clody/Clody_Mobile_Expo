@@ -16,6 +16,10 @@ import {
   GoogleSignin,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
+import { DeviceProvider } from "@/shared/contexts/DeviceContext";
+import { ModalProvider } from "@/shared/contexts/ModalContext";
+import { ToastProvider } from "@/shared/contexts/ToastContext";
+import { ModalContainer } from "@/shared/components/modal/ModalContainer";
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 Notifications.setNotificationHandler({
@@ -176,21 +180,28 @@ export default function RootLayout() {
     } catch (e) {}
   };
   return (
-    <AuthContext
-      value={{
-        login,
-        locale,
-        logout,
-        signup,
-        revoke,
-        finIntroduce,
-        isLoggedIn,
-        finRegister,
-        resetAuthState,
-      }}
-    >
-      <StatusBar style="auto" animated translucent={true} />
-      <Stack screenOptions={{ headerShown: false }}></Stack>
-    </AuthContext>
+    <DeviceProvider>
+      <ModalProvider>
+        <ToastProvider>
+          <AuthContext
+            value={{
+              login,
+              locale,
+              logout,
+              signup,
+              revoke,
+              finIntroduce,
+              isLoggedIn,
+              finRegister,
+              resetAuthState,
+            }}
+          >
+            <StatusBar style="auto" animated translucent={true} />
+            <Stack screenOptions={{ headerShown: false }}></Stack>
+            <ModalContainer />
+          </AuthContext>
+        </ToastProvider>
+      </ModalProvider>
+    </DeviceProvider>
   );
 }
