@@ -189,125 +189,183 @@ export default function Main() {
       },
     }),
   ).current;
+
   return (
     <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
       {/* 헤더 */}
-      <View style={{ paddingTop: 60, paddingHorizontal: 20 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 10,
-          }}
-        >
-          <View style={{ flexDirection: "row", gap: 5 }}>
-            <Text style={{ fontSize: 22, fontWeight: "600" }}>
-              {formatMonth(currentDate)}
-            </Text>
-            <Text>▼</Text>
-          </View>
+      <View
+        style={{
+          backgroundColor: "#baafaf",
+          paddingBottom: 20,
+          borderBottomLeftRadius: 20,
+          borderBottomRightRadius: 20,
 
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Pressable onPress={goToToday}>
-              <Text style={{ color: "#666" }}>Today</Text>
-            </Pressable>
+          // iOS shadow
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 6,
 
-            <Text style={{ marginHorizontal: 8 }}>|</Text>
+          // Android shadow
+          elevation: 5,
+        }}
+      >
+        <View style={{ paddingTop: 60, paddingHorizontal: 20 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 10,
+            }}
+          >
+            ✅ 깔끔하게 맞추는 방법
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center", // 🔥 핵심
+                gap: 5,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 22,
+                  fontWeight: "600",
+                }}
+              >
+                {formatMonth(currentDate)}
+              </Text>
 
-            <Pressable onPress={openMonthly}>
-              <Text style={{ fontWeight: "600" }}>Monthly</Text>
-            </Pressable>
+              <DownIcon
+                width={30} // 🔥 텍스트랑 비율 맞추기
+                height={30}
+                color="#324c3d"
+              />
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Pressable onPress={goToToday}>
+                <Text style={{ fontWeight: "400" }}>Today</Text>
+              </Pressable>
+
+              <Text style={{ marginHorizontal: 8 }}>|</Text>
+
+              <Pressable onPress={openMonthly}>
+                <Text style={{ fontWeight: "400" }}>Monthly</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
-      </View>
+        {/* 🔥 주간 스와이프 */}
+        <FlatList
+          ref={flatListRef}
+          data={weeks}
+          horizontal
+          pagingEnabled
+          snapToInterval={width}
+          decelerationRate="fast"
+          showsHorizontalScrollIndicator={false}
+          initialScrollIndex={CENTER_INDEX}
+          getItemLayout={(_, index) => ({
+            length: width,
+            offset: width * index,
+            index,
+          })}
+          onMomentumScrollEnd={handleScroll}
+          renderItem={({ item }) => (
+            <View style={{ width }}>
+              <View style={{}}>
+                {/* 요일 */}
+                <View style={{ flexDirection: "row" }}>
+                  {WEEK_DAYS.map((d, index) => {
+                    const todayIndexInWeek = item.findIndex((date) =>
+                      isSameDate(date, today),
+                    );
 
-      {/* 🔥 주간 스와이프 */}
-      <FlatList
-        ref={flatListRef}
-        data={weeks}
-        horizontal
-        pagingEnabled
-        snapToInterval={width}
-        decelerationRate="fast"
-        showsHorizontalScrollIndicator={false}
-        initialScrollIndex={CENTER_INDEX}
-        getItemLayout={(_, index) => ({
-          length: width,
-          offset: width * index,
-          index,
-        })}
-        onMomentumScrollEnd={handleScroll}
-        renderItem={({ item }) => (
-          <View style={{ width }}>
-            <View style={{}}>
-              {/* 요일 */}
-              <View
-                style={{
-                  flexDirection: "row",
-                }}
-              >
-                {WEEK_DAYS.map((d) => (
-                  <Text
-                    key={d}
-                    style={{
-                      flex: 1, // 🔥 이것도 필수
-                      textAlign: "center",
-                      color: "#888",
-                    }}
-                  >
-                    {d}
-                  </Text>
-                ))}
-              </View>
+                    const isToday = index === todayIndexInWeek;
 
-              {/* 날짜 */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  marginTop: 10,
-                }}
-              >
-                {item.map((date, i) => {
-                  const isToday = isSameDate(date, today);
-
-                  return (
-                    <View
-                      key={i}
-                      style={{
-                        flex: 1, // 🔥 핵심
-                        alignItems: "center",
-                      }}
-                    >
+                    return (
                       <View
+                        key={d}
                         style={{
-                          width: 32,
-                          height: 32,
-                          justifyContent: "center",
+                          flex: 1,
                           alignItems: "center",
                         }}
                       >
-                        <CloverIcon width={32} height={32} />
-
-                        <Text
+                        <View
                           style={{
-                            position: "absolute",
-                            color: "#fff",
-                            fontSize: 12,
-                            fontWeight: "600",
+                            width: 24,
+                            height: 24,
+                            borderRadius: 12,
+                            justifyContent: "center",
+                            alignItems: "center",
+                            backgroundColor: isToday
+                              ? "#E5E7EB"
+                              : "transparent",
                           }}
                         >
-                          {date.getDate()}
-                        </Text>
+                          <Text
+                            style={{
+                              color: "#888",
+                              fontWeight: isToday ? "600" : "400",
+                              fontSize: 13,
+                            }}
+                          >
+                            {d}
+                          </Text>
+                        </View>
                       </View>
-                    </View>
-                  );
-                })}
+                    );
+                  })}
+                </View>
+
+                {/* 날짜 */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    marginTop: 10,
+                  }}
+                >
+                  {item.map((date, i) => {
+                    const isToday = isSameDate(date, today);
+
+                    return (
+                      <View
+                        key={i}
+                        style={{
+                          flex: 1, // 🔥 핵심
+                          alignItems: "center",
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: 32,
+                            height: 32,
+                            justifyContent: "center",
+                            alignItems: "center",
+                          }}
+                        >
+                          <CloverIcon width={28} height={28} />
+
+                          <Text
+                            style={{
+                              position: "absolute",
+                              color: "#fff",
+                              fontSize: 12,
+                              fontWeight: "600",
+                            }}
+                          >
+                            {date.getDate()}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
               </View>
             </View>
-          </View>
-        )}
-      />
+          )}
+        />
+      </View>
 
       {/* 빈 영역 */}
       <View style={{ flex: 1 }} />
@@ -369,18 +427,19 @@ export default function Main() {
           }}
         >
           {/* 🔥 단 하나의 기준 */}
-          <View style={{ paddingHorizontal: 5 }}>
+          <View style={{ paddingHorizontal: 5, paddingTop: 20 }}>
             {/* 헤더 */}
             <View
               style={{
                 flexDirection: "row",
                 justifyContent: "space-between",
+                alignItems: "center", // 👈 이거 추가
                 marginBottom: 15,
-                paddingHorizontal: 20,
+                paddingHorizontal: 15,
               }}
             >
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text style={{ fontSize: 20, fontWeight: "600" }}>
+                <Text style={{ fontSize: 22, fontWeight: "600" }}>
                   {formatMonth(currentDate)}
                 </Text>
 
@@ -388,7 +447,7 @@ export default function Main() {
                   width={30}
                   height={30}
                   color="#324c3d"
-                  style={{ marginLeft: 2 }}
+                  style={{ marginLeft: 4 }}
                 />
               </View>
               <Text style={{ color: "#666" }}>Weekly</Text>
@@ -397,8 +456,11 @@ export default function Main() {
             {/* 요일 */}
             <View style={{ flexDirection: "row", marginBottom: 15 }}>
               {WEEK_DAYS.map((d, index) => {
-                const isToday = index === todayIndex;
+                const isCurrentMonth =
+                  currentDate.getMonth() === today.getMonth() &&
+                  currentDate.getFullYear() === today.getFullYear();
 
+                const isToday = isCurrentMonth && index === todayIndex;
                 return (
                   <View
                     key={d}
@@ -482,8 +544,8 @@ export default function Main() {
 
                           {/* 🔥 Clover (24로 줄이기 + 중앙 고정) */}
                           <CloverIcon
-                            width={26}
-                            height={26}
+                            width={28}
+                            height={28}
                             style={{
                               position: "absolute",
                             }}
