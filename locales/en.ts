@@ -37,6 +37,18 @@ export default {
   supportContent: 'Buy me a coffee',
   home: 'Home',
   calander: 'Calander',
+  main: {
+    header: {
+      today: 'Today',
+      monthly: 'Monthly',
+      weekly: 'Weekly',
+    },
+    datePicker: {
+      title: 'Select Date',
+      today: 'Today',
+      confirm: 'Confirm',
+    },
+  },
 
   // 소스 프로젝트 번역 (구조화)
   login: {

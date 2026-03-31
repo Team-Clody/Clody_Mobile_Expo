@@ -36,6 +36,18 @@ export default {
   supportContent: '커피 사주기',
   home: '홈',
   calander: '모아보기',
+  main: {
+    header: {
+      today: '오늘',
+      monthly: '월별',
+      weekly: '주별',
+    },
+    datePicker: {
+      title: '날짜 선택',
+      today: '오늘',
+      confirm: '확인',
+    },
+  },
 
   // 소스 프로젝트 번역 (구조화)
   login: {

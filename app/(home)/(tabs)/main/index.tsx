@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useContext, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   Text,
   View,
@@ -17,9 +17,15 @@ import {
 import { Image } from "react-native";
 import { BlurView } from "expo-blur";
 import { AuthContext } from "../../../_layout";
+import * as SecureStore from "expo-secure-store";
+import axios from "axios";
+import { getDeviceTimeZone } from "@/shared/utils/timezone";
+import authService from "@/services/authService";
+import i18n from "@/app/i18n/i18n";
 import CloverIcon from "@/assets/icons/ic_clover.svg";
 import DownIcon from "@/assets/icons/ic_down.svg";
 import TodayIcon from "@/assets/icons/weekday-item.svg";
+import WheelPicker from "@/components/WheelPicker";
 const { width } = Dimensions.get("window");
 
 const WEEK_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -29,7 +35,7 @@ const getStartOfWeek = (date: Date) => {
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   return new Date(d.setDate(diff));
-};
+};  
 
 const addDays = (date: Date, days: number) => {
   const d = new Date(date);
@@ -38,7 +44,8 @@ const addDays = (date: Date, days: number) => {
 };
 
 const formatMonth = (date: Date) => {
-  return date.toLocaleString("en-US", {
+  const locale = i18n.locale?.startsWith("ko") ? "ko-KR" : "en-US";
+  return date.toLocaleString(locale, {
     month: "long",
     year: "numeric",
   });
@@ -46,6 +53,52 @@ const formatMonth = (date: Date) => {
 
 const isSameDate = (a: Date, b: Date) => {
   return a.toDateString() === b.toDateString();
+};
+
+type CalendarDiary = {
+  diaryCount: number;
+  date: string;
+};
+
+const formatDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const getCloverColorByCount = (count: number) => {
+  if (count <= 0) return "#D1D5DB";
+  if (count === 1) return "#8EF3B9";
+  if (count === 2) return "#46DD8A";
+  return "#00D15A";
+};
+
+const getDaysInMonth = (year: number, month: number) => {
+  return new Date(year, month, 0).getDate();
+};
+
+const buildDiaryCountMap = (
+  diaries: CalendarDiary[],
+  year: number,
+  month: number,
+) => {
+  const diaryCountMap = diaries.reduce<Record<string, number>>((acc, diaryItem) => {
+    acc[diaryItem.date] = diaryItem.diaryCount ?? 0;
+    return acc;
+  }, {});
+
+  const hasNonZeroDiaryCount = Object.values(diaryCountMap).some((count) => count > 0);
+  if (hasNonZeroDiaryCount) return diaryCountMap;
+
+  // 테스트용: 응답이 비어있거나 모두 0이면 해당 월을 1~4 랜덤으로 채움
+  const daysInMonth = new Date(year, month, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    diaryCountMap[dateKey] = Math.floor(Math.random() * 4) + 1;
+  }
+
+  return diaryCountMap;
 };
 
 // 🔥 Monthly Matrix 생성
@@ -76,14 +129,145 @@ export default function Main() {
   const router = useRouter();
 
   const flatListRef = useRef<FlatList>(null);
+  const pendingPickedDateRef = useRef<Date | null>(null);
 
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(today);
+  const [diaryCountByDate, setDiaryCountByDate] = useState<
+    Record<string, number>
+  >({});
+  const fetchedMonthKeysRef = useRef<Set<string>>(new Set());
+  const fetchingMonthKeysRef = useRef<Set<string>>(new Set());
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth() + 1;
+  useEffect(() => {
+    console.log("[TEST] currentDate:", currentDate);
+  }, [currentDate]);
+  useEffect(() => {
+    const fetchCalendar = async () => {
+      const timeZone = getDeviceTimeZone();
+      const requestCalendarList = async (
+        accessToken: string,
+        year: number,
+        month: number,
+      ) => {
+        return axios.get("https://test.clodycorp.com/api/v1/calendar/list", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Time-Zone": timeZone,
+          },
+          params: {
+            year,
+            month,
+          },
+        });
+      };
+      const mergeMonthDiaryCount = (
+        diaries: CalendarDiary[],
+        year: number,
+        month: number,
+      ) => {
+        const diaryCountMap = buildDiaryCountMap(diaries, year, month);
+        setDiaryCountByDate((prev) => ({ ...prev, ...diaryCountMap }));
+      };
+      const fetchMonth = async (
+        accessToken: string,
+        year: number,
+        month: number,
+      ) => {
+        const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+        if (
+          fetchedMonthKeysRef.current.has(monthKey) ||
+          fetchingMonthKeysRef.current.has(monthKey)
+        ) {
+          return;
+        }
+
+        fetchingMonthKeysRef.current.add(monthKey);
+        try {
+          const resp = await requestCalendarList(accessToken, year, month);
+          const diaries = (resp.data?.data?.diaries ?? []) as CalendarDiary[];
+          mergeMonthDiaryCount(diaries, year, month);
+          fetchedMonthKeysRef.current.add(monthKey);
+        } finally {
+          fetchingMonthKeysRef.current.delete(monthKey);
+        }
+      };
+      const getNeighborMonth = (year: number, month: number, diff: number) => {
+        const date = new Date(year, month - 1 + diff, 1);
+        return { year: date.getFullYear(), month: date.getMonth() + 1 };
+      };
+
+      try {
+        const accessToken = await SecureStore.getItemAsync("accessToken");
+        if (!accessToken) {
+          console.warn("[TEST] accessToken is missing");
+          return;
+        }
+
+        await fetchMonth(accessToken, currentYear, currentMonth);
+        const prevMonth = getNeighborMonth(currentYear, currentMonth, -1);
+        const nextMonth = getNeighborMonth(currentYear, currentMonth, 1);
+        // 인접 월은 화면 반응성을 위해 백그라운드 prefetch
+        void fetchMonth(accessToken, prevMonth.year, prevMonth.month);
+        void fetchMonth(accessToken, nextMonth.year, nextMonth.month);
+
+        console.log("[TEST] baseURL:", "https://test.clodycorp.com");
+        console.log("[TEST] timeZone:", timeZone);
+        console.log(
+          "[TEST] calendar/list year, month:",
+          currentYear,
+          currentMonth,
+        );
+        console.log("[TEST] calendar/list fetched + prefetched");
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          try {
+            const refreshToken = await SecureStore.getItemAsync("refreshToken");
+            const reissued =
+              await authService.reissueWithRefreshToken(refreshToken);
+
+            if (!reissued) {
+              console.error("[TEST] token reissue failed");
+              return;
+            }
+
+            const newAccessToken = await SecureStore.getItemAsync("accessToken");
+            if (!newAccessToken) {
+              console.error("[TEST] new accessToken is missing after reissue");
+              return;
+            }
+
+            await fetchMonth(newAccessToken, currentYear, currentMonth);
+            const prevMonth = getNeighborMonth(currentYear, currentMonth, -1);
+            const nextMonth = getNeighborMonth(currentYear, currentMonth, 1);
+            void fetchMonth(newAccessToken, prevMonth.year, prevMonth.month);
+            void fetchMonth(newAccessToken, nextMonth.year, nextMonth.month);
+            console.log("[TEST] calendar/list retried with prefetch");
+            return;
+          } catch (retryError) {
+            console.error("[TEST] calendar/list retry error:", retryError);
+            return;
+          }
+        }
+
+        console.error("[TEST] calendar/list error:", error);
+      }
+    };
+
+    fetchCalendar();
+  }, [currentYear, currentMonth]);
 
   // 🔥 Monthly 상태
   const [isMonthlyOpen, setIsMonthlyOpen] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [draftYear, setDraftYear] = useState(currentDate.getFullYear());
+  const [draftMonth, setDraftMonth] = useState(currentDate.getMonth() + 1);
+  const [draftDay, setDraftDay] = useState(currentDate.getDate());
   const [sheetHeight, setSheetHeight] = useState(0);
   const translateY = useRef(new Animated.Value(0)).current;
+  const datePickerTranslateY = useRef(new Animated.Value(420)).current;
+  const isKo = i18n.locale?.startsWith("ko");
 
   const CENTER_INDEX = 50;
 
@@ -94,6 +278,13 @@ export default function Main() {
 
   const handleScroll = (event: any) => {
     const index = Math.round(event.nativeEvent.contentOffset.x / width);
+
+    // DatePicker에서 선택 직후 발생하는 스크롤 이벤트는 선택값을 우선 유지
+    if (pendingPickedDateRef.current) {
+      setCurrentDate(pendingPickedDateRef.current);
+      pendingPickedDateRef.current = null;
+      return;
+    }
 
     const week = weeks[index];
     if (!week) return;
@@ -131,9 +322,89 @@ export default function Main() {
       useNativeDriver: true,
     }).start(() => setIsMonthlyOpen(false));
   };
+  const openDatePicker = () => {
+    setDraftYear(currentDate.getFullYear());
+    setDraftMonth(currentDate.getMonth() + 1);
+    setDraftDay(currentDate.getDate());
+    datePickerTranslateY.setValue(420);
+    setIsDatePickerOpen(true);
+    requestAnimationFrame(() => {
+      Animated.timing(datePickerTranslateY, {
+        toValue: 0,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+  const closeDatePicker = () => {
+    Animated.timing(datePickerTranslateY, {
+      toValue: 420,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(() => setIsDatePickerOpen(false));
+  };
+  const applyTodayAndClose = () => {
+    const now = new Date();
+    setDraftYear(now.getFullYear());
+    setDraftMonth(now.getMonth() + 1);
+    setDraftDay(now.getDate());
+  };
+  const applyPickedDateAndClose = () => {
+    const safeDay = Math.min(draftDay, getDaysInMonth(draftYear, draftMonth));
+    const pickedDate = new Date(draftYear, draftMonth - 1, safeDay);
+    const pickedWeekStart = getStartOfWeek(pickedDate);
+    const todayWeekStart = getStartOfWeek(today);
+    const diffMs = pickedWeekStart.getTime() - todayWeekStart.getTime();
+    const diffWeeks = Math.round(diffMs / (1000 * 60 * 60 * 24 * 7));
+    const rawTargetIndex = CENTER_INDEX + diffWeeks;
+    const canScrollToTarget =
+      rawTargetIndex >= 0 && rawTargetIndex <= weeks.length - 1;
+
+    if (canScrollToTarget) {
+      pendingPickedDateRef.current = pickedDate;
+      flatListRef.current?.scrollToIndex({
+        index: rawTargetIndex,
+        animated: true,
+      });
+    }
+    setCurrentDate(pickedDate);
+    closeDatePicker();
+  };
+  const getNumericValue = (value: string) => Number(value.replace(/\D/g, ""));
+  const enMonthItems = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const yearItems = Array.from(
+    { length: 2100 - 1900 + 1 },
+    (_, i) => (isKo ? `${1900 + i}년` : `${1900 + i}`),
+  );
+  const monthItems = isKo
+    ? Array.from({ length: 12 }, (_, i) => `${i + 1}월`)
+    : enMonthItems;
+  const dayItems = Array.from(
+    { length: getDaysInMonth(draftYear, draftMonth) },
+    (_, i) => (isKo ? `${i + 1}일` : `${i + 1}`),
+  );
+  useEffect(() => {
+    const maxDay = getDaysInMonth(draftYear, draftMonth);
+    if (draftDay > maxDay) {
+      setDraftDay(maxDay);
+    }
+  }, [draftYear, draftMonth, draftDay]);
   const todayIndex = (today.getDay() + 6) % 7;
-  const lastOffset = useRef(0);
-  const OVERDRAG = 100;
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => {
@@ -154,7 +425,7 @@ export default function Main() {
       },
 
       onPanResponderMove: (_, gestureState) => {
-        let newY = lastOffset.current + gestureState.dy;
+        let newY = gestureState.dy;
 
         // 위로 이동 제한 없음 (닫히는 방향)
         newY = Math.max(-sheetHeight, newY);
@@ -170,10 +441,15 @@ export default function Main() {
       onPanResponderRelease: (_, gestureState) => {
         const velocity = gestureState.vy;
         const distance = gestureState.dy;
+        const translateYValue =
+          typeof (translateY as any).__getValue === "function"
+            ? (translateY as any).__getValue()
+            : 0;
 
-        // 🔥 위로 스와이프 → 닫기
-        if (velocity < -0.5 || distance < -25) {
+        // 🔥 위로 스와이프 또는 충분히 끌어올림 → 닫기
+        if (velocity < -0.35 || distance < -18 || translateYValue < -35) {
           closeMonthly();
+          return;
         }
         // 🔥 아래로 많이 끌면 닫기
         if (distance > 120) {
@@ -236,21 +512,27 @@ export default function Main() {
                 {formatMonth(currentDate)}
               </Text>
 
-              <DownIcon
-                width={30} // 🔥 텍스트랑 비율 맞추기
-                height={30}
-                color="#324c3d"
-              />
+              <Pressable onPress={openDatePicker} hitSlop={10}>
+                <DownIcon
+                  width={30} // 🔥 텍스트랑 비율 맞추기
+                  height={30}
+                  color="#324c3d"
+                />
+              </Pressable>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Pressable onPress={goToToday}>
-                <Text style={{ fontWeight: "400" }}>Today</Text>
+                <Text style={{ fontWeight: "400" }}>
+                  {i18n.t("main.header.today")}
+                </Text>
               </Pressable>
 
               <Text style={{ marginHorizontal: 8 }}>|</Text>
 
               <Pressable onPress={openMonthly}>
-                <Text style={{ fontWeight: "400" }}>Monthly</Text>
+                <Text style={{ fontWeight: "400" }}>
+                  {i18n.t("main.header.monthly")}
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -277,7 +559,7 @@ export default function Main() {
                 {/* 요일 */}
                 <View style={{ flexDirection: "row" }}>
                   {WEEK_DAYS.map((d, index) => {
-                    const todayIndexInWeek = item.findIndex((date) =>
+                    const todayIndexInWeek = item.findIndex((date: Date) =>
                       isSameDate(date, today),
                     );
 
@@ -325,8 +607,11 @@ export default function Main() {
                     marginTop: 10,
                   }}
                 >
-                  {item.map((date, i) => {
+                  {item.map((date: Date, i: number) => {
                     const isToday = isSameDate(date, today);
+                    const dateKey = formatDateKey(date);
+                    const diaryCount = diaryCountByDate[dateKey] ?? 0;
+                    const cloverColor = getCloverColorByCount(diaryCount);
 
                     return (
                       <View
@@ -344,7 +629,7 @@ export default function Main() {
                             alignItems: "center",
                           }}
                         >
-                          <CloverIcon width={28} height={28} />
+                          <CloverIcon width={28} height={28} color={cloverColor} />
 
                           <Text
                             style={{
@@ -450,7 +735,7 @@ export default function Main() {
                   style={{ marginLeft: 4 }}
                 />
               </View>
-              <Text style={{ color: "#666" }}>Weekly</Text>
+              <Text style={{ color: "#666" }}>{i18n.t("main.header.weekly")}</Text>
             </View>
 
             {/* 요일 */}
@@ -507,6 +792,9 @@ export default function Main() {
                   const isToday = isSameDate(date, today);
                   const isCurrentMonth =
                     date.getMonth() === currentDate.getMonth();
+                  const dateKey = formatDateKey(date);
+                  const diaryCount = diaryCountByDate[dateKey] ?? 0;
+                  const cloverColor = getCloverColorByCount(diaryCount);
 
                   return (
                     <View
@@ -546,6 +834,7 @@ export default function Main() {
                           <CloverIcon
                             width={28}
                             height={28}
+                            color={cloverColor}
                             style={{
                               position: "absolute",
                             }}
@@ -593,6 +882,181 @@ export default function Main() {
               }}
             />
           </Pressable>
+        </Animated.View>
+      </Modal>
+      <Modal
+        transparent
+        visible={isDatePickerOpen}
+        animationType="none"
+        presentationStyle="overFullScreen"
+        statusBarTranslucent
+      >
+        <Pressable
+          onPress={closeDatePicker}
+          style={{
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0,0,0,0.35)",
+          }}
+        />
+        <Animated.View
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "#fff",
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            paddingTop: 20,
+            paddingHorizontal: 20,
+            paddingBottom: 30,
+            transform: [{ translateY: datePickerTranslateY }],
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 28,
+              fontWeight: "700",
+              color: "#20232a",
+              marginBottom: 18,
+            }}
+          >
+            {i18n.t("main.datePicker.title")}
+          </Text>
+          <View
+            style={{
+              height: 220,
+              marginBottom: 20,
+              flexDirection: "row",
+              alignItems: "center",
+            }}
+          >
+            {isKo ? (
+              <>
+                <WheelPicker
+                  items={yearItems}
+                  initValue={`${draftYear}년`}
+                  itemHeight={44}
+                  onItemChange={(item) => {
+                    const nextYear = getNumericValue(item);
+                    if (!Number.isFinite(nextYear)) return;
+                    setDraftYear(nextYear);
+                  }}
+                  containerStyle={{ flex: 1 }}
+                />
+                <WheelPicker
+                  items={monthItems}
+                  initValue={`${draftMonth}월`}
+                  itemHeight={44}
+                  onItemChange={(item) => {
+                    const nextMonth = getNumericValue(item);
+                    if (!Number.isFinite(nextMonth)) return;
+                    if (nextMonth < 1 || nextMonth > 12) return;
+                    setDraftMonth(nextMonth);
+                  }}
+                  containerStyle={{ flex: 1 }}
+                />
+                <WheelPicker
+                  items={dayItems}
+                  initValue={`${draftDay}일`}
+                  itemHeight={44}
+                  onItemChange={(item) => {
+                    const nextDay = getNumericValue(item);
+                    if (!Number.isFinite(nextDay)) return;
+                    if (nextDay < 1 || nextDay > getDaysInMonth(draftYear, draftMonth))
+                      return;
+                    setDraftDay(nextDay);
+                  }}
+                  containerStyle={{ flex: 1 }}
+                />
+              </>
+            ) : (
+              <>
+                <WheelPicker
+                  items={monthItems}
+                  initValue={monthItems[draftMonth - 1]}
+                  itemHeight={44}
+                  onItemChange={(item) => {
+                    const nextMonth = monthItems.indexOf(item) + 1;
+                    if (!Number.isFinite(nextMonth)) return;
+                    if (nextMonth < 1 || nextMonth > 12) return;
+                    setDraftMonth(nextMonth);
+                  }}
+                  containerStyle={{ flex: 1 }}
+                />
+                <WheelPicker
+                  items={dayItems}
+                  initValue={`${draftDay}`}
+                  itemHeight={44}
+                  onItemChange={(item) => {
+                    const nextDay = getNumericValue(item);
+                    if (!Number.isFinite(nextDay)) return;
+                    if (nextDay < 1 || nextDay > getDaysInMonth(draftYear, draftMonth))
+                      return;
+                    setDraftDay(nextDay);
+                  }}
+                  containerStyle={{ flex: 1 }}
+                />
+                <WheelPicker
+                  items={yearItems}
+                  initValue={`${draftYear}`}
+                  itemHeight={44}
+                  onItemChange={(item) => {
+                    const nextYear = getNumericValue(item);
+                    if (!Number.isFinite(nextYear)) return;
+                    setDraftYear(nextYear);
+                  }}
+                  containerStyle={{ flex: 1 }}
+                />
+              </>
+            )}
+            <View
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                top: 88,
+                height: 44,
+                backgroundColor: "#f1f2f5",
+                borderRadius: 8,
+                zIndex: -1,
+              }}
+            />
+          </View>
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <Pressable
+              onPress={applyTodayAndClose}
+              style={{
+                flex: 1,
+                height: 48,
+                borderRadius: 8,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#ECEFF3",
+              }}
+            >
+              <Text style={{ color: "#596273", fontSize: 18, fontWeight: "600" }}>
+                {i18n.t("main.datePicker.today")}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={applyPickedDateAndClose}
+              style={{
+                flex: 3,
+                height: 48,
+                borderRadius: 8,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#2D3645",
+              }}
+            >
+              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
+                {i18n.t("main.datePicker.confirm")}
+              </Text>
+            </Pressable>
+          </View>
         </Animated.View>
       </Modal>
     </View>
