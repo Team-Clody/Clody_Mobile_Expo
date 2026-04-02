@@ -17,9 +17,10 @@ interface Props {
   itemHeight: number;
   initValue?: string;
   containerStyle?: ViewStyle;
+  fontFamily?: string;
 }
 const WheelPicker: React.FC<Props> = (props) => {
-  const { items, onItemChange, itemHeight, initValue } = props;
+  const { items, onItemChange, itemHeight, initValue, fontFamily } = props;
   const scrollY = useRef(new Animated.Value(0)).current;
   const listRef = useRef<FlatList<string>>(null);
   const initMatchedIndex = initValue ? items.indexOf(initValue) : 0;
@@ -71,8 +72,8 @@ const WheelPicker: React.FC<Props> = (props) => {
             //TYPOS.headline4,
             {
               color: selectedItem === item ? "#1B1C20" : "#bebfc5",
-              fontSize: 19,
-              fontFamily: "PretendardSemiBold",
+              fontSize: 18,
+              fontFamily: fontFamily ?? "PretendardMedium",
             },
           ]}
         >

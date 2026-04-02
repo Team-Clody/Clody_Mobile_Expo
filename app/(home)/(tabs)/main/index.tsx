@@ -9,12 +9,10 @@ import {
   Animated,
   StyleSheet,
   Platform,
-  ImageBackground,
   Modal,
   PanResponder,
   Easing,
 } from "react-native";
-import { Image } from "react-native";
 import { BlurView } from "expo-blur";
 import { AuthContext } from "../../../_layout";
 import * as SecureStore from "expo-secure-store";
@@ -24,11 +22,21 @@ import authService from "@/services/authService";
 import i18n from "@/app/i18n/i18n";
 import CloverIcon from "@/assets/icons/ic_clover.svg";
 import DownIcon from "@/assets/icons/ic_down.svg";
-import TodayIcon from "@/assets/icons/weekday-item.svg";
+import TodayIconKo from "@/assets/icons/weekday-item_ko.svg";
+import TodayIconEn from "@/assets/icons/weekday-item_en.svg";
 import WheelPicker from "@/components/WheelPicker";
+import GroupCharacter from "@/assets/images/Group.svg";
+import BgDefault from "@/assets/images/bg_default.svg";
 const { width } = Dimensions.get("window");
 
-const WEEK_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+const WEEK_DAYS_EN = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+const WEEK_DAYS_KO = ["월", "화", "수", "목", "금", "토", "일"];
+const fontPreset = StyleSheet.create({
+  regular: { fontFamily: "PretendardRegular" },
+  medium: { fontFamily: "PretendardMedium" },
+  semibold: { fontFamily: "PretendardSemiBold" },
+  bold: { fontFamily: "PretendardBold" },
+});
 
 const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
@@ -68,10 +76,10 @@ const formatDateKey = (date: Date) => {
 };
 
 const getCloverColorByCount = (count: number) => {
-  if (count <= 0) return "#D1D5DB";
-  if (count === 1) return "#8EF3B9";
-  if (count === 2) return "#46DD8A";
-  return "#00D15A";
+  if (count <= 0) return "#D1D5DD";
+  if (count === 1) return "#8FF76F";
+  if (count <= 3) return "#00D15A";
+  return "#00974E";
 };
 
 const getDaysInMonth = (year: number, month: number) => {
@@ -91,11 +99,23 @@ const buildDiaryCountMap = (
   const hasNonZeroDiaryCount = Object.values(diaryCountMap).some((count) => count > 0);
   if (hasNonZeroDiaryCount) return diaryCountMap;
 
-  // 테스트용: 응답이 비어있거나 모두 0이면 해당 월을 1~4 랜덤으로 채움
+  // 테스트용: 응답이 비어있거나 모두 0이면 0개 날짜가 반드시 포함되게 생성
   const daysInMonth = new Date(year, month, 0).getDate();
+  const zeroDaysTarget = Math.max(5, Math.floor(daysInMonth * 0.25));
+
+  const zeroDaySet = new Set<number>();
+  while (zeroDaySet.size < zeroDaysTarget) {
+    zeroDaySet.add(Math.floor(Math.random() * daysInMonth) + 1);
+  }
+
   for (let day = 1; day <= daysInMonth; day++) {
     const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    diaryCountMap[dateKey] = Math.floor(Math.random() * 4) + 1;
+    if (zeroDaySet.has(day)) {
+      diaryCountMap[dateKey] = 0;
+      continue;
+    }
+
+    diaryCountMap[dateKey] = Math.floor(Math.random() * 5) + 1;
   }
 
   return diaryCountMap;
@@ -136,6 +156,7 @@ export default function Main() {
   const [diaryCountByDate, setDiaryCountByDate] = useState<
     Record<string, number>
   >({});
+  const [totalCloverCount, setTotalCloverCount] = useState(0);
   const fetchedMonthKeysRef = useRef<Set<string>>(new Set());
   const fetchingMonthKeysRef = useRef<Set<string>>(new Set());
   const currentYear = currentDate.getFullYear();
@@ -166,9 +187,11 @@ export default function Main() {
         diaries: CalendarDiary[],
         year: number,
         month: number,
+        totalClover: number,
       ) => {
         const diaryCountMap = buildDiaryCountMap(diaries, year, month);
         setDiaryCountByDate((prev) => ({ ...prev, ...diaryCountMap }));
+        setTotalCloverCount(totalClover);
       };
       const fetchMonth = async (
         accessToken: string,
@@ -187,7 +210,8 @@ export default function Main() {
         try {
           const resp = await requestCalendarList(accessToken, year, month);
           const diaries = (resp.data?.data?.diaries ?? []) as CalendarDiary[];
-          mergeMonthDiaryCount(diaries, year, month);
+          const totalClover = Number(resp.data?.data?.totalCloverCount ?? 0);
+          mergeMonthDiaryCount(diaries, year, month, totalClover);
           fetchedMonthKeysRef.current.add(monthKey);
         } finally {
           fetchingMonthKeysRef.current.delete(monthKey);
@@ -261,6 +285,7 @@ export default function Main() {
   // 🔥 Monthly 상태
   const [isMonthlyOpen, setIsMonthlyOpen] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [datePickerSessionKey, setDatePickerSessionKey] = useState(0);
   const [draftYear, setDraftYear] = useState(currentDate.getFullYear());
   const [draftMonth, setDraftMonth] = useState(currentDate.getMonth() + 1);
   const [draftDay, setDraftDay] = useState(currentDate.getDate());
@@ -268,6 +293,20 @@ export default function Main() {
   const translateY = useRef(new Animated.Value(0)).current;
   const datePickerTranslateY = useRef(new Animated.Value(420)).current;
   const isKo = i18n.locale?.startsWith("ko");
+  const TodayIcon = isKo ? TodayIconKo : TodayIconEn;
+  const weekDays = isKo ? WEEK_DAYS_KO : WEEK_DAYS_EN;
+  const headerActionTextStyle = isKo
+    ? [fontPreset.medium, { fontWeight: "500" as const }]
+    : [fontPreset.regular, { fontWeight: "400" as const }];
+  const levelChipTextStyle = isKo
+    ? [fontPreset.bold, { fontWeight: "700" as const }]
+    : [fontPreset.semibold, { fontWeight: "600" as const }];
+  const cloverCountTextStyle = isKo
+    ? [fontPreset.semibold, { fontWeight: "600" as const }]
+    : [fontPreset.medium, { fontWeight: "500" as const }];
+  const cloversPerLevel = 2;
+  const currentLevel = Math.floor(totalCloverCount / cloversPerLevel) + 1;
+  const currentLevelProgress = totalCloverCount % cloversPerLevel;
 
   const CENTER_INDEX = 50;
 
@@ -326,6 +365,7 @@ export default function Main() {
     setDraftYear(currentDate.getFullYear());
     setDraftMonth(currentDate.getMonth() + 1);
     setDraftDay(currentDate.getDate());
+    setDatePickerSessionKey((prev) => prev + 1);
     datePickerTranslateY.setValue(420);
     setIsDatePickerOpen(true);
     requestAnimationFrame(() => {
@@ -374,18 +414,18 @@ export default function Main() {
   };
   const getNumericValue = (value: string) => Number(value.replace(/\D/g, ""));
   const enMonthItems = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
+    "January",
+    "February",
+    "March",
+    "April",
     "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
   const yearItems = Array.from(
     { length: 2100 - 1900 + 1 },
@@ -467,23 +507,22 @@ export default function Main() {
   ).current;
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
+    <View style={{ flex: 1, backgroundColor: "#F8F9FC" }}>
       {/* 헤더 */}
       <View
         style={{
-          backgroundColor: "#baafaf",
+          backgroundColor: "#FFFFFF",
           paddingBottom: 20,
           borderBottomLeftRadius: 20,
           borderBottomRightRadius: 20,
-
-          // iOS shadow
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.15,
-          shadowRadius: 6,
-
-          // Android shadow
-          elevation: 5,
+          borderWidth: 0.5,
+          borderColor: "#E3E6ED",
+          // 은은한 회색 그라데이션 느낌
+          shadowColor: "#AEB4C0",
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.12,
+          shadowRadius:24,
+          elevation: 2,
         }}
       >
         <View style={{ paddingTop: 60, paddingHorizontal: 20 }}>
@@ -503,12 +542,7 @@ export default function Main() {
                 gap: 5,
               }}
             >
-              <Text
-                style={{
-                  fontSize: 22,
-                  fontWeight: "600",
-                }}
-              >
+              <Text style={[fontPreset.semibold, { fontSize: 22, fontWeight: "600" }]}>
                 {formatMonth(currentDate)}
               </Text>
 
@@ -522,7 +556,7 @@ export default function Main() {
             </View>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Pressable onPress={goToToday}>
-                <Text style={{ fontWeight: "400" }}>
+                <Text style={headerActionTextStyle}>
                   {i18n.t("main.header.today")}
                 </Text>
               </Pressable>
@@ -530,7 +564,7 @@ export default function Main() {
               <Text style={{ marginHorizontal: 8 }}>|</Text>
 
               <Pressable onPress={openMonthly}>
-                <Text style={{ fontWeight: "400" }}>
+                <Text style={headerActionTextStyle}>
                   {i18n.t("main.header.monthly")}
                 </Text>
               </Pressable>
@@ -558,7 +592,7 @@ export default function Main() {
               <View style={{}}>
                 {/* 요일 */}
                 <View style={{ flexDirection: "row" }}>
-                  {WEEK_DAYS.map((d, index) => {
+                  {weekDays.map((d, index) => {
                     const todayIndexInWeek = item.findIndex((date: Date) =>
                       isSameDate(date, today),
                     );
@@ -575,22 +609,25 @@ export default function Main() {
                       >
                         <View
                           style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: 12,
+                            width: 28,
+                            height: 28,
+                            borderRadius: 14,
                             justifyContent: "center",
                             alignItems: "center",
                             backgroundColor: isToday
-                              ? "#E5E7EB"
+                              ? "#2B313D"
                               : "transparent",
                           }}
                         >
                           <Text
-                            style={{
-                              color: "#888",
-                              fontWeight: isToday ? "600" : "400",
-                              fontSize: 13,
-                            }}
+                            style={[
+                              fontPreset.medium,
+                              {
+                                color: isToday ? "#FFFFFF" : "#888",
+                                fontWeight: isToday ? "600" : "500",
+                                fontSize: 13,
+                              },
+                            ]}
                           >
                             {d}
                           </Text>
@@ -632,12 +669,19 @@ export default function Main() {
                           <CloverIcon width={28} height={28} color={cloverColor} />
 
                           <Text
-                            style={{
-                              position: "absolute",
-                              color: "#fff",
-                              fontSize: 12,
-                              fontWeight: "600",
-                            }}
+                            style={[
+                              fontPreset.semibold,
+                              {
+                                position: "absolute",
+                                width: 32,
+                                textAlign: "center",
+                                color: "#fff",
+                                fontSize: 12,
+                                lineHeight: 14,
+                                includeFontPadding: false,
+                                textAlignVertical: "center",
+                              },
+                            ]}
                           >
                             {date.getDate()}
                           </Text>
@@ -652,8 +696,70 @@ export default function Main() {
         />
       </View>
 
-      {/* 빈 영역 */}
-      <View style={{ flex: 1 }} />
+      {/* 중간 비주얼 영역 */}
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "flex-end",
+          paddingBottom: Platform.OS === "android" ? 250 : 205,
+          backgroundColor: "#F8F9FC",
+          overflow: "hidden",
+        }}
+      >
+        <BgDefault
+          width="100%"
+          height="100%"
+          preserveAspectRatio="xMidYMid slice"
+          style={StyleSheet.absoluteFillObject}
+        />
+        <View
+          style={{
+            width: "100%",
+            alignItems: "center",
+            justifyContent: "flex-end",
+          }}
+        >
+          <GroupCharacter width={128} height={183} style={{ marginBottom: 6 }} />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "rgba(241, 245, 249, 0.92)",
+              borderRadius: 999,
+              paddingVertical: 6,
+              paddingHorizontal: 10,
+              marginBottom: 18,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: "#E5E7EB",
+                borderRadius: 999,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                marginRight: 6,
+              }}
+            >
+              <Text
+                style={[...levelChipTextStyle, { color: "#374151", fontSize: 14 }]}
+              >
+                {isKo ? `${currentLevel}단계` : `Lv.${currentLevel}`}
+              </Text>
+            </View>
+            <Text
+              style={[...cloverCountTextStyle, { color: "#1F2937", fontSize: 16 }]}
+            >
+              {currentLevelProgress} / {cloversPerLevel}{" "}
+              {isKo
+                ? "클로버"
+                : currentLevelProgress === 1
+                  ? "Clover"
+                  : "Clovers"}
+            </Text>
+            <Text style={{ color: "#6B7280", fontSize: 18, marginLeft: 6 }}>›</Text>
+          </View>
+        </View>
+      </View>
       {/* 🔥 Monthly Sheet */}
       <Modal
         transparent
@@ -707,7 +813,8 @@ export default function Main() {
             borderBottomLeftRadius: 20,
             borderBottomRightRadius: 20,
             paddingTop: 40,
-            paddingBottom: 15,
+            paddingBottom: 6,
+            overflow: "hidden",
             transform: [{ translateY }],
           }}
         >
@@ -724,23 +831,27 @@ export default function Main() {
               }}
             >
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text style={{ fontSize: 22, fontWeight: "600" }}>
+                <Text style={[fontPreset.semibold, { fontSize: 22, fontWeight: "600" }]}>
                   {formatMonth(currentDate)}
                 </Text>
 
-                <DownIcon
-                  width={30}
-                  height={30}
-                  color="#324c3d"
-                  style={{ marginLeft: 4 }}
-                />
+                <Pressable onPress={openDatePicker} hitSlop={10}>
+                  <DownIcon
+                    width={30}
+                    height={30}
+                    color="#324c3d"
+                    style={{ marginLeft: 4 }}
+                  />
+                </Pressable>
               </View>
-              <Text style={{ color: "#666" }}>{i18n.t("main.header.weekly")}</Text>
+              <Text style={[fontPreset.medium, { color: "#666" }]}>
+                {i18n.t("main.header.weekly")}
+              </Text>
             </View>
 
             {/* 요일 */}
-            <View style={{ flexDirection: "row", marginBottom: 15 }}>
-              {WEEK_DAYS.map((d, index) => {
+            <View style={{ flexDirection: "row", marginBottom: 28 }}>
+              {weekDays.map((d, index) => {
                 const isCurrentMonth =
                   currentDate.getMonth() === today.getMonth() &&
                   currentDate.getFullYear() === today.getFullYear();
@@ -756,20 +867,23 @@ export default function Main() {
                   >
                     <View
                       style={{
-                        width: 24, // 🔥 줄임
-                        height: 24, // 🔥 줄임
-                        borderRadius: 12, // 🔥 항상 절반
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
                         justifyContent: "center",
                         alignItems: "center",
-                        backgroundColor: isToday ? "#E5E7EB" : "transparent",
+                        backgroundColor: isToday ? "#2B313D" : "transparent",
                       }}
                     >
                       <Text
-                        style={{
-                          color: "#888",
-                          fontWeight: isToday ? "600" : "400",
-                          fontSize: 13, // 🔥 글자도 같이 줄여줘야 균형 맞음
-                        }}
+                        style={[
+                          fontPreset.medium,
+                          {
+                            color: isToday ? "#FFFFFF" : "#888",
+                            fontWeight: isToday ? "600" : "500",
+                            fontSize: 13, // 🔥 글자도 같이 줄여줘야 균형 맞음
+                          },
+                        ]}
                       >
                         {d}
                       </Text>
@@ -780,12 +894,16 @@ export default function Main() {
             </View>
 
             {/* 🔥 날짜 grid (같은 컨테이너 안!) */}
-            {getMonthMatrix(currentDate).map((week, i) => (
+            {getMonthMatrix(currentDate)
+              .filter((week) =>
+                week.some((date) => date.getMonth() === currentDate.getMonth()),
+              )
+              .map((week, i) => (
               <View
                 key={i}
                 style={{
                   flexDirection: "row",
-                  marginBottom: 20,
+                  marginBottom: 18,
                 }}
               >
                 {week.map((date, j) => {
@@ -821,11 +939,11 @@ export default function Main() {
                           {/* Today */}
                           {isToday && (
                             <TodayIcon
-                              width={35}
-                              height={38}
+                              width={isKo ? 35 : 40}
+                              height={isKo ? 38 : 44}
                               style={{
                                 position: "absolute",
-                                top: -29,
+                                top: isKo ? -29 : -34,
                               }}
                             />
                           )}
@@ -842,14 +960,19 @@ export default function Main() {
 
                           {/* 🔥 텍스트 중앙 */}
                           <Text
-                            style={{
+                            style={[
+                              fontPreset.semibold,
+                              {
                               position: "absolute",
+                              width: 32,
                               textAlign: "center",
                               color: "#fff",
                               fontSize: 12,
-                              fontWeight: "600",
-                              lineHeight: 32, // 🔥 세로 중앙 핵심
-                            }}
+                              lineHeight: 14,
+                              includeFontPadding: false,
+                              textAlignVertical: "center",
+                            },
+                            ]}
                           >
                             {date.getDate()}
                           </Text>
@@ -882,6 +1005,17 @@ export default function Main() {
               }}
             />
           </Pressable>
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 2,
+              backgroundColor: "#FFFFFF",
+            }}
+          />
         </Animated.View>
       </Modal>
       <Modal
@@ -916,12 +1050,10 @@ export default function Main() {
           }}
         >
           <Text
-            style={{
-              fontSize: 28,
-              fontWeight: "700",
-              color: "#20232a",
-              marginBottom: 18,
-            }}
+            style={[
+              fontPreset.bold,
+              { fontSize: 16, color: "#20232a", marginBottom: 18 },
+            ]}
           >
             {i18n.t("main.datePicker.title")}
           </Text>
@@ -931,37 +1063,45 @@ export default function Main() {
               marginBottom: 20,
               flexDirection: "row",
               alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
             }}
           >
             {isKo ? (
               <>
                 <WheelPicker
+                  key={`ko-year-${datePickerSessionKey}`}
                   items={yearItems}
                   initValue={`${draftYear}년`}
                   itemHeight={44}
+                  fontFamily="PretendardSemiBold"
                   onItemChange={(item) => {
                     const nextYear = getNumericValue(item);
                     if (!Number.isFinite(nextYear)) return;
                     setDraftYear(nextYear);
                   }}
-                  containerStyle={{ flex: 1 }}
+                  containerStyle={{ width: 104 }}
                 />
                 <WheelPicker
+                  key={`ko-month-${datePickerSessionKey}`}
                   items={monthItems}
                   initValue={`${draftMonth}월`}
                   itemHeight={44}
+                  fontFamily="PretendardSemiBold"
                   onItemChange={(item) => {
                     const nextMonth = getNumericValue(item);
                     if (!Number.isFinite(nextMonth)) return;
                     if (nextMonth < 1 || nextMonth > 12) return;
                     setDraftMonth(nextMonth);
                   }}
-                  containerStyle={{ flex: 1 }}
+                  containerStyle={{ width: 92 }}
                 />
                 <WheelPicker
+                  key={`ko-day-${datePickerSessionKey}`}
                   items={dayItems}
                   initValue={`${draftDay}일`}
                   itemHeight={44}
+                  fontFamily="PretendardSemiBold"
                   onItemChange={(item) => {
                     const nextDay = getNumericValue(item);
                     if (!Number.isFinite(nextDay)) return;
@@ -969,12 +1109,13 @@ export default function Main() {
                       return;
                     setDraftDay(nextDay);
                   }}
-                  containerStyle={{ flex: 1 }}
+                  containerStyle={{ width: 92 }}
                 />
               </>
             ) : (
               <>
                 <WheelPicker
+                  key={`en-month-${datePickerSessionKey}`}
                   items={monthItems}
                   initValue={monthItems[draftMonth - 1]}
                   itemHeight={44}
@@ -984,9 +1125,10 @@ export default function Main() {
                     if (nextMonth < 1 || nextMonth > 12) return;
                     setDraftMonth(nextMonth);
                   }}
-                  containerStyle={{ flex: 1 }}
+                  containerStyle={{ width: 138 }}
                 />
                 <WheelPicker
+                  key={`en-day-${datePickerSessionKey}`}
                   items={dayItems}
                   initValue={`${draftDay}`}
                   itemHeight={44}
@@ -997,9 +1139,10 @@ export default function Main() {
                       return;
                     setDraftDay(nextDay);
                   }}
-                  containerStyle={{ flex: 1 }}
+                  containerStyle={{ width: 82 }}
                 />
                 <WheelPicker
+                  key={`en-year-${datePickerSessionKey}`}
                   items={yearItems}
                   initValue={`${draftYear}`}
                   itemHeight={44}
@@ -1008,7 +1151,7 @@ export default function Main() {
                     if (!Number.isFinite(nextYear)) return;
                     setDraftYear(nextYear);
                   }}
-                  containerStyle={{ flex: 1 }}
+                  containerStyle={{ width: 112 }}
                 />
               </>
             )}
@@ -1037,7 +1180,9 @@ export default function Main() {
                 backgroundColor: "#ECEFF3",
               }}
             >
-              <Text style={{ color: "#596273", fontSize: 18, fontWeight: "600" }}>
+              <Text
+                style={[fontPreset.semibold, { color: "#596273", fontSize: 18 }]}
+              >
                 {i18n.t("main.datePicker.today")}
               </Text>
             </Pressable>
@@ -1052,7 +1197,9 @@ export default function Main() {
                 backgroundColor: "#2D3645",
               }}
             >
-              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>
+              <Text
+                style={[fontPreset.semibold, { color: "#fff", fontSize: 18 }]}
+              >
                 {i18n.t("main.datePicker.confirm")}
               </Text>
             </Pressable>
