@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Text,
   View,
@@ -55,6 +55,27 @@ const addDays = (date: Date, days: number) => {
   const d = new Date(date);
   d.setDate(d.getDate() + days);
   return d;
+};
+
+/** ±7000주 ≈ ±95년. 기존 ±50주는 1년도 못 벗어나 피커에서 년만 바꾸면 스트립에 해당 주가 없었음 */
+const WEEK_STRIP_HALF_SPAN = 7000;
+const WEEK_STRIP_CENTER_INDEX = WEEK_STRIP_HALF_SPAN;
+const WEEK_STRIP_LENGTH = WEEK_STRIP_HALF_SPAN * 2 + 1;
+
+/** `picked`가 속한 주가 FlatList에서 몇 번째 페이지인지 (오늘이 있는 주 = WEEK_STRIP_CENTER_INDEX) */
+const weekStripFlatIndexForDate = (picked: Date, anchorToday: Date) => {
+  const p = new Date(picked.getFullYear(), picked.getMonth(), picked.getDate());
+  const a = new Date(
+    anchorToday.getFullYear(),
+    anchorToday.getMonth(),
+    anchorToday.getDate(),
+  );
+  const pw = getStartOfWeek(p);
+  const aw = getStartOfWeek(a);
+  const pu = Date.UTC(pw.getFullYear(), pw.getMonth(), pw.getDate());
+  const au = Date.UTC(aw.getFullYear(), aw.getMonth(), aw.getDate());
+  const diffWeeks = Math.round((pu - au) / (7 * 86400000));
+  return WEEK_STRIP_CENTER_INDEX + diffWeeks;
 };
 
 const formatMonth = (date: Date) => {
@@ -472,22 +493,31 @@ export default function Main() {
   const currentLevel = Math.floor(totalCloverCount / cloversPerLevel) + 1;
   const currentLevelProgress = totalCloverCount % cloversPerLevel;
 
-  const CENTER_INDEX = 50;
+  const todayYmd = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+  const weeks = useMemo(() => {
+    return Array.from({ length: WEEK_STRIP_LENGTH }, (_, i) => {
+      const start = getStartOfWeek(
+        addDays(today, (i - WEEK_STRIP_CENTER_INDEX) * 7),
+      );
+      return Array.from({ length: 7 }, (_, j) => addDays(start, j));
+    });
+  }, [todayYmd]);
 
-  const weeks = Array.from({ length: 100 }, (_, i) => {
-    const start = getStartOfWeek(addDays(today, (i - CENTER_INDEX) * 7));
-    return Array.from({ length: 7 }, (_, j) => addDays(start, j));
-  });
+  /** 주간 스트립을 `picked`가 포함된 주로 맞춤 (`scrollToOffset`이 모달 직후에도 더 안정적) */
+  const scrollWeekStripToDate = (picked: Date, animated = true) => {
+    const idx = weekStripFlatIndexForDate(picked, today);
+    if (idx < 0 || idx >= WEEK_STRIP_LENGTH) return;
+    pendingPickedDateRef.current = picked;
+    flatListRef.current?.scrollToOffset({
+      offset: width * idx,
+      animated,
+    });
+  };
 
   const selectDateFromWeekRow = (picked: Date) => {
     setCalendarDate(picked);
     setGratitudeDate(picked);
-    const idx = weeks.findIndex((week) =>
-      week.some((d) => isSameDate(d, picked)),
-    );
-    if (idx < 0) return;
-    pendingPickedDateRef.current = picked;
-    flatListRef.current?.scrollToIndex({ index: idx, animated: true });
+    scrollWeekStripToDate(picked);
   };
 
   const handleScroll = (event: any) => {
@@ -511,12 +541,9 @@ export default function Main() {
   };
 
   const goToToday = () => {
-    flatListRef.current?.scrollToIndex({
-      index: CENTER_INDEX,
-      animated: true,
-    });
     setCalendarDate(today);
     setGratitudeDate(today);
+    scrollWeekStripToDate(today);
   };
 
   // 🔥 Monthly 열기
@@ -557,13 +584,17 @@ export default function Main() {
       }).start();
     });
   };
-  const closeDatePicker = () => {
+  const closeDatePicker = (onClosed?: () => void) => {
     Animated.timing(datePickerTranslateY, {
       toValue: 420,
       duration: 220,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
-    }).start(() => setIsDatePickerOpen(false));
+    }).start(({ finished }) => {
+      if (!finished) return;
+      setIsDatePickerOpen(false);
+      onClosed?.();
+    });
   };
   const applyTodayAndClose = () => {
     const now = new Date();
@@ -574,24 +605,18 @@ export default function Main() {
   const applyPickedDateAndClose = () => {
     const safeDay = Math.min(draftDay, getDaysInMonth(draftYear, draftMonth));
     const pickedDate = new Date(draftYear, draftMonth - 1, safeDay);
-    const pickedWeekStart = getStartOfWeek(pickedDate);
-    const todayWeekStart = getStartOfWeek(today);
-    const diffMs = pickedWeekStart.getTime() - todayWeekStart.getTime();
-    const diffWeeks = Math.round(diffMs / (1000 * 60 * 60 * 24 * 7));
-    const rawTargetIndex = CENTER_INDEX + diffWeeks;
-    const canScrollToTarget =
-      rawTargetIndex >= 0 && rawTargetIndex <= weeks.length - 1;
-
-    if (canScrollToTarget) {
-      pendingPickedDateRef.current = pickedDate;
-      flatListRef.current?.scrollToIndex({
-        index: rawTargetIndex,
-        animated: true,
-      });
-    }
     setCalendarDate(pickedDate);
     setGratitudeDate(pickedDate);
-    closeDatePicker();
+    // 모달이 완전히 닫힌 뒤 스크롤해야 FlatList 오프셋이 반영됨
+    closeDatePicker(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollWeekStripToDate(pickedDate);
+          // 레이아웃 직후 한 번 더 맞춤 (일부 기기에서 첫 scrollToOffset 무시됨)
+          setTimeout(() => scrollWeekStripToDate(pickedDate, false), 60);
+        });
+      });
+    });
   };
   const getNumericValue = (value: string) => Number(value.replace(/\D/g, ""));
   const enMonthItems = [
@@ -762,7 +787,7 @@ export default function Main() {
           snapToInterval={width}
           decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
-          initialScrollIndex={CENTER_INDEX}
+          initialScrollIndex={WEEK_STRIP_CENTER_INDEX}
           getItemLayout={(_, index) => ({
             length: width,
             offset: width * index,
@@ -1498,7 +1523,7 @@ export default function Main() {
         statusBarTranslucent
       >
         <Pressable
-          onPress={closeDatePicker}
+          onPress={() => closeDatePicker()}
           style={{
             position: "absolute",
             width: "100%",
