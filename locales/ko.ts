@@ -47,6 +47,15 @@ export default {
       today: '오늘',
       confirm: '확인',
     },
+    gratitude: {
+      title: '오늘의 감사 주제',
+      todayBadge: '오늘',
+      writeEntry: '일기쓰기',
+      pastBadgeYesterday: '어제',
+      pastBadgePast: '지난 기록',
+      pastBadgeFuture: '예정',
+      continueWriting: '이어 쓰기',
+    },
   },
 
   // 소스 프로젝트 번역 (구조화)

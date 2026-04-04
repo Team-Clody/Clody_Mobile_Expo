@@ -3,6 +3,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import {
   Text,
   View,
+  Image,
   FlatList,
   Dimensions,
   Pressable,
@@ -12,6 +13,7 @@ import {
   Modal,
   PanResponder,
   Easing,
+  ScrollView,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { AuthContext } from "../../../_layout";
@@ -22,11 +24,15 @@ import authService from "@/services/authService";
 import i18n from "@/app/i18n/i18n";
 import CloverIcon from "@/assets/icons/ic_clover.svg";
 import DownIcon from "@/assets/icons/ic_down.svg";
+import PromptIcon from "@/assets/icons/ic_prompt.svg";
+import ChevronGreenIcon from "@/assets/icons/ic_chevron_green.svg";
 import TodayIconKo from "@/assets/icons/weekday-item_ko.svg";
 import TodayIconEn from "@/assets/icons/weekday-item_en.svg";
 import WheelPicker from "@/components/WheelPicker";
+import { GradientText } from "@/components/GradientText";
 import GroupCharacter from "@/assets/images/Group.svg";
-import BgDefault from "@/assets/images/bg_default.svg";
+
+const bgDefaultPng = require("../../../../assets/images/bg_default.png");
 const { width } = Dimensions.get("window");
 
 const WEEK_DAYS_EN = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -63,6 +69,34 @@ const isSameDate = (a: Date, b: Date) => {
   return a.toDateString() === b.toDateString();
 };
 
+const isCalendarToday = (d: Date) => {
+  const n = new Date();
+  return (
+    d.getFullYear() === n.getFullYear() &&
+    d.getMonth() === n.getMonth() &&
+    d.getDate() === n.getDate()
+  );
+};
+
+const startOfLocalDay = (d: Date) =>
+  new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+const isCalendarYesterday = (d: Date) =>
+  isSameDate(d, addDays(new Date(), -1));
+
+/** 감사 카드 슬롯 고정 높이 — 있을 때/없을 때 동일하게 유지해 캐릭터·레벨 위치 고정 */
+const GRATITUDE_SLOT_MARGIN_TOP = Platform.OS === "ios" ? 92 : 40;
+const GRATITUDE_SLOT_HEIGHT = 326;
+/** 슬롯 안에서 카드가 더 아래로 오도록 (iOS 여유 더 큼) */
+const GRATITUDE_SCROLL_PADDING_TOP = Platform.OS === "ios" ? 128 : 92;
+/** 탭 바 상단과 감사 카드 슬롯 사이 간격(씬은 이미 탭 위 영역이므로 insets.bottom 미가산) */
+const GRATITUDE_ABOVE_TAB_BAR = 12;
+
+const DUMMY_JOURNAL_PROMPT_KO =
+  '"버텨줘서 고마워"라고 말해주고 싶은 나의 모습을 적어보세요.';
+const DUMMY_JOURNAL_PROMPT_EN =
+  "Write about the version of yourself you want to say, 'Thank you for holding on.'";
+
 type CalendarDiary = {
   diaryCount: number;
   date: string;
@@ -86,6 +120,25 @@ const getDaysInMonth = (year: number, month: number) => {
   return new Date(year, month, 0).getDate();
 };
 
+/** 오늘(로컬)보다 이후 날짜는 일기가 있을 수 없음 — 표시·더미 모두 0으로 통일 */
+const zeroDiaryCountsAfterToday = (map: Record<string, number>) => {
+  const todayStart = startOfLocalDay(new Date());
+  const next = { ...map };
+  for (const key of Object.keys(next)) {
+    const parts = key.split("-");
+    if (parts.length !== 3) continue;
+    const y = Number(parts[0]);
+    const mo = Number(parts[1]);
+    const da = Number(parts[2]);
+    if (!y || !mo || !da) continue;
+    const d = startOfLocalDay(new Date(y, mo - 1, da));
+    if (d > todayStart) {
+      next[key] = 0;
+    }
+  }
+  return next;
+};
+
 const buildDiaryCountMap = (
   diaries: CalendarDiary[],
   year: number,
@@ -97,7 +150,9 @@ const buildDiaryCountMap = (
   }, {});
 
   const hasNonZeroDiaryCount = Object.values(diaryCountMap).some((count) => count > 0);
-  if (hasNonZeroDiaryCount) return diaryCountMap;
+  if (hasNonZeroDiaryCount) {
+    return zeroDiaryCountsAfterToday(diaryCountMap);
+  }
 
   // 테스트용: 응답이 비어있거나 모두 0이면 0개 날짜가 반드시 포함되게 생성
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -108,8 +163,15 @@ const buildDiaryCountMap = (
     zeroDaySet.add(Math.floor(Math.random() * daysInMonth) + 1);
   }
 
+  const todayStart = startOfLocalDay(new Date());
+
   for (let day = 1; day <= daysInMonth; day++) {
     const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const cellDay = startOfLocalDay(new Date(year, month - 1, day));
+    if (cellDay > todayStart) {
+      diaryCountMap[dateKey] = 0;
+      continue;
+    }
     if (zeroDaySet.has(day)) {
       diaryCountMap[dateKey] = 0;
       continue;
@@ -118,7 +180,7 @@ const buildDiaryCountMap = (
     diaryCountMap[dateKey] = Math.floor(Math.random() * 5) + 1;
   }
 
-  return diaryCountMap;
+  return zeroDiaryCountsAfterToday(diaryCountMap);
 };
 
 // 🔥 Monthly Matrix 생성
@@ -152,18 +214,29 @@ export default function Main() {
   const pendingPickedDateRef = useRef<Date | null>(null);
 
   const today = new Date();
-  const [currentDate, setCurrentDate] = useState(today);
+  /** 헤더·주간 스와이프·월별 시트 등 캘린더 UI 포커스 */
+  const [calendarDate, setCalendarDate] = useState(today);
+  /** 하단 감사 주제 카드에 쓰는 날짜 (클로버 탭 / 오늘 / 날짜 피커에서만 변경) */
+  const [gratitudeDate, setGratitudeDate] = useState(today);
+  const calendarDateRef = useRef<Date>(calendarDate);
   const [diaryCountByDate, setDiaryCountByDate] = useState<
     Record<string, number>
   >({});
   const [totalCloverCount, setTotalCloverCount] = useState(0);
+  const [journalPromptText, setJournalPromptText] = useState("");
   const fetchedMonthKeysRef = useRef<Set<string>>(new Set());
   const fetchingMonthKeysRef = useRef<Set<string>>(new Set());
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth() + 1;
+  /** 같은 날·로케일로 다시 오늘 선택 시 journal/prompt 재호출 방지 */
+  const journalPromptCacheRef = useRef<Map<string, string>>(new Map());
+  const currentYear = calendarDate.getFullYear();
+  const currentMonth = calendarDate.getMonth() + 1;
   useEffect(() => {
-    console.log("[TEST] currentDate:", currentDate);
-  }, [currentDate]);
+    calendarDateRef.current = calendarDate;
+  }, [calendarDate]);
+
+  useEffect(() => {
+    console.log("[TEST] calendarDate:", calendarDate, "gratitudeDate:", gratitudeDate);
+  }, [calendarDate, gratitudeDate]);
   useEffect(() => {
     const fetchCalendar = async () => {
       const timeZone = getDeviceTimeZone();
@@ -282,13 +355,93 @@ export default function Main() {
     fetchCalendar();
   }, [currentYear, currentMonth]);
 
+  useEffect(() => {
+    if (!isCalendarToday(gratitudeDate)) {
+      return;
+    }
+
+    const promptCacheKey = `${formatDateKey(gratitudeDate)}|${i18n.locale ?? ""}`;
+    const cachedPrompt = journalPromptCacheRef.current.get(promptCacheKey);
+    if (cachedPrompt !== undefined) {
+      setJournalPromptText(cachedPrompt);
+      return;
+    }
+
+    let cancelled = false;
+    const dummy = i18n.locale?.startsWith("ko")
+      ? DUMMY_JOURNAL_PROMPT_KO
+      : DUMMY_JOURNAL_PROMPT_EN;
+
+    const commitPrompt = (text: string) => {
+      if (cancelled) return;
+      journalPromptCacheRef.current.set(promptCacheKey, text);
+      setJournalPromptText(text);
+    };
+
+    const run = async () => {
+      const timeZone = getDeviceTimeZone();
+      const month = gratitudeDate.getMonth() + 1;
+      const date = gratitudeDate.getDate();
+
+      const requestJournalPrompt = async (accessToken: string) =>
+        axios.get("https://test.clodycorp.com/api/v1/journal/prompt", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Time-Zone": timeZone,
+          },
+          params: { month, date },
+        });
+
+      try {
+        const accessToken = await SecureStore.getItemAsync("accessToken");
+        if (!accessToken) {
+          commitPrompt(dummy);
+          return;
+        }
+
+        try {
+          const resp = await requestJournalPrompt(accessToken);
+          const text = String(resp.data?.data?.prompt ?? "").trim();
+          commitPrompt(text || dummy);
+        } catch (error) {
+          if (axios.isAxiosError(error) && error.response?.status === 401) {
+            try {
+              const refreshToken = await SecureStore.getItemAsync("refreshToken");
+              const reissued =
+                await authService.reissueWithRefreshToken(refreshToken);
+              if (reissued) {
+                const newAccessToken = await SecureStore.getItemAsync("accessToken");
+                if (newAccessToken) {
+                  const resp2 = await requestJournalPrompt(newAccessToken);
+                  const text = String(resp2.data?.data?.prompt ?? "").trim();
+                  commitPrompt(text || dummy);
+                  return;
+                }
+              }
+            } catch {
+              /* fall through to dummy */
+            }
+          }
+          commitPrompt(dummy);
+        }
+      } catch {
+        commitPrompt(dummy);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [gratitudeDate, i18n.locale]);
+
   // 🔥 Monthly 상태
   const [isMonthlyOpen, setIsMonthlyOpen] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [datePickerSessionKey, setDatePickerSessionKey] = useState(0);
-  const [draftYear, setDraftYear] = useState(currentDate.getFullYear());
-  const [draftMonth, setDraftMonth] = useState(currentDate.getMonth() + 1);
-  const [draftDay, setDraftDay] = useState(currentDate.getDate());
+  const [draftYear, setDraftYear] = useState(today.getFullYear());
+  const [draftMonth, setDraftMonth] = useState(today.getMonth() + 1);
+  const [draftDay, setDraftDay] = useState(today.getDate());
   const [sheetHeight, setSheetHeight] = useState(0);
   const translateY = useRef(new Animated.Value(0)).current;
   const datePickerTranslateY = useRef(new Animated.Value(420)).current;
@@ -304,6 +457,17 @@ export default function Main() {
   const cloverCountTextStyle = isKo
     ? [fontPreset.semibold, { fontWeight: "600" as const }]
     : [fontPreset.medium, { fontWeight: "500" as const }];
+  const pastDayBadgeLabel = isCalendarYesterday(gratitudeDate)
+    ? i18n.t("main.gratitude.pastBadgeYesterday")
+    : startOfLocalDay(gratitudeDate) < startOfLocalDay(new Date())
+      ? i18n.t("main.gratitude.pastBadgePast")
+      : i18n.t("main.gratitude.pastBadgeFuture");
+  const pastCardDateLabel = gratitudeDate.toLocaleDateString(
+    isKo ? "ko-KR" : "en-US",
+    isKo
+      ? { month: "long", day: "numeric", weekday: "short" }
+      : { weekday: "short", month: "short", day: "numeric" },
+  );
   const cloversPerLevel = 2;
   const currentLevel = Math.floor(totalCloverCount / cloversPerLevel) + 1;
   const currentLevelProgress = totalCloverCount % cloversPerLevel;
@@ -315,12 +479,25 @@ export default function Main() {
     return Array.from({ length: 7 }, (_, j) => addDays(start, j));
   });
 
+  const selectDateFromWeekRow = (picked: Date) => {
+    setCalendarDate(picked);
+    setGratitudeDate(picked);
+    const idx = weeks.findIndex((week) =>
+      week.some((d) => isSameDate(d, picked)),
+    );
+    if (idx < 0) return;
+    pendingPickedDateRef.current = picked;
+    flatListRef.current?.scrollToIndex({ index: idx, animated: true });
+  };
+
   const handleScroll = (event: any) => {
     const index = Math.round(event.nativeEvent.contentOffset.x / width);
 
-    // DatePicker에서 선택 직후 발생하는 스크롤 이벤트는 선택값을 우선 유지
+    // DatePicker·클로버 탭 선택 직후 스크롤은 pending 날짜를 우선 반영
     if (pendingPickedDateRef.current) {
-      setCurrentDate(pendingPickedDateRef.current);
+      const p = pendingPickedDateRef.current;
+      setCalendarDate(p);
+      setGratitudeDate(p);
       pendingPickedDateRef.current = null;
       return;
     }
@@ -328,7 +505,9 @@ export default function Main() {
     const week = weeks[index];
     if (!week) return;
 
-    setCurrentDate(week[3]);
+    const prev = calendarDateRef.current;
+    const mondayFirstIndex = (prev.getDay() + 6) % 7;
+    setCalendarDate(week[mondayFirstIndex]);
   };
 
   const goToToday = () => {
@@ -336,7 +515,8 @@ export default function Main() {
       index: CENTER_INDEX,
       animated: true,
     });
-    setCurrentDate(today);
+    setCalendarDate(today);
+    setGratitudeDate(today);
   };
 
   // 🔥 Monthly 열기
@@ -362,9 +542,9 @@ export default function Main() {
     }).start(() => setIsMonthlyOpen(false));
   };
   const openDatePicker = () => {
-    setDraftYear(currentDate.getFullYear());
-    setDraftMonth(currentDate.getMonth() + 1);
-    setDraftDay(currentDate.getDate());
+    setDraftYear(calendarDate.getFullYear());
+    setDraftMonth(calendarDate.getMonth() + 1);
+    setDraftDay(calendarDate.getDate());
     setDatePickerSessionKey((prev) => prev + 1);
     datePickerTranslateY.setValue(420);
     setIsDatePickerOpen(true);
@@ -409,7 +589,8 @@ export default function Main() {
         animated: true,
       });
     }
-    setCurrentDate(pickedDate);
+    setCalendarDate(pickedDate);
+    setGratitudeDate(pickedDate);
     closeDatePicker();
   };
   const getNumericValue = (value: string) => Number(value.replace(/\D/g, ""));
@@ -515,14 +696,16 @@ export default function Main() {
           paddingBottom: 20,
           borderBottomLeftRadius: 20,
           borderBottomRightRadius: 20,
-          borderWidth: 0.5,
-          borderColor: "#E3E6ED",
-          // 은은한 회색 그라데이션 느낌
-          shadowColor: "#AEB4C0",
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.12,
-          shadowRadius:24,
-          elevation: 2,
+          overflow: "visible",
+          // Android elevation은 iOS shadow prop과 다른 알고리즘 → boxShadow로 동일하게
+          boxShadow: [
+            {
+              offsetX: 0,
+              offsetY: 3,
+              blurRadius: 14,
+              color: "rgba(0, 0, 0, 0.06)",
+            },
+          ],
         }}
       >
         <View style={{ paddingTop: 60, paddingHorizontal: 20 }}>
@@ -534,7 +717,6 @@ export default function Main() {
               marginBottom: 10,
             }}
           >
-            ✅ 깔끔하게 맞추는 방법
             <View
               style={{
                 flexDirection: "row",
@@ -543,14 +725,14 @@ export default function Main() {
               }}
             >
               <Text style={[fontPreset.semibold, { fontSize: 22, fontWeight: "600" }]}>
-                {formatMonth(currentDate)}
+                {formatMonth(calendarDate)}
               </Text>
 
               <Pressable onPress={openDatePicker} hitSlop={10}>
                 <DownIcon
                   width={30} // 🔥 텍스트랑 비율 맞추기
                   height={30}
-                  color="#324c3d"
+                  color="#212124"
                 />
               </Pressable>
             </View>
@@ -593,11 +775,8 @@ export default function Main() {
                 {/* 요일 */}
                 <View style={{ flexDirection: "row" }}>
                   {weekDays.map((d, index) => {
-                    const todayIndexInWeek = item.findIndex((date: Date) =>
-                      isSameDate(date, today),
-                    );
-
-                    const isToday = index === todayIndexInWeek;
+                    const columnDate = item[index];
+                    const isTodayWeekdayHighlight = isCalendarToday(columnDate);
 
                     return (
                       <View
@@ -609,12 +788,14 @@ export default function Main() {
                       >
                         <View
                           style={{
-                            width: 28,
+                            minWidth: 28,
                             height: 28,
-                            borderRadius: 14,
+                            paddingHorizontal: 6,
+                            borderRadius: 999,
+                            overflow: "hidden",
                             justifyContent: "center",
                             alignItems: "center",
-                            backgroundColor: isToday
+                            backgroundColor: isTodayWeekdayHighlight
                               ? "#2B313D"
                               : "transparent",
                           }}
@@ -623,9 +804,16 @@ export default function Main() {
                             style={[
                               fontPreset.medium,
                               {
-                                color: isToday ? "#FFFFFF" : "#888",
-                                fontWeight: isToday ? "600" : "500",
+                                color: isTodayWeekdayHighlight ? "#FFFFFF" : "#888",
+                                fontWeight: isTodayWeekdayHighlight ? "600" : "500",
                                 fontSize: 13,
+                                lineHeight: 28,
+                                textAlign: "center",
+                                backgroundColor: "transparent",
+                                includeFontPadding: false,
+                                ...(Platform.OS === "android"
+                                  ? { textAlignVertical: "center" as const }
+                                  : null),
                               },
                             ]}
                           >
@@ -645,7 +833,6 @@ export default function Main() {
                   }}
                 >
                   {item.map((date: Date, i: number) => {
-                    const isToday = isSameDate(date, today);
                     const dateKey = formatDateKey(date);
                     const diaryCount = diaryCountByDate[dateKey] ?? 0;
                     const cloverColor = getCloverColorByCount(diaryCount);
@@ -658,7 +845,14 @@ export default function Main() {
                           alignItems: "center",
                         }}
                       >
-                        <View
+                        <Pressable
+                          onPress={() => selectDateFromWeekRow(date)}
+                          hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                          android_ripple={
+                            Platform.OS === "android"
+                              ? { color: "rgba(0, 0, 0, 0.06)", borderless: true, radius: 22 }
+                              : undefined
+                          }
                           style={{
                             width: 32,
                             height: 32,
@@ -685,7 +879,7 @@ export default function Main() {
                           >
                             {date.getDate()}
                           </Text>
-                        </View>
+                        </Pressable>
                       </View>
                     );
                   })}
@@ -700,63 +894,330 @@ export default function Main() {
       <View
         style={{
           flex: 1,
-          justifyContent: "flex-end",
-          paddingBottom: Platform.OS === "android" ? 250 : 205,
+          minHeight: 0,
+          width: "100%",
+          alignSelf: "stretch",
+          marginTop: 20,
           backgroundColor: "#F8F9FC",
           overflow: "hidden",
         }}
       >
-        <BgDefault
-          width="100%"
-          height="100%"
-          preserveAspectRatio="xMidYMid slice"
-          style={StyleSheet.absoluteFillObject}
-        />
+        <View
+          style={{
+            flex: 1,
+            minHeight: 0,
+            width: "100%",
+          }}
+        >
+          <Image
+            source={bgDefaultPng}
+            resizeMode="cover"
+            style={{
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              left: 0,
+              width,
+              transform: [
+                {
+                  translateY: Platform.OS === "ios" ? -40 : -14,
+                },
+              ],
+            }}
+          />
+          <View
+            style={{
+              flex: 1,
+              width: "100%",
+              minHeight: 0,
+            }}
+          >
+            <View style={{ flex: 1, minHeight: 0 }} />
+            <View
+              style={{
+                alignItems: "center",
+                transform: [
+                  {
+                    translateY: Platform.OS === "ios" ? 100 : 120,
+                  },
+                ],
+              }}
+            >
+              <GroupCharacter width={128} height={183} style={{ marginBottom: 6 }} />
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "rgba(241, 245, 249, 0.92)",
+                  borderRadius: 999,
+                  paddingVertical: 6,
+                  paddingHorizontal: 10,
+                }}
+              >
+                <View
+                  style={{
+                    backgroundColor: "#E5E7EB",
+                    borderRadius: 999,
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                    marginRight: 6,
+                  }}
+                >
+                  <Text
+                    style={[...levelChipTextStyle, { color: "#374151", fontSize: 14 }]}
+                  >
+                    {isKo ? `${currentLevel}단계` : `Lv.${currentLevel}`}
+                  </Text>
+                </View>
+                <Text
+                  style={[...cloverCountTextStyle, { color: "#1F2937", fontSize: 16 }]}
+                >
+                  {currentLevelProgress} / {cloversPerLevel}{" "}
+                  {isKo
+                    ? "클로버"
+                    : currentLevelProgress === 1
+                      ? "Clover"
+                      : "Clovers"}
+                </Text>
+                <Text style={{ color: "#6B7280", fontSize: 18, marginLeft: 6 }}>›</Text>
+              </View>
+            </View>
+            <View style={{ flex: 1, minHeight: 0 }} />
+          </View>
+        </View>
+
         <View
           style={{
             width: "100%",
-            alignItems: "center",
-            justifyContent: "flex-end",
+            paddingHorizontal: 20,
+            marginTop: GRATITUDE_SLOT_MARGIN_TOP,
+            marginBottom: GRATITUDE_ABOVE_TAB_BAR,
+            height: GRATITUDE_SLOT_HEIGHT,
           }}
         >
-          <GroupCharacter width={128} height={183} style={{ marginBottom: 6 }} />
           <View
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "rgba(241, 245, 249, 0.92)",
-              borderRadius: 999,
-              paddingVertical: 6,
-              paddingHorizontal: 10,
-              marginBottom: 18,
+              flex: 1,
+              paddingTop: GRATITUDE_SCROLL_PADDING_TOP,
+              paddingBottom: 4,
             }}
           >
-            <View
-              style={{
-                backgroundColor: "#E5E7EB",
-                borderRadius: 999,
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-                marginRight: 6,
-              }}
-            >
-              <Text
-                style={[...levelChipTextStyle, { color: "#374151", fontSize: 14 }]}
+            {isCalendarToday(gratitudeDate) ? (
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{
+                  flexGrow: 1,
+                  justifyContent: "flex-end",
+                }}
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled
+                bounces={false}
               >
-                {isKo ? `${currentLevel}단계` : `Lv.${currentLevel}`}
-              </Text>
-            </View>
-            <Text
-              style={[...cloverCountTextStyle, { color: "#1F2937", fontSize: 16 }]}
-            >
-              {currentLevelProgress} / {cloversPerLevel}{" "}
-              {isKo
-                ? "클로버"
-                : currentLevelProgress === 1
-                  ? "Clover"
-                  : "Clovers"}
-            </Text>
-            <Text style={{ color: "#6B7280", fontSize: 18, marginLeft: 6 }}>›</Text>
+                <View
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                    borderRadius: 16,
+                    paddingHorizontal: 15,
+                    paddingTop:15,
+                    paddingBottom: 15,
+                    overflow: "visible",
+                    boxShadow: [
+                      {
+                        offsetX: 0,
+                        offsetY: 1,
+                        blurRadius: 6,
+                        color: "rgba(0, 0, 0, 0.05)",
+                      },
+                    ],
+                  }}
+                >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 14,
+                  }}
+                >
+                  <PromptIcon width={18} height={18} style={{ marginRight: 6 }} />
+                  <Text
+                    style={[
+                      fontPreset.semibold,
+                      { color: "#00A34A", fontSize: 15 },
+                    ]}
+                  >
+                    {i18n.t("main.gratitude.title")}
+                  </Text>
+                </View>
+                <View style={{ width: "100%", marginBottom: 16 }}>
+                  <GradientText
+                    style={[
+                      fontPreset.bold,
+                      {
+                        fontSize: 16,
+                        lineHeight: 16 * 1.4,
+                        letterSpacing: 16 * -0.02,
+                      },
+                    ]}
+                  >
+                    {journalPromptText ||
+                      (isKo ? DUMMY_JOURNAL_PROMPT_KO : DUMMY_JOURNAL_PROMPT_EN)}
+                  </GradientText>
+                </View>
+                <View
+                  style={{
+                    height: StyleSheet.hairlineWidth,
+                    backgroundColor: "#E5E7EB",
+                    marginBottom: 14,
+                  }}
+                />
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    minHeight: 38,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      flexShrink: 1,
+                    }}
+                  >
+                    <View
+                      style={{
+                        backgroundColor: "#F3F4F6",
+                        borderRadius: 8,
+                        paddingHorizontal: 8,
+                        paddingVertical: 8,
+                      }}
+                    >
+                      <Text
+                        style={[
+                          fontPreset.semibold,
+                          { color: "#6B7280", fontSize: 12, fontWeight: "600" },
+                        ]}
+                      >
+                        {i18n.t("main.gratitude.todayBadge")}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        fontPreset.semibold,
+                        {
+                          color: "#111827",
+                          fontSize: 15,
+                          fontWeight: "600",
+                          marginLeft: 10,
+                          flexShrink: 1,
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {pastCardDateLabel}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 8 }} />
+                  <Pressable onPress={() => {}} hitSlop={8}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+                      <Text
+                        style={[
+                          fontPreset.semibold,
+                          { color: "#00A34A", fontSize: 14, fontWeight: "600" },
+                        ]}
+                      >
+                        {i18n.t("main.gratitude.writeEntry")}
+                      </Text>
+                      <ChevronGreenIcon width={20} height={20} />
+                    </View>
+                  </Pressable>
+                </View>
+                </View>
+              </ScrollView>
+            ) : (
+              <View style={{ flex: 1, justifyContent: "flex-end" }}>
+                <View
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                    borderRadius: 16,
+                    paddingHorizontal: 22,
+                    paddingVertical: 15,
+                    overflow: "visible",
+                    boxShadow: [
+                      {
+                        offsetX: 0,
+                        offsetY: 1,
+                        blurRadius: 6,
+                        color: "rgba(0, 0, 0, 0.05)",
+                      },
+                    ],
+                  }}
+                >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    minHeight: 38,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      flexShrink: 1,
+                    }}
+                  >
+                    <View
+                      style={{
+                        backgroundColor: "#F3F4F6",
+                        borderRadius: 8,
+                        paddingHorizontal: 8,
+                        paddingVertical: 8,
+                      }}
+                    >
+                      <Text
+                        style={[
+                          fontPreset.semibold,
+                          { color: "#6B7280", fontSize: 12, fontWeight: "600" },
+                        ]}
+                      >
+                        {pastDayBadgeLabel}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        fontPreset.semibold,
+                        {
+                          color: "#111827",
+                          fontSize: 15,
+                          fontWeight: "600",
+                          marginLeft: 10,
+                          flexShrink: 1,
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {pastCardDateLabel}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 8 }} />
+                  <Pressable onPress={() => {}} hitSlop={8}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+                      <Text
+                        style={[
+                          fontPreset.semibold,
+                          { color: "#00A34A", fontSize: 14, fontWeight: "600" },
+                        ]}
+                      >
+                        {i18n.t("main.gratitude.continueWriting")}
+                      </Text>
+                      <ChevronGreenIcon width={20} height={20} />
+                    </View>
+                  </Pressable>
+                </View>
+                </View>
+              </View>
+            )}
           </View>
         </View>
       </View>
@@ -832,7 +1293,7 @@ export default function Main() {
             >
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <Text style={[fontPreset.semibold, { fontSize: 22, fontWeight: "600" }]}>
-                  {formatMonth(currentDate)}
+                  {formatMonth(calendarDate)}
                 </Text>
 
                 <Pressable onPress={openDatePicker} hitSlop={10}>
@@ -853,8 +1314,8 @@ export default function Main() {
             <View style={{ flexDirection: "row", marginBottom: 28 }}>
               {weekDays.map((d, index) => {
                 const isCurrentMonth =
-                  currentDate.getMonth() === today.getMonth() &&
-                  currentDate.getFullYear() === today.getFullYear();
+                  calendarDate.getMonth() === today.getMonth() &&
+                  calendarDate.getFullYear() === today.getFullYear();
 
                 const isToday = isCurrentMonth && index === todayIndex;
                 return (
@@ -872,14 +1333,15 @@ export default function Main() {
                         borderRadius: 14,
                         justifyContent: "center",
                         alignItems: "center",
-                        backgroundColor: isToday ? "#2B313D" : "transparent",
+                        overflow: "hidden",
+                        backgroundColor: isToday ? "#F2F3F6" : "transparent",
                       }}
                     >
                       <Text
                         style={[
                           fontPreset.medium,
                           {
-                            color: isToday ? "#FFFFFF" : "#888",
+                            color: "#888",
                             fontWeight: isToday ? "600" : "500",
                             fontSize: 13, // 🔥 글자도 같이 줄여줘야 균형 맞음
                           },
@@ -894,9 +1356,9 @@ export default function Main() {
             </View>
 
             {/* 🔥 날짜 grid (같은 컨테이너 안!) */}
-            {getMonthMatrix(currentDate)
+            {getMonthMatrix(calendarDate)
               .filter((week) =>
-                week.some((date) => date.getMonth() === currentDate.getMonth()),
+                week.some((date) => date.getMonth() === calendarDate.getMonth()),
               )
               .map((week, i) => (
               <View
@@ -909,7 +1371,7 @@ export default function Main() {
                 {week.map((date, j) => {
                   const isToday = isSameDate(date, today);
                   const isCurrentMonth =
-                    date.getMonth() === currentDate.getMonth();
+                    date.getMonth() === calendarDate.getMonth();
                   const dateKey = formatDateKey(date);
                   const diaryCount = diaryCountByDate[dateKey] ?? 0;
                   const cloverColor = getCloverColorByCount(diaryCount);
@@ -927,7 +1389,17 @@ export default function Main() {
                       {!isCurrentMonth ? (
                         <View style={{ width: 32, height: 32 }} />
                       ) : (
-                        <View
+                        <Pressable
+                          onPress={() => {
+                            selectDateFromWeekRow(date);
+                            closeMonthly();
+                          }}
+                          hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                          android_ripple={
+                            Platform.OS === "android"
+                              ? { color: "rgba(0, 0, 0, 0.06)", borderless: true, radius: 22 }
+                              : undefined
+                          }
                           style={{
                             width: 32,
                             height: 32,
@@ -976,7 +1448,7 @@ export default function Main() {
                           >
                             {date.getDate()}
                           </Text>
-                        </View>
+                        </Pressable>
                       )}
                     </View>
                   );

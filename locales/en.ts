@@ -48,6 +48,15 @@ export default {
       today: 'Today',
       confirm: 'Confirm',
     },
+    gratitude: {
+      title: "Today's Gratitude Prompt",
+      todayBadge: 'Today',
+      writeEntry: 'Write Entry',
+      pastBadgeYesterday: 'Yesterday',
+      pastBadgePast: 'Past entry',
+      pastBadgeFuture: 'Upcoming',
+      continueWriting: 'Continue Writing',
+    },
   },
 
   // 소스 프로젝트 번역 (구조화)
