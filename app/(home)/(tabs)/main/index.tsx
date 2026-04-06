@@ -1142,15 +1142,15 @@ export default function Main() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  backgroundColor: "rgba(241, 245, 249, 0.92)",
+                  backgroundColor: "rgba(241, 245, 249, 0.72)",
                   borderRadius: 999,
-                  paddingVertical: 6,
-                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  paddingHorizontal: 7,
                 }}
               >
                 <View
                   style={{
-                    backgroundColor: "#E5E7EB",
+                    backgroundColor: "#FFFFFF",
                     borderRadius: 999,
                     paddingHorizontal: 8,
                     paddingVertical: 3,
@@ -1173,7 +1173,11 @@ export default function Main() {
                       ? "Clover"
                       : "Clovers"}
                 </Text>
-                <Text style={{ color: "#6B7280", fontSize: 18, marginLeft: 6 }}>›</Text>
+                <ChevronDarkIcon
+                  width={8}
+                  height={12}
+                  style={{ marginLeft: 6, transform: [{ translateY: 1 }] }}
+                />
               </View>
             </View>
             <View style={{ flex: 1, minHeight: 0 }} />
