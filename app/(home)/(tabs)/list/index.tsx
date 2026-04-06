@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
-import { ListAPI } from "@/api/listAPI";
 import { DiaryItem } from "@/api/dto/list/response/getCalendarListResponseDTO";
+import { ListAPI } from "@/api/listAPI";
 import { DiaryList } from "@/components/list/DiaryList";
 import { Icon } from "@/shared/components/Icon";
-import { MonthPickerBottomSheet, MonthPickerValue } from "@/shared/components/MonthPickerBottomSheet";
+import {
+  MonthPickerBottomSheet,
+  MonthPickerValue,
+} from "@/shared/components/MonthPickerBottomSheet";
 import { HStack } from "@/shared/components/stack/HStack";
 import { Typo } from "@/shared/components/typo/Typo";
+import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -56,21 +59,47 @@ export default function ListScreen() {
   const [prompt, setPrompt] = useState("");
 
   const fetchCalendarList = async (year: number, month: number) => {
+    console.log("[ListScreen] fetchCalendarList params:", { year, month });
     try {
       const data = await ListAPI.getCalendarList(year, month);
+      console.log(
+        "[ListScreen] getCalendarList response:",
+        JSON.stringify(data, null, 2),
+      );
       setDiaries(data.diaries?.length ? data.diaries : MOCK_DIARIES);
-    } catch (error) {
-      console.error("[ListScreen] Failed to fetch calendar list:", error);
+    } catch (error: any) {
+      console.error("[ListScreen] getCalendarList error:", {
+        status: error?.response?.status,
+        data: error?.response?.data,
+        url: error?.config?.url,
+        headers: error?.config?.headers,
+      });
       setDiaries(MOCK_DIARIES);
     }
   };
 
   const fetchPrompt = async () => {
+    console.log("[ListScreen] fetchPrompt params:", {
+      month: now.getMonth() + 1,
+      date: now.getDate(),
+    });
     try {
-      const data = await ListAPI.getJournalPrompt(now.getMonth() + 1, now.getDate());
+      const data = await ListAPI.getJournalPrompt(
+        now.getMonth() + 1,
+        now.getDate(),
+      );
+      console.log(
+        "[ListScreen] getJournalPrompt response:",
+        JSON.stringify(data, null, 2),
+      );
       setPrompt(data.prompt);
-    } catch (error) {
-      console.error("[ListScreen] Failed to fetch prompt:", error);
+    } catch (error: any) {
+      console.error("[ListScreen] getJournalPrompt error:", {
+        status: error?.response?.status,
+        data: error?.response?.data,
+        url: error?.config?.url,
+        headers: error?.config?.headers,
+      });
     }
   };
 
@@ -90,8 +119,8 @@ export default function ListScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <View style={{ paddingHorizontal: 20, paddingVertical: 12 }}>
         <Pressable onPress={() => setBottomSheetVisible(true)}>
-          <HStack alignment={4} style={{ gap: 4, alignSelf: 'flex-start' }}>
-            <Typo.Display variant="display3" style={{ color: '#293038' }}>
+          <HStack alignment={4} style={{ gap: 4, alignSelf: "flex-start" }}>
+            <Typo.Display variant="display3" style={{ color: "#293038" }}>
               {`${selectedYear}년 ${selectedMonth}월`}
             </Typo.Display>
             <Icon.IcDown width={24} height={24} />

@@ -6,17 +6,12 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button } from './Button';
 import { Typo } from './typo/Typo';
-import { palette } from '@/shared/theme/palette';
 
 const ITEM_HEIGHT = 44;
 const VISIBLE_ROWS = 5;
 const PADDING_ITEMS = Math.floor(VISIBLE_ROWS / 2);
-const BUTTON_BOTTOM_PADDING = 14;
-const GRADIENT_HEIGHT = ITEM_HEIGHT * PADDING_ITEMS;
 
 export interface MonthPickerValue {
   year: number;
@@ -44,11 +39,13 @@ const WheelColumn = <T extends string | number>({
   value,
   onChange,
   formatItem,
+  scrollKey,
 }: {
   items: T[];
   value: T;
   onChange: (value: T) => void;
   formatItem?: (item: T) => string;
+  scrollKey?: number;
 }) => {
   const data = useMemo(() => toPaddedItems(items), [items]);
   const listRef = useRef<FlatList<T | null>>(null);
@@ -61,7 +58,7 @@ const WheelColumn = <T extends string | number>({
         animated: false,
       });
     }
-  }, [items, value]);
+  }, [items, value, scrollKey]);
 
   const handleMomentumEnd = (offsetY: number) => {
     const index = Math.round(offsetY / ITEM_HEIGHT) + PADDING_ITEMS;
@@ -95,7 +92,7 @@ const WheelColumn = <T extends string | number>({
               {item === null ? null : (
                 <Typo.Body
                   variant="body7"
-                  color={isSelected ? 'gray1000' : 'gray400'}
+                  style={{ color: isSelected ? '#1B1C20' : '#ABAFBB' }}
                 >
                   {formatItem ? formatItem(item) : item}
                 </Typo.Body>
@@ -122,11 +119,13 @@ export const MonthPickerBottomSheet = ({
   const [month, setMonth] = useState<number>(
     initialValue?.month ?? now.getMonth() + 1,
   );
+  const [scrollKey, setScrollKey] = useState(0);
 
   useEffect(() => {
     if (visible && initialValue) {
       setYear(initialValue.year);
       setMonth(initialValue.month);
+      setScrollKey(prev => prev + 1);
     }
   }, [visible, initialValue]);
 
@@ -134,53 +133,52 @@ export const MonthPickerBottomSheet = ({
     onConfirm({ year, month });
   };
 
+  const handleToday = () => {
+    const today = new Date();
+    setYear(today.getFullYear());
+    setMonth(today.getMonth() + 1);
+    setScrollKey(prev => prev + 1);
+  };
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View>
-          <View
-            style={[
-              styles.sheet,
-              {
-                paddingBottom: BUTTON_BOTTOM_PADDING,
-              },
-            ]}
-          >
-            <Typo.Display variant="display4" style={styles.display4}>
-              조회할 날짜 선택
+          <View style={styles.sheet}>
+            <Typo.Display variant="display4" style={{ color: '#212124' }}>
+              날짜 선택
             </Typo.Display>
             <View style={styles.wheelRow}>
               <View style={styles.selectionOverlay} pointerEvents="none" />
-              <LinearGradient
-                colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0)']}
-                locations={[0.15, 1]}
-                style={styles.topFade}
-                pointerEvents="none"
-              />
-              <LinearGradient
-                colors={['rgba(255,255,255,0)', 'rgba(255,255,255,1)']}
-                locations={[0, 0.85]}
-                style={styles.bottomFade}
-                pointerEvents="none"
-              />
               <View style={styles.wheelContainer}>
                 <WheelColumn
                   items={yearOptions}
                   value={year}
                   onChange={setYear}
                   formatItem={item => `${item}년`}
+                  scrollKey={scrollKey}
                 />
                 <WheelColumn
                   items={monthOptions}
                   value={month}
                   onChange={setMonth}
                   formatItem={item => `${item}월`}
+                  scrollKey={scrollKey}
                 />
               </View>
             </View>
             <View style={styles.buttonRow}>
-              <Button title="확인" onPress={handleConfirm} />
+              <Pressable style={styles.todayButton} onPress={handleToday}>
+                <Typo.Body variant="body1" style={{ color: '#6B7684' }}>
+                  오늘
+                </Typo.Body>
+              </Pressable>
+              <Pressable style={styles.confirmButton} onPress={handleConfirm}>
+                <Typo.Body variant="body1" style={{ color: '#FFFFFF' }}>
+                  확인
+                </Typo.Body>
+              </Pressable>
             </View>
           </View>
           <View style={[styles.bottomFill, { height: insets.bottom }]} />
@@ -197,15 +195,11 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: palette.gray0,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    paddingHorizontal: 14,
+    paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 14,
-  },
-  display4: {
-    color: palette.gray1000,
   },
   wheelRow: {
     marginTop: 8,
@@ -234,29 +228,32 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: ITEM_HEIGHT,
-    borderRadius: 8,
-    backgroundColor: palette.gray50,
-  },
-  topFade: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: GRADIENT_HEIGHT,
-    zIndex: 1,
-  },
-  bottomFade: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: GRADIENT_HEIGHT,
-    zIndex: 1,
+    borderRadius: 4,
+    backgroundColor: '#F2F3F6',
   },
   buttonRow: {
-    marginTop: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 14,
+  },
+  todayButton: {
+    width: 80,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F2F3F6',
+    borderRadius: 6,
+  },
+  confirmButton: {
+    flex: 1,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#293038',
+    borderRadius: 6,
   },
   bottomFill: {
-    backgroundColor: palette.gray0,
+    backgroundColor: '#FFFFFF',
   },
 });

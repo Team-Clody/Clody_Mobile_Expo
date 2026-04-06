@@ -72,10 +72,14 @@ function renderListItem({ item }: { item: ListItem }) {
           <View style={styles.dayIconContainer}>
             <Icon.IcClover width={24} height={24} />
             <View style={styles.dayNumberOverlay}>
-              <Text style={styles.dayNumberText}>{item.dayNumber}</Text>
+              <Typo.Body variant="body12" style={{ color: "#FFFFFF" }}>
+                {item.dayNumber}
+              </Typo.Body>
             </View>
           </View>
-          <Text style={styles.dayOfWeekText}>{item.dayOfWeek}</Text>
+          <Typo.Body variant="body5" style={{ color: "#6B7684" }}>
+            {item.dayOfWeek}
+          </Typo.Body>
         </View>
 
         <View style={styles.headerRight}>
@@ -83,7 +87,9 @@ function renderListItem({ item }: { item: ListItem }) {
             onPress={() => alert("답장확인")}
             style={styles.replyButton}
           >
-            <Text style={styles.replyButtonText}>답장확인</Text>
+            <Typo.Body variant="body12" style={{ color: "#4A4C54" }}>
+              답장확인
+            </Typo.Body>
           </Pressable>
 
           <Pressable onPress={() => alert("더보기")} style={styles.moreButton}>
@@ -100,7 +106,9 @@ function renderListItem({ item }: { item: ListItem }) {
         <Text style={styles.contentNumberText}>{item.index}</Text>
       </View>
       <View style={styles.contentTextContainer}>
-        <Text style={styles.contentText}>{item.content}</Text>
+        <Typo.Body variant="body10" style={{ color: "#212124" }}>
+          {item.content}
+        </Typo.Body>
       </View>
     </View>
   );
@@ -160,23 +168,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  dayNumberText: {
-    fontFamily: "Pretendard",
-    fontWeight: "500",
-    fontSize: 12,
-    lineHeight: 14.4,
-    textAlign: "center",
-    letterSpacing: -0.24,
-    color: "#FFFFFF",
-  },
-  dayOfWeekText: {
-    fontFamily: "Pretendard",
-    fontWeight: "600",
-    fontSize: 12,
-    lineHeight: 18,
-    letterSpacing: -0.24,
-    color: "#6B7684",
-  },
   replyButton: {
     flexDirection: "row",
     justifyContent: "center",
@@ -185,15 +176,6 @@ const styles = StyleSheet.create({
     height: 24,
     backgroundColor: "#F2F3F6",
     borderRadius: 5,
-  },
-  replyButtonText: {
-    fontFamily: "Pretendard",
-    fontWeight: "500",
-    fontSize: 12,
-    lineHeight: 14.4,
-    textAlign: "center",
-    letterSpacing: -0.24,
-    color: "#4A4C54",
   },
   moreButton: {
     width: 24,
@@ -222,7 +204,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   contentNumberText: {
-    fontFamily: "Pretendard",
+    fontFamily: "PretendardSemiBold",
     fontWeight: "600",
     fontSize: 10.67,
     lineHeight: 14.93,
@@ -233,14 +215,6 @@ const styles = StyleSheet.create({
   contentTextContainer: {
     flex: 1,
     paddingBottom: 10,
-  },
-  contentText: {
-    fontFamily: "Pretendard",
-    fontWeight: "500",
-    fontSize: 14,
-    lineHeight: 19.6,
-    letterSpacing: -0.28,
-    color: "#212124",
   },
   divider: {
     height: 1,
