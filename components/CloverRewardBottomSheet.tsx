@@ -1,4 +1,6 @@
+import { useRouter } from "expo-router";
 import IcLock from "@/assets/icons/ic_lock.svg";
+import { useStorageStore } from "@/store/useStorageStore";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -105,11 +107,18 @@ export default function CloverRewardBottomSheet({
   totalClovers,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const translateY = useRef(new Animated.Value(BOTTOM_SHEET_HEIGHT)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const [showModal, setShowModal] = useState(false);
-  const [claimedLevels, setClaimedLevels] = useState<Set<number>>(new Set());
+  const claimedLevelsArr = useStorageStore(
+    (s: { claimedLevels: number[] }) => s.claimedLevels,
+  );
+  const claimToStore = useStorageStore(
+    (s: { claim: (level: number) => void }) => s.claim,
+  );
+  const claimedLevels = new Set<number>(claimedLevelsArr);
   const [acquiredItem, setAcquiredItem] = useState<CostumeItem | null>(null);
 
   const { currentLevel, collectedInLevel, neededInLevel, progress } =
@@ -163,12 +172,13 @@ export default function CloverRewardBottomSheet({
   const handleClose = () => onClose();
 
   const handleClaim = (item: CostumeItem) => {
-    setClaimedLevels((prev) => {
-      const next = new Set(prev);
-      next.add(item.level);
-      return next;
-    });
+    claimToStore(item.level);
     setAcquiredItem(item);
+  };
+
+  const handleOpenStorage = () => {
+    onClose();
+    router.push("/(home)/storage");
   };
 
   const renderCostumeItem = (item: CostumeItem) => {
@@ -313,7 +323,10 @@ export default function CloverRewardBottomSheet({
               { paddingBottom: insets.bottom + 16 },
             ]}
           >
-            <Pressable style={styles.storageButton} onPress={handleClose}>
+            <Pressable
+              style={styles.storageButton}
+              onPress={handleOpenStorage}
+            >
               <Text style={styles.storageButtonText}>보관함</Text>
             </Pressable>
             <Pressable style={styles.confirmButton} onPress={handleClose}>
