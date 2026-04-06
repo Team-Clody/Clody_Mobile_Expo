@@ -25,9 +25,14 @@ import i18n from "@/app/i18n/i18n";
 import CloverIcon from "@/assets/icons/ic_clover.svg";
 import DownIcon from "@/assets/icons/ic_down.svg";
 import PromptIcon from "@/assets/icons/ic_prompt.svg";
-import ChevronGreenIcon from "@/assets/icons/ic_chevron_green.svg";
+import ChevronGreenIcon from "@/assets/icons/Vector_gr.svg";
+import ChevronDarkIcon from "@/assets/icons/Vector_bk.svg";
 import TodayIconKo from "@/assets/icons/weekday-item_ko.svg";
 import TodayIconEn from "@/assets/icons/weekday-item_en.svg";
+import NewIcon from "@/assets/icons/ic_new.svg";
+import AdToReplyKoIcon from "@/assets/icons/btn_ad_to_reply_ko.svg";
+import AdToReplyEnIcon from "@/assets/icons/btn_ad_to_reply_en.svg";
+import ReplyUnreadDotIcon from "@/assets/Ellipse2636.svg";
 import WheelPicker from "@/components/WheelPicker";
 import { GradientText } from "@/components/GradientText";
 import GroupCharacter from "@/assets/images/Group.svg";
@@ -105,6 +110,8 @@ const startOfLocalDay = (d: Date) =>
 const isCalendarYesterday = (d: Date) =>
   isSameDate(d, addDays(new Date(), -1));
 
+const isFutureDate = (d: Date) => startOfLocalDay(d) > startOfLocalDay(new Date());
+
 /** 감사 카드 슬롯 고정 높이 — 있을 때/없을 때 동일하게 유지해 캐릭터·레벨 위치 고정 */
 const GRATITUDE_SLOT_MARGIN_TOP = Platform.OS === "ios" ? 92 : 40;
 const GRATITUDE_SLOT_HEIGHT = 326;
@@ -120,14 +127,124 @@ const DUMMY_JOURNAL_PROMPT_EN =
 
 type CalendarDiary = {
   diaryCount: number;
+  replyStatus?: ReplyStatus;
   date: string;
+  diary?: Array<{ content: string }>;
+  isDeleted?: boolean;
 };
+
+type ReplyStatus =
+  | "UNREADY"
+  | "READY_NOT_READ"
+  | "READY_READ"
+  | "HAS_DRAFT"
+  | "INVALID_DRAFT";
 
 const formatDateKey = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+};
+
+const REPLY_READY_WAIT_MS = 12 * 60 * 60 * 1000;
+// QA/디자인 확인용 임시 오버라이드: null이면 목 랜덤, 값 지정하면 강제 상태
+const FORCE_REPLY_STATUS_PREVIEW: ReplyStatus | null = null;
+
+const getSeededNumber = (seedText: string) => {
+  let hash = 0;
+  for (let i = 0; i < seedText.length; i++) {
+    hash = (hash * 31 + seedText.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+};
+
+const mockReadyNotReadMonthCache = new Map<string, Set<number>>();
+
+const getMockReadyNotReadDaysForMonth = (
+  year: number,
+  month: number,
+  today: Date,
+) => {
+  const todayKey = formatDateKey(today);
+  const cacheKey = `${year}-${month}|${todayKey}`;
+  const cached = mockReadyNotReadMonthCache.get(cacheKey);
+  if (cached) return cached;
+
+  const todayStart = startOfLocalDay(today);
+  const yesterday = addDays(today, -1);
+  const isYesterdayInTargetMonth =
+    yesterday.getFullYear() === year && yesterday.getMonth() + 1 === month;
+
+  // 월 전체 기준 3~4개 목표(어제 고정 READY_NOT_READ가 있으면 랜덤 할당 수 1개 차감)
+  const monthlyTargetBase =
+    3 + (getSeededNumber(`${year}-${month}|readyNotReadCount`) % 2); // 3 or 4
+  const randomTarget = Math.max(0, monthlyTargetBase - (isYesterdayInTargetMonth ? 1 : 0));
+
+  const rankedCandidates: Array<{ day: number; rank: number }> = [];
+  const daysInMonth = getDaysInMonth(year, month);
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(year, month - 1, day);
+    const dStart = startOfLocalDay(d);
+    if (dStart > todayStart) continue;
+    if (isCalendarToday(d) || isCalendarYesterday(d)) continue;
+    const rank = getSeededNumber(`${year}-${month}-${day}|readyNotReadRank`);
+    rankedCandidates.push({ day, rank });
+  }
+
+  rankedCandidates.sort((a, b) => a.rank - b.rank);
+  const picked = new Set<number>(
+    rankedCandidates.slice(0, randomTarget).map((candidate) => candidate.day),
+  );
+  mockReadyNotReadMonthCache.set(cacheKey, picked);
+  return picked;
+};
+
+const isMockReadyNotReadDate = (date: Date) => {
+  const today = new Date();
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const pickedDays = getMockReadyNotReadDaysForMonth(year, month, today);
+  return pickedDays.has(day);
+};
+
+const formatRemainingTime = (ms: number) => {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const h = String(Math.floor(totalSec / 3600)).padStart(2, "0");
+  const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, "0");
+  const s = String(totalSec % 60).padStart(2, "0");
+  return `${h}:${m}:${s}`;
+};
+
+const getMockReplyStatus = (date: Date, hasDiary: boolean): ReplyStatus => {
+  // 요청 규칙: 오늘은 무조건 광고(UNREADY), 어제는 무조건 미열람 답장
+  if (isCalendarToday(date)) return "UNREADY";
+  if (isCalendarYesterday(date)) return "READY_NOT_READ";
+
+  if (!hasDiary) {
+    return getSeededNumber(`${formatDateKey(date)}|draft`) % 2 === 0
+      ? "HAS_DRAFT"
+      : "INVALID_DRAFT";
+  }
+
+  // 월별 READY_NOT_READ는 대략 3~4개(오늘/어제 고정치 포함)만 보이도록 제한
+  if (isMockReadyNotReadDate(date)) return "READY_NOT_READ";
+  return "READY_READ";
+};
+
+const getMockUnreadyRemainingMs = (date: Date) => {
+  const min = 10 * 60 * 1000;
+  const max = REPLY_READY_WAIT_MS - 60 * 1000;
+  const span = Math.max(1, max - min);
+  const seeded = getSeededNumber(`${formatDateKey(date)}|unreadyRemaining`) % span;
+  return min + seeded;
+};
+
+const getDisplayCloverColor = (diaryCount: number, replyStatus: ReplyStatus) => {
+  // 답장 열람 완료(READY_READ)일 때만 색상 클로버 노출
+  if (replyStatus !== "READY_READ") return "#D1D5DD";
+  return getCloverColorByCount(diaryCount);
 };
 
 const getCloverColorByCount = (count: number) => {
@@ -245,6 +362,7 @@ export default function Main() {
   >({});
   const [totalCloverCount, setTotalCloverCount] = useState(0);
   const [journalPromptText, setJournalPromptText] = useState("");
+  const [nowTickMs, setNowTickMs] = useState(() => Date.now());
   const fetchedMonthKeysRef = useRef<Set<string>>(new Set());
   const fetchingMonthKeysRef = useRef<Set<string>>(new Set());
   /** 같은 날·로케일로 다시 오늘 선택 시 journal/prompt 재호출 방지 */
@@ -480,9 +598,7 @@ export default function Main() {
     : [fontPreset.medium, { fontWeight: "500" as const }];
   const pastDayBadgeLabel = isCalendarYesterday(gratitudeDate)
     ? i18n.t("main.gratitude.pastBadgeYesterday")
-    : startOfLocalDay(gratitudeDate) < startOfLocalDay(new Date())
-      ? i18n.t("main.gratitude.pastBadgePast")
-      : i18n.t("main.gratitude.pastBadgeFuture");
+    : i18n.t("main.gratitude.pastBadgePast");
   const pastCardDateLabel = gratitudeDate.toLocaleDateString(
     isKo ? "ko-KR" : "en-US",
     isKo
@@ -492,6 +608,35 @@ export default function Main() {
   const cloversPerLevel = 2;
   const currentLevel = Math.floor(totalCloverCount / cloversPerLevel) + 1;
   const currentLevelProgress = totalCloverCount % cloversPerLevel;
+  const selectedDateKey = formatDateKey(gratitudeDate);
+  const selectedDiaryCount = diaryCountByDate[selectedDateKey] ?? 0;
+  const getDisplayReplyStatusForDate = (date: Date, diaryCount: number): ReplyStatus => {
+    if (FORCE_REPLY_STATUS_PREVIEW && isSameDate(date, gratitudeDate)) {
+      return FORCE_REPLY_STATUS_PREVIEW;
+    }
+    return getMockReplyStatus(date, diaryCount > 0);
+  };
+  const selectedReplyStatus = useMemo(() => {
+    return getDisplayReplyStatusForDate(gratitudeDate, selectedDiaryCount);
+  }, [selectedDateKey, selectedDiaryCount, gratitudeDate]);
+  const selectedReplyReadyAtMs = useMemo(() => {
+    if (selectedReplyStatus !== "UNREADY") return null;
+    return Date.now() + getMockUnreadyRemainingMs(gratitudeDate);
+  }, [selectedDateKey, selectedReplyStatus, gratitudeDate]);
+  const replyRemainingMs = selectedReplyReadyAtMs
+    ? Math.max(0, selectedReplyReadyAtMs - nowTickMs)
+    : 0;
+  const isUnready = selectedReplyStatus === "UNREADY";
+  const isReadyNotRead = selectedReplyStatus === "READY_NOT_READ";
+  const isReadyRead = selectedReplyStatus === "READY_READ";
+  const actionLabel = isReadyNotRead || isReadyRead
+    ? (isKo ? "답장확인" : "See My Reply")
+    : (isKo ? i18n.t("main.gratitude.continueWriting") : "Continue Writing");
+  const actionTextColor = isReadyNotRead ? "#00A34A" : "#374151";
+  const timerText = isKo
+    ? `답장 ${formatRemainingTime(replyRemainingMs)} 남음`
+    : `Reply available in ${formatRemainingTime(replyRemainingMs)}`;
+  const AdToReplyIcon = isKo ? AdToReplyKoIcon : AdToReplyEnIcon;
 
   const todayYmd = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
   const weeks = useMemo(() => {
@@ -515,6 +660,7 @@ export default function Main() {
   };
 
   const selectDateFromWeekRow = (picked: Date) => {
+    if (isFutureDate(picked)) return;
     setCalendarDate(picked);
     setGratitudeDate(picked);
     scrollWeekStripToDate(picked);
@@ -604,7 +750,8 @@ export default function Main() {
   };
   const applyPickedDateAndClose = () => {
     const safeDay = Math.min(draftDay, getDaysInMonth(draftYear, draftMonth));
-    const pickedDate = new Date(draftYear, draftMonth - 1, safeDay);
+    const draftPickedDate = new Date(draftYear, draftMonth - 1, safeDay);
+    const pickedDate = isFutureDate(draftPickedDate) ? today : draftPickedDate;
     setCalendarDate(pickedDate);
     setGratitudeDate(pickedDate);
     // 모달이 완전히 닫힌 뒤 스크롤해야 FlatList 오프셋이 반영됨
@@ -650,7 +797,13 @@ export default function Main() {
       setDraftDay(maxDay);
     }
   }, [draftYear, draftMonth, draftDay]);
-  const todayIndex = (today.getDay() + 6) % 7;
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNowTickMs(Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  const selectedWeekdayIndex = (gratitudeDate.getDay() + 6) % 7;
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => {
@@ -801,7 +954,7 @@ export default function Main() {
                 <View style={{ flexDirection: "row" }}>
                   {weekDays.map((d, index) => {
                     const columnDate = item[index];
-                    const isTodayWeekdayHighlight = isCalendarToday(columnDate);
+                    const isSelectedWeekdayHighlight = isSameDate(columnDate, gratitudeDate);
 
                     return (
                       <View
@@ -820,7 +973,7 @@ export default function Main() {
                             overflow: "hidden",
                             justifyContent: "center",
                             alignItems: "center",
-                            backgroundColor: isTodayWeekdayHighlight
+                            backgroundColor: isSelectedWeekdayHighlight
                               ? "#2B313D"
                               : "transparent",
                           }}
@@ -829,8 +982,8 @@ export default function Main() {
                             style={[
                               fontPreset.medium,
                               {
-                                color: isTodayWeekdayHighlight ? "#FFFFFF" : "#888",
-                                fontWeight: isTodayWeekdayHighlight ? "600" : "500",
+                                color: isSelectedWeekdayHighlight ? "#FFFFFF" : "#888",
+                                fontWeight: isSelectedWeekdayHighlight ? "600" : "500",
                                 fontSize: 13,
                                 lineHeight: 28,
                                 textAlign: "center",
@@ -860,7 +1013,11 @@ export default function Main() {
                   {item.map((date: Date, i: number) => {
                     const dateKey = formatDateKey(date);
                     const diaryCount = diaryCountByDate[dateKey] ?? 0;
-                    const cloverColor = getCloverColorByCount(diaryCount);
+                    const isFuture = isFutureDate(date);
+                    const dateReplyStatus = getDisplayReplyStatusForDate(date, diaryCount);
+                    const cloverColor = getDisplayCloverColor(diaryCount, dateReplyStatus);
+                    const showReplyUnreadDot =
+                      dateReplyStatus === "READY_NOT_READ";
 
                     return (
                       <View
@@ -872,9 +1029,10 @@ export default function Main() {
                       >
                         <Pressable
                           onPress={() => selectDateFromWeekRow(date)}
+                          disabled={isFuture}
                           hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
                           android_ripple={
-                            Platform.OS === "android"
+                            Platform.OS === "android" && !isFuture
                               ? { color: "rgba(0, 0, 0, 0.06)", borderless: true, radius: 22 }
                               : undefined
                           }
@@ -886,6 +1044,17 @@ export default function Main() {
                           }}
                         >
                           <CloverIcon width={28} height={28} color={cloverColor} />
+                          {showReplyUnreadDot && (
+                            <ReplyUnreadDotIcon
+                              width={8}
+                              height={8}
+                              style={{
+                                position: "absolute",
+                                right: -2,
+                                bottom: 2,
+                              }}
+                            />
+                          )}
 
                           <Text
                             style={[
@@ -1090,16 +1259,38 @@ export default function Main() {
                 </View>
                 <View
                   style={{
-                    height: StyleSheet.hairlineWidth,
-                    backgroundColor: "#E5E7EB",
+                    position: "relative",
                     marginBottom: 14,
+                    overflow: "visible",
                   }}
-                />
+                >
+                  <View
+                    style={{
+                      height: StyleSheet.hairlineWidth,
+                      backgroundColor: "#E5E7EB",
+                    }}
+                  />
+                  {isUnready && (
+                    <Pressable
+                      onPress={() => {}}
+                      hitSlop={8}
+                      style={{
+                        position: "absolute",
+                        right: -15,
+                        top: -13,
+                        overflow: "visible",
+                      }}
+                    >
+                      <AdToReplyIcon width={isKo ? 168 : 160} height={42} />
+                    </Pressable>
+                  )}
+                </View>
                 <View
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
                     minHeight: 38,
+                    paddingTop: isUnready ? 6 : 0,
                   }}
                 >
                   <View
@@ -1131,9 +1322,9 @@ export default function Main() {
                         fontPreset.semibold,
                         {
                           color: "#111827",
-                          fontSize: 15,
+                          fontSize: isKo ? 15 : 14,
                           fontWeight: "600",
-                          marginLeft: 10,
+                          marginLeft: isKo ? 10 : 8,
                           flexShrink: 1,
                         },
                       ]}
@@ -1142,20 +1333,62 @@ export default function Main() {
                       {pastCardDateLabel}
                     </Text>
                   </View>
-                  <View style={{ flex: 1, minWidth: 8 }} />
-                  <Pressable onPress={() => {}} hitSlop={8}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
-                      <Text
-                        style={[
-                          fontPreset.semibold,
-                          { color: "#00A34A", fontSize: 14, fontWeight: "600" },
-                        ]}
-                      >
-                        {i18n.t("main.gratitude.writeEntry")}
-                      </Text>
-                      <ChevronGreenIcon width={20} height={20} />
-                    </View>
-                  </Pressable>
+                  <View style={{ flex: 1, minWidth: isKo ? 8 : 4 }} />
+                  {isUnready ? (
+                    <Text
+                      style={[
+                        fontPreset.medium,
+                        {
+                          color: "#4B5563",
+                          fontSize: isKo ? 15 : 13,
+                          fontWeight: "500",
+                          flexShrink: 0,
+                          fontFamily: "PretendardMedium",
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {timerText}
+                    </Text>
+                  ) : (
+                    <Pressable
+                      onPress={() => {}}
+                      hitSlop={8}
+                      style={{ width: isKo ? 106 : 132, alignItems: "flex-end" }}
+                    >
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                        {isReadyNotRead && (
+                          <NewIcon width={14} height={14} style={{ marginRight: 2 }} />
+                        )}
+                        <Text
+                          style={[
+                            fontPreset.semibold,
+                            {
+                              color: actionTextColor,
+                              fontSize: 14,
+                              fontWeight: "600",
+                              marginLeft: isReadyNotRead ? 4 : 10,
+                            },
+                          ]}
+                        >
+                          {actionLabel}
+                        </Text>
+                        {isReadyNotRead ? (
+                          <ChevronGreenIcon
+                            width={8}
+                            height={12}
+                            style={{ marginLeft: 6, transform: [{ translateY: 1 }] }}
+                          />
+                        ) : (
+                          <ChevronDarkIcon
+                            width={8}
+                            height={12}
+                            style={{ marginLeft: 6, transform: [{ translateY: 1 }] }}
+                          />
+                        )}
+                      </View>
+                    </Pressable>
+                  )}
                 </View>
                 </View>
               </ScrollView>
@@ -1183,6 +1416,7 @@ export default function Main() {
                     flexDirection: "row",
                     alignItems: "center",
                     minHeight: 38,
+                    paddingTop: isUnready ? 6 : 0,
                   }}
                 >
                   <View
@@ -1214,9 +1448,9 @@ export default function Main() {
                         fontPreset.semibold,
                         {
                           color: "#111827",
-                          fontSize: 15,
+                          fontSize: isKo ? 15 : 14,
                           fontWeight: "600",
-                          marginLeft: 10,
+                          marginLeft: isKo ? 10 : 8,
                           flexShrink: 1,
                         },
                       ]}
@@ -1225,20 +1459,62 @@ export default function Main() {
                       {pastCardDateLabel}
                     </Text>
                   </View>
-                  <View style={{ flex: 1, minWidth: 8 }} />
-                  <Pressable onPress={() => {}} hitSlop={8}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
-                      <Text
-                        style={[
-                          fontPreset.semibold,
-                          { color: "#00A34A", fontSize: 14, fontWeight: "600" },
-                        ]}
-                      >
-                        {i18n.t("main.gratitude.continueWriting")}
-                      </Text>
-                      <ChevronGreenIcon width={20} height={20} />
-                    </View>
-                  </Pressable>
+                  <View style={{ flex: 1, minWidth: isKo ? 8 : 4 }} />
+                  {isUnready ? (
+                    <Text
+                      style={[
+                        fontPreset.medium,
+                        {
+                          color: "#4B5563",
+                          fontSize: isKo ? 15 : 13,
+                          fontWeight: "500",
+                          flexShrink: 0,
+                          fontFamily: "PretendardMedium",
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {timerText}
+                    </Text>
+                  ) : (
+                    <Pressable
+                      onPress={() => {}}
+                      hitSlop={8}
+                      style={{ width: isKo ? 106 : 132, alignItems: "flex-end" }}
+                    >
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                        {isReadyNotRead && (
+                          <NewIcon width={14} height={14} style={{ marginRight: 0}} />
+                        )}
+                        <Text
+                          style={[
+                            fontPreset.semibold,
+                            {
+                              color: actionTextColor,
+                              fontSize: 14,
+                              fontWeight: "600",
+                              marginLeft: isReadyNotRead ? 2 : 0,
+                            },
+                          ]}
+                        >
+                          {actionLabel}
+                        </Text>
+                        {isReadyNotRead ? (
+                          <ChevronGreenIcon
+                            width={8}
+                            height={12}
+                            style={{ marginLeft: 6, transform: [{ translateY: 1 }] }}
+                          />
+                        ) : (
+                          <ChevronDarkIcon
+                            width={8}
+                            height={12}
+                            style={{ marginLeft: 6, transform: [{ translateY: 1 }] }}
+                          />
+                        )}
+                      </View>
+                    </Pressable>
+                  )}
                 </View>
                 </View>
               </View>
@@ -1338,11 +1614,7 @@ export default function Main() {
             {/* 요일 */}
             <View style={{ flexDirection: "row", marginBottom: 28 }}>
               {weekDays.map((d, index) => {
-                const isCurrentMonth =
-                  calendarDate.getMonth() === today.getMonth() &&
-                  calendarDate.getFullYear() === today.getFullYear();
-
-                const isToday = isCurrentMonth && index === todayIndex;
+                const isSelectedWeekday = index === selectedWeekdayIndex;
                 return (
                   <View
                     key={d}
@@ -1359,15 +1631,15 @@ export default function Main() {
                         justifyContent: "center",
                         alignItems: "center",
                         overflow: "hidden",
-                        backgroundColor: isToday ? "#F2F3F6" : "transparent",
+                        backgroundColor: isSelectedWeekday ? "#2B313D" : "transparent",
                       }}
                     >
                       <Text
                         style={[
                           fontPreset.medium,
                           {
-                            color: "#888",
-                            fontWeight: isToday ? "600" : "500",
+                            color: isSelectedWeekday ? "#FFFFFF" : "#888",
+                            fontWeight: isSelectedWeekday ? "600" : "500",
                             fontSize: 13, // 🔥 글자도 같이 줄여줘야 균형 맞음
                           },
                         ]}
@@ -1397,9 +1669,12 @@ export default function Main() {
                   const isToday = isSameDate(date, today);
                   const isCurrentMonth =
                     date.getMonth() === calendarDate.getMonth();
+                  const isFuture = isFutureDate(date);
                   const dateKey = formatDateKey(date);
                   const diaryCount = diaryCountByDate[dateKey] ?? 0;
-                  const cloverColor = getCloverColorByCount(diaryCount);
+                  const dateReplyStatus = getDisplayReplyStatusForDate(date, diaryCount);
+                  const showReplyUnreadDot = dateReplyStatus === "READY_NOT_READ";
+                  const cloverColor = getDisplayCloverColor(diaryCount, dateReplyStatus);
 
                   return (
                     <View
@@ -1416,12 +1691,14 @@ export default function Main() {
                       ) : (
                         <Pressable
                           onPress={() => {
+                            if (isFuture) return;
                             selectDateFromWeekRow(date);
                             closeMonthly();
                           }}
+                          disabled={isFuture}
                           hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
                           android_ripple={
-                            Platform.OS === "android"
+                            Platform.OS === "android" && !isFuture
                               ? { color: "rgba(0, 0, 0, 0.06)", borderless: true, radius: 22 }
                               : undefined
                           }
@@ -1454,6 +1731,17 @@ export default function Main() {
                               position: "absolute",
                             }}
                           />
+                          {showReplyUnreadDot && (
+                            <ReplyUnreadDotIcon
+                              width={8}
+                              height={8}
+                              style={{
+                                position: "absolute",
+                                right: -2,
+                                bottom: 2,
+                              }}
+                            />
+                          )}
 
                           {/* 🔥 텍스트 중앙 */}
                           <Text
