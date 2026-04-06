@@ -1,13 +1,30 @@
-import { useRouter } from "expo-router";
-import { useContext, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useContext, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { AuthContext } from "../../../_layout";
 import CloverRewardBottomSheet from "../../../../components/CloverRewardBottomSheet";
+import { useStorageStore } from "@/store/useStorageStore";
 
 export default function Main() {
   const { logout } = useContext(AuthContext);
   const router = useRouter();
   const [showReward, setShowReward] = useState(false);
+  const shouldReopenReward = useStorageStore(
+    (s: { shouldReopenReward: boolean }) => s.shouldReopenReward,
+  );
+  const setShouldReopenReward = useStorageStore(
+    (s: { setShouldReopenReward: (value: boolean) => void }) =>
+      s.setShouldReopenReward,
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (shouldReopenReward) {
+        setShowReward(true);
+        setShouldReopenReward(false);
+      }
+    }, [shouldReopenReward, setShouldReopenReward]),
+  );
 
   return (
     <View
