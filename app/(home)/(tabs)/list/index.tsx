@@ -1,103 +1,110 @@
+import { useEffect, useState } from "react";
+import { ListAPI } from "@/api/listAPI";
+import { DiaryItem } from "@/api/dto/list/response/getCalendarListResponseDTO";
+import { DiaryList } from "@/components/list/DiaryList";
+import { Icon } from "@/shared/components/Icon";
+import { MonthPickerBottomSheet, MonthPickerValue } from "@/shared/components/MonthPickerBottomSheet";
 import { HStack } from "@/shared/components/stack/HStack";
-import { VStack } from "@/shared/components/stack/VStack";
 import { Typo } from "@/shared/components/typo/Typo";
-import {
-  FlatList,
-  Image,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const MOCK_DIARIES: DiaryItem[] = [
+  {
+    diaryCount: 3,
+    replyStatus: "READY_READ",
+    date: "2026-04-03",
+    diary: [
+      {
+        content:
+          "친구들이 나랑 놀아줘서 감사해 친구들이 나랑 클로디를 만들 수 있어서 감사해",
+      },
+      { content: "클로디를 만들 수 있어서 감사해" },
+      { content: "건강한 식사를 할 수 있어 감사해" },
+    ],
+    isDeleted: false,
+  },
+  {
+    diaryCount: 3,
+    replyStatus: "READY_NOT_READ",
+    date: "2026-04-04",
+    diary: [
+      {
+        content:
+          "친구들이 나랑 놀아줘서 감사해 친구들이 나랑 클로디를 만들 수 있어서 감사해",
+      },
+      { content: "클로디를 만들 수 있어서 감사해" },
+      { content: "건강한 식사를 할 수 있어 감사해" },
+    ],
+    isDeleted: false,
+  },
+  {
+    diaryCount: 1,
+    replyStatus: "UNREADY",
+    date: "2026-04-05",
+    diary: [{ content: "좋은 날씨에 감사했다" }],
+    isDeleted: false,
+  },
+];
+
 export default function ListScreen() {
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const [diaries, setDiaries] = useState<DiaryItem[]>(MOCK_DIARIES);
+  const [prompt, setPrompt] = useState("");
+
+  const fetchCalendarList = async (year: number, month: number) => {
+    try {
+      const data = await ListAPI.getCalendarList(year, month);
+      setDiaries(data.diaries?.length ? data.diaries : MOCK_DIARIES);
+    } catch (error) {
+      console.error("[ListScreen] Failed to fetch calendar list:", error);
+      setDiaries(MOCK_DIARIES);
+    }
+  };
+
+  const fetchPrompt = async () => {
+    try {
+      const data = await ListAPI.getJournalPrompt(now.getMonth() + 1, now.getDate());
+      setPrompt(data.prompt);
+    } catch (error) {
+      console.error("[ListScreen] Failed to fetch prompt:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCalendarList(selectedYear, selectedMonth);
+    fetchPrompt();
+  }, []);
+
+  const handleMonthConfirm = (value: MonthPickerValue) => {
+    setSelectedYear(value.year);
+    setSelectedMonth(value.month);
+    setBottomSheetVisible(false);
+    fetchCalendarList(value.year, value.month);
+  };
+
   return (
-    <SafeAreaView style={{ backgroundColor: "#fff" }}>
-      <View>
-        <ScrollView>
-          <VStack
-            style={{
-              padding: 16,
-              gap: 10,
-              backgroundColor: "#F8F9FA",
-              borderWidth: 1,
-              borderColor: "#F2F2F2",
-              borderRadius: 8,
-              marginHorizontal: 20,
-            }}
-          >
-            <VStack style={{ gap: 12 }}>
-              <HStack
-                alignment={10}
-                style={{
-                  paddingRight: 12,
-                  gap: 12,
-                }}
-              >
-                <VStack style={{ gap: 4, flex: 1, flexShrink: 1 }}>
-                  <HStack alignment={4} style={{ gap: 4 }}>
-                    <Image
-                      source={require("@/assets/images/ic_stars.png")}
-                      style={{ width: 18, height: 18 }}
-                      resizeMode="contain"
-                    />
-                    <Typo.Body variant="body5" style={{ color: "#13B567" }}>
-                      오늘의 감사 추천
-                    </Typo.Body>
-                  </HStack>
-
-                  <Typo.Display variant="display4" style={{ color: "#293038" }}>
-                    {`"버텨줘서 고마워"라고 말해주고 싶은 나의 모습을 적어보세요`}
-                  </Typo.Display>
-                </VStack>
-
-                <Image
-                  source={require("@/assets/images/img_lody_prompt.png")}
-                  style={{ width: 63, height: 57 }}
-                  resizeMode="contain"
-                />
-              </HStack>
-
-              {/* 오늘 일기쓰기 버튼 */}
-              <Pressable
-                onPress={() => alert("Button Pressed")}
-                style={{
-                  alignSelf: "stretch",
-                }}
-              >
-                <View
-                  style={{
-                    height: 36,
-                    borderRadius: 7,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    alignSelf: "stretch",
-                    backgroundColor: "#1C9D5F",
-                  }}
-                >
-                  <Typo.Body
-                    variant="body5"
-                    style={{ color: "#FFFFFF", textAlign: "center" }}
-                  >
-                    오늘 일기쓰기
-                  </Typo.Body>
-                </View>
-              </Pressable>
-            </VStack>
-          </VStack>
-
-          <FlatList
-            data={[]}
-            renderItem={() => (
-              <View>
-                <Text>Item</Text>
-              </View>
-            )}
-          />
-        </ScrollView>
-        <Text style={{ fontSize: 16, color: "#333" }}>모아보기</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+      <View style={{ paddingHorizontal: 20, paddingVertical: 12 }}>
+        <Pressable onPress={() => setBottomSheetVisible(true)}>
+          <HStack alignment={4} style={{ gap: 4, alignSelf: 'flex-start' }}>
+            <Typo.Display variant="display3" style={{ color: '#293038' }}>
+              {`${selectedYear}년 ${selectedMonth}월`}
+            </Typo.Display>
+            <Icon.IcDown width={24} height={24} />
+          </HStack>
+        </Pressable>
       </View>
+      <DiaryList diaries={diaries} prompt={prompt} />
+      <MonthPickerBottomSheet
+        visible={bottomSheetVisible}
+        initialValue={{ year: selectedYear, month: selectedMonth }}
+        onConfirm={handleMonthConfirm}
+        onClose={() => setBottomSheetVisible(false)}
+      />
     </SafeAreaView>
   );
 }

@@ -12,6 +12,8 @@ export { TimePickerBottomSheet } from './TimePickerBottomSheet';
 export type { TimePickerValue } from './TimePickerBottomSheet';
 export { BirthdayBottomSheet } from './BirthdayBottomSheet';
 export type { BirthdayPickerValue } from './BirthdayBottomSheet';
+export { MonthPickerBottomSheet } from './MonthPickerBottomSheet';
+export type { MonthPickerValue } from './MonthPickerBottomSheet';
 export { TermsBottomSheet } from './TermsBottomSheet';
 export { Icon } from './Icon';
 export { Toast } from './Toast';
