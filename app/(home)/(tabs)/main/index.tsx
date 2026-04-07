@@ -780,16 +780,28 @@ export default function Main() {
     "November",
     "December",
   ];
-  const yearItems = Array.from(
-    { length: 2100 - 1900 + 1 },
-    (_, i) => (isKo ? `${1900 + i}년` : `${1900 + i}`),
+  const yearItems = useMemo(
+    () =>
+      Array.from(
+        { length: 2100 - 1900 + 1 },
+        (_, i) => (isKo ? `${1900 + i}년` : `${1900 + i}`),
+      ),
+    [isKo],
   );
-  const monthItems = isKo
-    ? Array.from({ length: 12 }, (_, i) => `${i + 1}월`)
-    : enMonthItems;
-  const dayItems = Array.from(
-    { length: getDaysInMonth(draftYear, draftMonth) },
-    (_, i) => (isKo ? `${i + 1}일` : `${i + 1}`),
+  const monthItems = useMemo(
+    () =>
+      isKo
+        ? Array.from({ length: 12 }, (_, i) => `${i + 1}월`)
+        : enMonthItems,
+    [isKo],
+  );
+  const dayItems = useMemo(
+    () =>
+      Array.from(
+        { length: getDaysInMonth(draftYear, draftMonth) },
+        (_, i) => (isKo ? `${i + 1}일` : `${i + 1}`),
+      ),
+    [isKo, draftYear, draftMonth],
   );
   useEffect(() => {
     const maxDay = getDaysInMonth(draftYear, draftMonth);
