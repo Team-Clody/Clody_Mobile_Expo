@@ -1333,7 +1333,7 @@ export default function Main() {
               width,
               transform: [
                 {
-                  translateY: Platform.OS === "ios" ? -40 : -14,
+                  translateY: Platform.OS === "ios" ? -60 : -14,
                 },
               ],
             }}
@@ -1349,7 +1349,7 @@ export default function Main() {
             <View
               style={{
                 alignItems: "center",
-                marginTop: Platform.OS === "ios" ? 100 : 120,
+                marginTop: Platform.OS === "ios" ? 70 : 123,
               }}
             >
               <GroupCharacter width={128} height={183} style={{ marginBottom: 6 }} />
@@ -1375,20 +1375,36 @@ export default function Main() {
                   }}
                 >
                   <Text
-                    style={[...levelChipTextStyle, { color: "#374151", fontSize: 14 }]}
+                    style={[...levelChipTextStyle, { color: "#374151", fontSize: 14, padding: 2 }]}
                   >
                     {isKo ? `${currentLevel}단계` : `Lv.${currentLevel}`}
                   </Text>
                 </View>
                 <Text
-                  style={[...cloverCountTextStyle, { color: "#1F2937", fontSize: 16 }]}
+                  style={[
+                    ...cloverCountTextStyle,
+                    {
+                      color: "#1F2937",
+                      fontSize: 16,
+                      lineHeight: 16,
+                      includeFontPadding: false,
+                    },
+                  ]}
                 >
                   {currentLevelProgress} / {cloversPerLevel}{" "}
-                  {isKo
-                    ? "클로버"
-                    : currentLevelProgress === 1
-                      ? "Clover"
-                      : "Clovers"}
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      lineHeight: 16,
+                      includeFontPadding: false,
+                    }}
+                  >
+                    {isKo
+                      ? "클로버"
+                      : currentLevelProgress === 1
+                        ? "Clover"
+                        : "Clovers"}
+                  </Text>
                 </Text>
                 <ChevronDarkIcon
                   width={8}
@@ -1450,7 +1466,7 @@ export default function Main() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    marginBottom: 14,
+                    marginBottom: 8,
                   }}
                 >
                   <PromptIcon width={18} height={18} style={{ marginRight: 6 }} />
@@ -1463,7 +1479,7 @@ export default function Main() {
                     {i18n.t("main.gratitude.title")}
                   </Text>
                 </View>
-                <View style={{ width: "100%", marginBottom: 16 }}>
+                <View style={{ width: "100%", marginBottom: 12 }}>
                   <GradientText
                     style={[
                       fontPreset.bold,
@@ -1510,8 +1526,8 @@ export default function Main() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    minHeight: 38,
-                    paddingTop: isUnready ? 6 : 0,
+                    minHeight: 34,
+                    paddingTop: isUnready ? 0 : 0,
                   }}
                 >
                   <View
@@ -1526,7 +1542,7 @@ export default function Main() {
                         backgroundColor: "#F3F4F6",
                         borderRadius: 8,
                         paddingHorizontal: 8,
-                        paddingVertical: 8,
+                        paddingVertical: 10,
                       }}
                     >
                       <Text
@@ -1636,7 +1652,7 @@ export default function Main() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    minHeight: 38,
+                    minHeight: 34,
                     paddingTop: isUnready ? 6 : 0,
                   }}
                 >
@@ -1652,7 +1668,7 @@ export default function Main() {
                         backgroundColor: "#F3F4F6",
                         borderRadius: 8,
                         paddingHorizontal: 8,
-                        paddingVertical: 8,
+                        paddingVertical: 6,
                       }}
                     >
                       <Text
