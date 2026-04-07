@@ -1,5 +1,17 @@
 import { useRouter } from "expo-router";
 import IcLock from "@/assets/icons/ic_lock.svg";
+import IcFarmer from "@/assets/icons/ic_farmer.svg";
+import IcPrincess from "@/assets/icons/ic_princess.svg";
+import IcDevil from "@/assets/icons/ic_devil.svg";
+
+const COSTUME_ICONS: Record<
+  number,
+  { Icon: React.FC<{ width: number; height: number }>; width: number; height: number }
+> = {
+  1: { Icon: IcFarmer, width: 28, height: 25 },
+  2: { Icon: IcPrincess, width: 34, height: 29 },
+  3: { Icon: IcDevil, width: 50, height: 27 },
+};
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -126,9 +138,16 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
   }, [visible, fetchData]);
 
   const totalClovers = data?.totalCloverCount ?? 0;
-  const currentStage = data?.currentStage ?? 0;
   const currentStageMax = data?.currentStageMaxClover ?? 0;
   const skins = data?.skins ?? [];
+
+  const lastReceivedOrUnlocked = skins
+    .filter((s) => s.status === "RECEIVED" || s.status === "UNLOCKED")
+    .reduce((max, s) => Math.max(max, getStageNumber(s)), 0);
+  const currentStage =
+    lastReceivedOrUnlocked > 0
+      ? lastReceivedOrUnlocked + 1
+      : (data?.currentStage ?? 0);
 
   useEffect(() => {
     if (visible && scrollViewRef.current && currentStage > 1) {
@@ -166,8 +185,8 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
     const name = COSTUME_NAMES[stageNum] ?? `${stageNum}단계`;
     const isReceived = skin.status === "RECEIVED";
     const canClaim = skin.status === "UNLOCKED";
-    const isLocked = skin.status === "LOCKED";
-    const isCurrent = stageNum === currentStage && !isReceived;
+    const isCurrent = stageNum === currentStage && !isReceived && !canClaim;
+    const isLocked = skin.status === "LOCKED" && !isCurrent;
     const showProgressBar = isCurrent || canClaim;
     const itemProgress = canClaim
       ? 1
@@ -187,18 +206,16 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
         >
           <View style={styles.costumeIcon}>
             <View style={styles.iconPlaceholder}>
-              {skin.url ? (
+              {COSTUME_ICONS[stageNum] ? (
+                (() => {
+                  const { Icon, width, height } = COSTUME_ICONS[stageNum];
+                  return <Icon width={width} height={height} />;
+                })()
+              ) : skin.url ? (
                 <Image
                   source={{ uri: skin.url }}
                   style={{ width: 36, height: 36 }}
                   resizeMode="contain"
-                  onError={(e) =>
-                    console.log(
-                      "[img error]",
-                      skin.url,
-                      e.nativeEvent?.error,
-                    )
-                  }
                 />
               ) : (
                 <Text style={[styles.iconEmoji, isLocked && { opacity: 0.4 }]}>
