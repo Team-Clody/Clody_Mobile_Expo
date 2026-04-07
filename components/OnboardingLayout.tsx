@@ -150,6 +150,7 @@ export default function OnboardingLayout({
                   }
 
                   await SecureStore.setItem("accessToken", result.accessToken);
+                  console.log("accessToken: ", result.accessToken);
                   await SecureStore.setItem(
                     "refreshToken",
                     result.refreshToken,
@@ -243,6 +244,7 @@ export default function OnboardingLayout({
                   result = await authService.googleSignUp(form);
                 }
                 await SecureStore.setItem("accessToken", result.accessToken);
+                console.log("accessToken: ", result.accessToken);
                 await SecureStore.setItem("refreshToken", result.refreshToken);
                 router.replace("/main");
               }
