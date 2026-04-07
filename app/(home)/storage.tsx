@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Image,
@@ -11,12 +11,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useStorageStore } from "@/store/useStorageStore";
-import IcFarmer from "@/assets/icons/ic_farmer.svg";
 import IcBack from "@/assets/icons/ic_back.svg";
-
-const COSTUME_ICONS: Record<number, React.FC<{ width: number; height: number }>> = {
-  1: IcFarmer,
-};
+import { SkinAPI } from "@/api/skinAPI";
+import { InventoryAPI } from "@/api/inventoryAPI";
+import { SkinStatusItemResponseDTO } from "@/api/dto/skin/response/getSkinStatusListResponseDTO";
+import { UserInventoryItemResponseDTO } from "@/api/dto/inventory/response/getUserInventoryListResponseDTO";
 
 const COSTUME_LODY: Record<number, any> = {
   1: require("@/assets/images/farmer.png"),
@@ -45,35 +44,91 @@ const COSTUME_NAMES: Record<number, string> = {
   20: "우주복",
 };
 
+interface OwnedSkin {
+  inventoryItemId: number;
+  skinId: number;
+  stage: number;
+  url: string;
+  name: string;
+  isEquipped: boolean;
+}
+
 export default function StorageScreen() {
   const router = useRouter();
-  const claimedLevels = useStorageStore(
-    (s: { claimedLevels: number[] }) => s.claimedLevels,
-  );
-  const equippedLevel = useStorageStore(
-    (s: { equippedLevel: number | null }) => s.equippedLevel,
-  );
-  const setEquipped = useStorageStore(
-    (s: { setEquipped: (level: number | null) => void }) => s.setEquipped,
-  );
   const setShouldReopenReward = useStorageStore(
     (s: { setShouldReopenReward: (value: boolean) => void }) =>
       s.setShouldReopenReward,
   );
 
-  const [selected, setSelected] = useState<number | null>(equippedLevel);
-
-  const items = useMemo(
-    () => [...claimedLevels].sort((a, b) => a - b),
-    [claimedLevels],
+  const [owned, setOwned] = useState<OwnedSkin[]>([]);
+  const [selectedInventoryId, setSelectedInventoryId] = useState<number | null>(
+    null,
+  );
+  const [equippedInventoryId, setEquippedInventoryId] = useState<number | null>(
+    null,
   );
 
-  const isDirty = selected !== equippedLevel;
-  const canSave = isDirty;
-  const isEmpty = items.length === 0;
+  const fetchData = useCallback(async () => {
+    try {
+      const [skinList, invList] = await Promise.all([
+        SkinAPI.getSkinStatusList(),
+        InventoryAPI.getUserInventories(),
+      ]);
 
-  const handleSelect = (level: number) => {
-    setSelected((prev) => (prev === level ? null : level));
+      const parseStage = (s: string) => {
+        const m = String(s ?? "").match(/\d+/);
+        return m ? parseInt(m[0], 10) : 0;
+      };
+      const receivedSkins: SkinStatusItemResponseDTO[] = skinList.skins
+        .filter((s) => s.status === "RECEIVED")
+        .sort((a, b) => parseStage(a.cloverStage) - parseStage(b.cloverStage));
+      const inventories: UserInventoryItemResponseDTO[] = [
+        ...invList.inventories,
+      ].sort(
+        (a, b) =>
+          new Date(a.acquiredAt).getTime() - new Date(b.acquiredAt).getTime(),
+      );
+
+      const merged: OwnedSkin[] = receivedSkins.map((skin, idx) => {
+        const inv = inventories[idx];
+        const stageMatch = String(skin.cloverStage ?? "").match(/\d+/);
+        const stage = stageMatch ? parseInt(stageMatch[0], 10) : 0;
+        return {
+          inventoryItemId: inv?.inventoryItemId ?? -1,
+          skinId: skin.skinId,
+          stage,
+          url: skin.url,
+          name: COSTUME_NAMES[stage] ?? `${stage}단계`,
+          isEquipped: inv?.isEquipped ?? false,
+        };
+      });
+
+      const equipped = merged.find((m) => m.isEquipped);
+      setOwned(merged);
+      setEquippedInventoryId(equipped?.inventoryItemId ?? null);
+      setSelectedInventoryId(equipped?.inventoryItemId ?? null);
+    } catch (e) {
+      console.log("보관함 조회 실패", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const selectedItem = useMemo(
+    () => owned.find((o) => o.inventoryItemId === selectedInventoryId) ?? null,
+    [owned, selectedInventoryId],
+  );
+
+  const isDirty = selectedInventoryId !== equippedInventoryId;
+  const canSave = isDirty && selectedInventoryId !== null;
+  const isEmpty = owned.length === 0;
+
+  const handleSelect = (inventoryItemId: number) => {
+    setSelectedInventoryId((prev) =>
+      prev === inventoryItemId ? null : inventoryItemId,
+    );
   };
 
   const goBackToReward = () => {
@@ -81,10 +136,14 @@ export default function StorageScreen() {
     router.back();
   };
 
-  const handleSave = () => {
-    if (!canSave) return;
-    setEquipped(selected);
-    router.replace("/(home)/(tabs)/main");
+  const handleSave = async () => {
+    if (!canSave || selectedInventoryId == null) return;
+    try {
+      await SkinAPI.equipSkin(selectedInventoryId);
+      router.replace("/(home)/(tabs)/main");
+    } catch (e) {
+      console.log("스킨 장착 실패", e);
+    }
   };
 
   return (
@@ -102,8 +161,8 @@ export default function StorageScreen() {
       >
         <Image
           source={
-            selected !== null && COSTUME_LODY[selected]
-              ? COSTUME_LODY[selected]
+            selectedItem && COSTUME_LODY[selectedItem.stage]
+              ? COSTUME_LODY[selectedItem.stage]
               : require("@/assets/images/lody_default.png")
           }
           style={styles.character}
@@ -118,30 +177,34 @@ export default function StorageScreen() {
           </View>
         ) : (
           <FlatList
-            data={items}
-            keyExtractor={(level) => String(level)}
+            data={owned}
+            keyExtractor={(item) => String(item.inventoryItemId)}
             numColumns={3}
             contentContainerStyle={styles.gridContent}
             columnWrapperStyle={styles.gridRow}
-            renderItem={({ item: level }) => {
-              const isSelected = selected === level;
+            renderItem={({ item }) => {
+              const isSelected = selectedInventoryId === item.inventoryItemId;
               return (
                 <Pressable
-                  style={[styles.itemCard, isSelected && styles.itemCardSelected]}
-                  onPress={() => handleSelect(level)}
+                  style={[
+                    styles.itemCard,
+                    isSelected && styles.itemCardSelected,
+                  ]}
+                  onPress={() => handleSelect(item.inventoryItemId)}
                 >
                   <View style={styles.itemIcon}>
-                    {COSTUME_ICONS[level] ? (
-                      (() => {
-                        const Icon = COSTUME_ICONS[level];
-                        return <Icon width={36} height={36} />;
-                      })()
+                    {item.url ? (
+                      <Image
+                        source={{ uri: item.url }}
+                        style={{ width: 40, height: 40 }}
+                        resizeMode="contain"
+                      />
                     ) : (
                       <Text style={styles.itemEmoji}>👔</Text>
                     )}
                   </View>
                   <Text style={styles.itemName} numberOfLines={1}>
-                    {COSTUME_NAMES[level] ?? `${level}단계`}
+                    {item.name}
                   </Text>
                 </Pressable>
               );
@@ -178,10 +241,6 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-  },
-  back: {
-    fontSize: 22,
-    color: "#111111",
   },
   characterArea: {
     height: 360,
