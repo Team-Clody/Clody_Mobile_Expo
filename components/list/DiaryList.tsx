@@ -1,7 +1,12 @@
-import { DiaryItem } from "@/api/dto/list/response/getCalendarListResponseDTO";
+import {
+  DiaryItem,
+  ReplyStatus,
+} from "@/api/dto/list/response/getCalendarListResponseDTO";
+import { Icon } from "@/shared/components/Icon";
 import { HStack } from "@/shared/components/stack/HStack";
 import { VStack } from "@/shared/components/stack/VStack";
 import { Typo } from "@/shared/components/typo/Typo";
+import React from "react";
 import {
   FlatList,
   Image,
@@ -10,6 +15,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { SvgProps } from "react-native-svg";
 import { PromptHeader } from "./PromptHeader";
 
 type ListHeaderItem = {
@@ -17,7 +23,9 @@ type ListHeaderItem = {
   date: string;
   dayNumber: number;
   dayOfWeek: string;
-  replyStatus: string;
+  replyStatus: ReplyStatus;
+  diaryCount: number;
+  isDeleted: boolean;
 };
 type ListDiaryContentItem = {
   type: "content";
@@ -47,6 +55,8 @@ function buildFlatListData(diaries: DiaryItem[]): ListItem[] {
       dayNumber,
       dayOfWeek: `${dayOfWeek}요일`,
       replyStatus: diary.replyStatus,
+      diaryCount: diary.diaryCount,
+      isDeleted: diary.isDeleted,
     });
 
     diary.diary.forEach((entry, idx) => {
@@ -63,6 +73,31 @@ function buildFlatListData(diaries: DiaryItem[]): ListItem[] {
     }
   }
   return items;
+}
+
+function getCloverIcon(
+  replyStatus: ReplyStatus,
+  diaryCount: number,
+  isDeleted: boolean,
+): React.FC<SvgProps> {
+  if (isDeleted) return Icon.IcCloverNone;
+
+  switch (replyStatus) {
+    case "UNREADY":
+      return Icon.IcCloverNone;
+    case "READY_NOT_READ":
+      return Icon.IcCloverUnread;
+    case "HAS_DRAFT":
+      return Icon.IcCloverIng;
+    case "INVALID_DRAFT":
+      return Icon.IcCloverNot;
+    case "READY_READ":
+      if (diaryCount >= 5) return Icon.IcCloverFull;
+      if (diaryCount >= 3) return Icon.IcCloverMedium;
+      return Icon.IcCloverLow;
+    default:
+      return Icon.IcCloverNone;
+  }
 }
 
 function renderListItem({ item }: { item: ListItem }) {
@@ -82,11 +117,10 @@ function renderListItem({ item }: { item: ListItem }) {
       >
         <HStack alignment={4} style={{ gap: 7 }}>
           <View style={styles.dayIconContainer}>
-            <Image
-              source={require("@/assets/icons/btn_clover.svg")}
-              style={{ width: 24, height: 24 }}
-              resizeMode="contain"
-            />
+            {React.createElement(
+              getCloverIcon(item.replyStatus, item.diaryCount, item.isDeleted),
+              { width: 24, height: 24 },
+            )}
             <View style={styles.dayNumberOverlay}>
               <Typo.Body variant="body12" style={{ color: "#FFFFFF" }}>
                 {item.dayNumber}

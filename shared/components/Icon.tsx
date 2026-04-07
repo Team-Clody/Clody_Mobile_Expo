@@ -3,7 +3,13 @@ import IcCalendarOff from "@/assets/icons/ic_calendar_off.svg";
 import IcCalendarOn from "@/assets/icons/ic_calendar_on.svg";
 import IcCheckGray from "@/assets/icons/ic_check_gray.svg";
 import IcCheckGreen from "@/assets/icons/ic_check_green.svg";
-import IcClover from "@/assets/icons/ic_clover.svg";
+import IcCloverFull from "@/assets/icons/ic_clover_full.svg";
+import IcCloverIng from "@/assets/icons/ic_clover_ing.svg";
+import IcCloverLow from "@/assets/icons/ic_clover_low.svg";
+import IcCloverMedium from "@/assets/icons/ic_clover_medium.svg";
+import IcCloverNone from "@/assets/icons/ic_clover_none.svg";
+import IcCloverNot from "@/assets/icons/ic_clover_not.svg";
+import IcCloverUnread from "@/assets/icons/ic_clover_unread.svg";
 import IcDelete from "@/assets/icons/ic_delete.svg";
 import IcDotBlack from "@/assets/icons/ic_dot_black.svg";
 import IcDotGray from "@/assets/icons/ic_dot_gray.svg";
@@ -20,7 +26,6 @@ import IcSuccess from "@/assets/icons/ic_success.svg";
 
 export const Icon = {
   IcNext,
-  IcClover,
   IcProfile,
   IcBack,
   IcInputDelete,
@@ -38,4 +43,11 @@ export const Icon = {
   IcCheckGreen,
   IcSuccess,
   IcStars,
+  IcCloverFull,
+  IcCloverIng,
+  IcCloverLow,
+  IcCloverMedium,
+  IcCloverNone,
+  IcCloverNot,
+  IcCloverUnread,
 };

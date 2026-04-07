@@ -15,7 +15,7 @@ const MOCK_DIARIES: DiaryItem[] = [
   {
     diaryCount: 3,
     replyStatus: "READY_READ",
-    date: "2026-04-03",
+    date: "2026-04-01",
     diary: [
       {
         content:
