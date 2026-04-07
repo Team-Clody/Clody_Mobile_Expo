@@ -1,10 +1,22 @@
 import { useRouter } from "expo-router";
 import IcLock from "@/assets/icons/ic_lock.svg";
-import { useStorageStore } from "@/store/useStorageStore";
-import React, { useEffect, useRef, useState } from "react";
+import IcFarmer from "@/assets/icons/ic_farmer.svg";
+import IcPrincess from "@/assets/icons/ic_princess.svg";
+import IcDevil from "@/assets/icons/ic_devil.svg";
+
+const COSTUME_ICONS: Record<
+  number,
+  { Icon: React.FC<{ width: number; height: number }>; width: number; height: number }
+> = {
+  1: { Icon: IcFarmer, width: 28, height: 25 },
+  2: { Icon: IcPrincess, width: 34, height: 29 },
+  3: { Icon: IcDevil, width: 50, height: 27 },
+};
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -14,120 +26,88 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Tooltip from "./Tooltip";
+import { SkinAPI } from "@/api/skinAPI";
+import {
+  GetSkinStatusListResponseDTO,
+  SkinStatusItemResponseDTO,
+} from "@/api/dto/skin/response/getSkinStatusListResponseDTO";
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } =
   Dimensions.get("window");
 const BOTTOM_SHEET_HEIGHT = SCREEN_HEIGHT * 0.85;
 
-interface CostumeItem {
-  level: number;
-  name: string;
-  requiredClovers: number;
-}
-
-const COSTUME_DATA: CostumeItem[] = [
-  { level: 1, name: "멜빵 바지", requiredClovers: 2 },
-  { level: 2, name: "핑크 드레스", requiredClovers: 4 },
-  { level: 3, name: "악마 코스튬", requiredClovers: 10 },
-  { level: 4, name: "마녀 원피스", requiredClovers: 15 },
-  { level: 5, name: "산타 유니폼", requiredClovers: 20 },
-  { level: 6, name: "탐정 코트", requiredClovers: 25 },
-  { level: 7, name: "해적 의상", requiredClovers: 30 },
-  { level: 8, name: "우비", requiredClovers: 40 },
-  { level: 9, name: "기모노", requiredClovers: 50 },
-  { level: 10, name: "턱시도", requiredClovers: 60 },
-  { level: 11, name: "파자마", requiredClovers: 70 },
-  { level: 12, name: "운동복", requiredClovers: 80 },
-  { level: 13, name: "요리사 복", requiredClovers: 90 },
-  { level: 14, name: "경찰 제복", requiredClovers: 100 },
-  { level: 15, name: "소방관 복", requiredClovers: 120 },
-  { level: 16, name: "왕자 의상", requiredClovers: 150 },
-  { level: 17, name: "메이드복", requiredClovers: 180 },
-  { level: 18, name: "락스타 자켓", requiredClovers: 200 },
-  { level: 19, name: "한복", requiredClovers: 210 },
-  { level: 20, name: "우주복", requiredClovers: 220 },
-];
+const COSTUME_NAMES: Record<number, string> = {
+  1: "멜빵 바지",
+  2: "핑크 드레스",
+  3: "악마 코스튬",
+  4: "마녀 원피스",
+  5: "산타 유니폼",
+  6: "탐정 코트",
+  7: "해적 의상",
+  8: "우비",
+  9: "기모노",
+  10: "턱시도",
+  11: "파자마",
+  12: "운동복",
+  13: "요리사 복",
+  14: "경찰 제복",
+  15: "소방관 복",
+  16: "왕자 의상",
+  17: "메이드복",
+  18: "락스타 자켓",
+  19: "한복",
+  20: "우주복",
+};
 
 interface Props {
   visible: boolean;
   onClose: () => void;
-  totalClovers: number;
+}
+
+function getStageNumber(skin: SkinStatusItemResponseDTO): number {
+  const raw = String(skin.cloverStage ?? "");
+  const match = raw.match(/\d+/);
+  return match ? parseInt(match[0], 10) : 0;
 }
 
 function getTooltipMessage(
-  collectedInLevel: number,
-  neededInLevel: number,
+  collected: number,
+  needed: number,
 ): string | null {
-  if (neededInLevel <= 0) return null;
-  if (collectedInLevel >= neededInLevel) return null;
-  const remaining = neededInLevel - collectedInLevel;
+  if (needed <= 0) return null;
+  if (collected >= needed) return null;
+  const remaining = needed - collected;
   if (remaining === 1) return "거의 다 왔어요!";
-  if (collectedInLevel / neededInLevel >= 0.7) return "조금만 더 힘내요";
-  if (collectedInLevel === 0) return "시작이 좋아요";
+  if (collected / needed >= 0.7) return "조금만 더 힘내요";
+  if (collected === 0) return "시작이 좋아요";
   return null;
 }
 
-function getProgressInfo(
-  totalClovers: number,
-  claimedLevels: Set<number>,
-): {
-  currentLevel: number;
-  collectedInLevel: number;
-  neededInLevel: number;
-  progress: number;
-} {
-  let previousRequired = 0;
-  for (const item of COSTUME_DATA) {
-    if (totalClovers < item.requiredClovers) {
-      const range = item.requiredClovers - previousRequired;
-      const collected = Math.max(
-        0,
-        Math.min(range, totalClovers - previousRequired),
-      );
-      return {
-        currentLevel: item.level,
-        collectedInLevel: collected,
-        neededInLevel: range,
-        progress: range > 0 ? collected / range : 0,
-      };
-    }
-    previousRequired = item.requiredClovers;
-  }
-  return {
-    currentLevel: COSTUME_DATA.length + 1,
-    collectedInLevel: 0,
-    neededInLevel: 0,
-    progress: 1,
-  };
-}
-
-export default function CloverRewardBottomSheet({
-  visible,
-  onClose,
-  totalClovers,
-}: Props) {
+export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const translateY = useRef(new Animated.Value(BOTTOM_SHEET_HEIGHT)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const [showModal, setShowModal] = useState(false);
-  const claimedLevelsArr = useStorageStore(
-    (s: { claimedLevels: number[] }) => s.claimedLevels,
-  );
-  const claimToStore = useStorageStore(
-    (s: { claim: (level: number) => void }) => s.claim,
-  );
-  const claimedLevels = new Set<number>(claimedLevelsArr);
-  const [acquiredItem, setAcquiredItem] = useState<CostumeItem | null>(null);
+  const [data, setData] = useState<GetSkinStatusListResponseDTO | null>(null);
+  const [acquiredItem, setAcquiredItem] =
+    useState<SkinStatusItemResponseDTO | null>(null);
 
-  const { currentLevel, collectedInLevel, neededInLevel, progress } =
-    getProgressInfo(totalClovers, claimedLevels);
-  const tooltipMessage = getTooltipMessage(collectedInLevel, neededInLevel);
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await SkinAPI.getSkinStatusList();
+      console.log("[skins]", JSON.stringify(res, null, 2));
+      setData(res);
+    } catch (e) {
+      console.log("스킨 목록 조회 실패", e);
+    }
+  }, []);
 
   useEffect(() => {
     if (visible) {
       setShowModal(true);
+      fetchData();
       Animated.parallel([
         Animated.spring(translateY, {
           toValue: 0,
@@ -155,25 +135,42 @@ export default function CloverRewardBottomSheet({
         }),
       ]).start(() => setShowModal(false));
     }
-  }, [visible]);
+  }, [visible, fetchData]);
+
+  const totalClovers = data?.totalCloverCount ?? 0;
+  const currentStageMax = data?.currentStageMaxClover ?? 0;
+  const skins = data?.skins ?? [];
+
+  const lastReceivedOrUnlocked = skins
+    .filter((s) => s.status === "RECEIVED" || s.status === "UNLOCKED")
+    .reduce((max, s) => Math.max(max, getStageNumber(s)), 0);
+  const currentStage =
+    lastReceivedOrUnlocked > 0
+      ? lastReceivedOrUnlocked + 1
+      : (data?.currentStage ?? 0);
 
   useEffect(() => {
-    if (visible && scrollViewRef.current && currentLevel > 1) {
+    if (visible && scrollViewRef.current && currentStage > 1) {
       const itemHeight = 80;
-      const scrollTo = (currentLevel - 2) * itemHeight;
+      const scrollTo = (currentStage - 2) * itemHeight;
       setTimeout(() => {
         scrollViewRef.current?.scrollTo({ y: scrollTo, animated: true });
       }, 400);
     }
-  }, [visible, currentLevel]);
+  }, [visible, currentStage]);
 
   if (!showModal) return null;
 
   const handleClose = () => onClose();
 
-  const handleClaim = (item: CostumeItem) => {
-    claimToStore(item.level);
-    setAcquiredItem(item);
+  const handleClaim = async (skin: SkinStatusItemResponseDTO) => {
+    try {
+      await SkinAPI.acquireSkin(skin.skinId);
+      setAcquiredItem(skin);
+      await fetchData();
+    } catch (e) {
+      console.log("스킨 받기 실패", e);
+    }
   };
 
   const handleOpenStorage = () => {
@@ -181,20 +178,25 @@ export default function CloverRewardBottomSheet({
     router.push("/(home)/storage");
   };
 
-  const renderCostumeItem = (item: CostumeItem) => {
-    const isClaimed = claimedLevels.has(item.level);
-    const isCurrent = item.level === currentLevel;
-    const canClaim = !isClaimed && totalClovers >= item.requiredClovers;
-    const isLocked = !isClaimed && !isCurrent && !canClaim;
+  const tooltipMessage = getTooltipMessage(totalClovers, currentStageMax);
 
-    const itemRange = item.requiredClovers;
-    const itemCollected = Math.min(itemRange, totalClovers);
-    const itemProgress = itemRange > 0 ? itemCollected / itemRange : 0;
+  const renderCostumeItem = (skin: SkinStatusItemResponseDTO) => {
+    const stageNum = getStageNumber(skin);
+    const name = COSTUME_NAMES[stageNum] ?? `${stageNum}단계`;
+    const isReceived = skin.status === "RECEIVED";
+    const canClaim = skin.status === "UNLOCKED";
+    const isCurrent = stageNum === currentStage && !isReceived && !canClaim;
+    const isLocked = skin.status === "LOCKED" && !isCurrent;
     const showProgressBar = isCurrent || canClaim;
+    const itemProgress = canClaim
+      ? 1
+      : isCurrent && currentStageMax > 0
+        ? Math.min(1, totalClovers / currentStageMax)
+        : 0;
 
     return (
-      <View key={item.level} style={styles.costumeItemWrapper}>
-        {isCurrent && tooltipMessage && progress < 1 && (
+      <View key={skin.skinId} style={styles.costumeItemWrapper}>
+        {isCurrent && tooltipMessage && (
           <View style={styles.tooltipAbs} pointerEvents="none">
             <Tooltip visible message={tooltipMessage} />
           </View>
@@ -202,60 +204,73 @@ export default function CloverRewardBottomSheet({
         <View
           style={[styles.costumeItem, isCurrent && styles.costumeItemCurrent]}
         >
-        <View style={styles.costumeIcon}>
-          <View style={styles.iconPlaceholder}>
-            <Text style={[styles.iconEmoji, isLocked && { opacity: 0.4 }]}>
-              👔
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.costumeInfo}>
-          <Text
-            style={[styles.levelText, isCurrent && styles.levelTextCurrent]}
-          >
-            {item.level}단계
-          </Text>
-          <Text
-            style={[styles.costumeName, isLocked && styles.costumeNameLocked]}
-          >
-            {item.name}
-          </Text>
-
-          {showProgressBar && (
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    { width: `${Math.min(itemProgress * 100, 100)}%` },
-                  ]}
+          <View style={styles.costumeIcon}>
+            <View style={styles.iconPlaceholder}>
+              {COSTUME_ICONS[stageNum] ? (
+                (() => {
+                  const { Icon, width, height } = COSTUME_ICONS[stageNum];
+                  return <Icon width={width} height={height} />;
+                })()
+              ) : skin.url ? (
+                <Image
+                  source={{ uri: skin.url }}
+                  style={{ width: 36, height: 36 }}
+                  resizeMode="contain"
                 />
-              </View>
+              ) : (
+                <Text style={[styles.iconEmoji, isLocked && { opacity: 0.4 }]}>
+                  👔
+                </Text>
+              )}
             </View>
-          )}
-        </View>
+          </View>
 
-        <View style={styles.costumeRight}>
-          {canClaim ? (
-            <Pressable
-              style={styles.claimButton}
-              onPress={() => handleClaim(item)}
+          <View style={styles.costumeInfo}>
+            <Text
+              style={[styles.levelText, isCurrent && styles.levelTextCurrent]}
             >
-              <Text style={styles.claimButtonText}>받기</Text>
-            </Pressable>
-          ) : isCurrent ? (
-            <View style={styles.progressBadge}>
-              <Text style={styles.progressBadgeText}>
-                {itemCollected}/{itemRange}
-              </Text>
-            </View>
-          ) : isClaimed ? (
-            <Text style={styles.acquiredText}>획득 완료</Text>
-          ) : (
-            <IcLock width={20} height={20} />
-          )}
-        </View>
+              {stageNum}단계
+            </Text>
+            <Text
+              style={[styles.costumeName, isLocked && styles.costumeNameLocked]}
+            >
+              {name}
+            </Text>
+
+            {showProgressBar && (
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      { width: `${Math.min(itemProgress * 100, 100)}%` },
+                    ]}
+                  />
+                </View>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.costumeRight}>
+            {canClaim ? (
+              <Pressable
+                style={styles.claimButton}
+                onPress={() => handleClaim(skin)}
+              >
+                <Text style={styles.claimButtonText}>받기</Text>
+              </Pressable>
+            ) : isCurrent ? (
+              <View style={styles.progressBadge}>
+                <Text style={styles.progressBadgeText}>
+                  {totalClovers}/{currentStageMax}
+                </Text>
+              </View>
+            ) : isReceived ? (
+              <Text style={styles.acquiredText}>획득 완료</Text>
+            ) : (
+              <IcLock width={20} height={20} />
+            )}
+          </View>
         </View>
       </View>
     );
@@ -272,7 +287,7 @@ export default function CloverRewardBottomSheet({
       </View>
       <View style={styles.costumeInfo}>
         <Text style={[styles.levelText, { color: "#C4C4C4" }]}>
-          {COSTUME_DATA.length + 1}단계
+          {skins.length + 1}단계
         </Text>
         <Text style={[styles.costumeName, { color: "#C4C4C4" }]}>
           Coming Soon
@@ -313,7 +328,7 @@ export default function CloverRewardBottomSheet({
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {COSTUME_DATA.map((item) => renderCostumeItem(item))}
+            {skins.map((skin) => renderCostumeItem(skin))}
             {renderComingSoon()}
           </ScrollView>
 
@@ -340,10 +355,20 @@ export default function CloverRewardBottomSheet({
             <View style={styles.dialogOverlay}>
               <View style={styles.dialog}>
                 <View style={styles.dialogIconWrap}>
-                  <Text style={styles.dialogIcon}>👔</Text>
+                  {acquiredItem.url ? (
+                    <Image
+                      source={{ uri: acquiredItem.url }}
+                      style={{ width: 56, height: 56 }}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <Text style={styles.dialogIcon}>👔</Text>
+                  )}
                 </View>
                 <Text style={styles.dialogTitle}>
-                  {acquiredItem.name}를 받았어요!
+                  {COSTUME_NAMES[getStageNumber(acquiredItem)] ??
+                    `${getStageNumber(acquiredItem)}단계`}
+                  를 받았어요!
                 </Text>
                 <Text style={styles.dialogSubtitle}>
                   보관함에서 확인할 수 있어요.
@@ -398,7 +423,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     color: "#111111",
-    marginTop:26,
+    marginTop: 26,
     marginBottom: 4,
   },
   subtitle: {
