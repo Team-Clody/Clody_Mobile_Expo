@@ -75,7 +75,6 @@ export default function Main() {
       <CloverRewardBottomSheet
         visible={showReward}
         onClose={() => setShowReward(false)}
-        totalClovers={2}
       />
     </View>
   );
