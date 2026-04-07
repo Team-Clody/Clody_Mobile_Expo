@@ -1,7 +1,6 @@
 import { DiaryItem } from "@/api/dto/list/response/getCalendarListResponseDTO";
 import { ListAPI } from "@/api/listAPI";
 import { DiaryList } from "@/components/list/DiaryList";
-import { Icon } from "@/shared/components/Icon";
 import {
   MonthPickerBottomSheet,
   MonthPickerValue,
@@ -9,7 +8,7 @@ import {
 import { HStack } from "@/shared/components/stack/HStack";
 import { Typo } from "@/shared/components/typo/Typo";
 import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Image, Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const MOCK_DIARIES: DiaryItem[] = [
@@ -59,53 +58,29 @@ export default function ListScreen() {
   const [prompt, setPrompt] = useState("");
 
   const fetchCalendarList = async (year: number, month: number) => {
-    console.log("[ListScreen] fetchCalendarList params:", { year, month });
     try {
       const data = await ListAPI.getCalendarList(year, month);
-      console.log(
-        "[ListScreen] getCalendarList response:",
-        JSON.stringify(data, null, 2),
-      );
       setDiaries(data.diaries?.length ? data.diaries : MOCK_DIARIES);
-    } catch (error: any) {
-      console.error("[ListScreen] getCalendarList error:", {
-        status: error?.response?.status,
-        data: error?.response?.data,
-        url: error?.config?.url,
-        headers: error?.config?.headers,
-      });
+    } catch {
       setDiaries(MOCK_DIARIES);
     }
   };
 
   const fetchPrompt = async () => {
-    console.log("[ListScreen] fetchPrompt params:", {
-      month: now.getMonth() + 1,
-      date: now.getDate(),
-    });
     try {
       const data = await ListAPI.getJournalPrompt(
         now.getMonth() + 1,
         now.getDate(),
       );
-      console.log(
-        "[ListScreen] getJournalPrompt response:",
-        JSON.stringify(data, null, 2),
-      );
       setPrompt(data.prompt);
-    } catch (error: any) {
-      console.error("[ListScreen] getJournalPrompt error:", {
-        status: error?.response?.status,
-        data: error?.response?.data,
-        url: error?.config?.url,
-        headers: error?.config?.headers,
-      });
+    } catch {
+      // fallback text in PromptHeader
     }
   };
 
   useEffect(() => {
-    fetchCalendarList(selectedYear, selectedMonth);
     fetchPrompt();
+    fetchCalendarList(selectedYear, selectedMonth);
   }, []);
 
   const handleMonthConfirm = (value: MonthPickerValue) => {
@@ -119,11 +94,15 @@ export default function ListScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <View style={{ paddingHorizontal: 20, paddingVertical: 12 }}>
         <Pressable onPress={() => setBottomSheetVisible(true)}>
-          <HStack alignment={4} style={{ gap: 4, alignSelf: "flex-start" }}>
-            <Typo.Display variant="display3" style={{ color: "#293038" }}>
+          <HStack style={{ gap: 4, alignSelf: "flex-start" }}>
+            <Typo.Head variant="head1" style={{ color: "#293038" }}>
               {`${selectedYear}년 ${selectedMonth}월`}
-            </Typo.Display>
-            <Icon.IcDown width={24} height={24} />
+            </Typo.Head>
+            <Image
+              source={require("@/assets/images/ic_down.png")}
+              style={{ width: 24, height: 24 }}
+              resizeMode="contain"
+            />
           </HStack>
         </Pressable>
       </View>

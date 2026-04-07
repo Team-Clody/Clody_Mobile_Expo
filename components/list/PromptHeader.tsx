@@ -41,7 +41,8 @@ export function PromptHeader({ prompt }: PromptHeaderProps) {
             </HStack>
 
             <Typo.Display variant="display4" style={{ color: "#293038" }}>
-              {prompt || `"버텨줘서 고마워"라고 말해주고 싶은 나의 모습을 적어보세요`}
+              {prompt ||
+                `"버텨줘서 고마워"라고 말해주고 싶은 나의 모습을 적어보세요`}
             </Typo.Display>
           </VStack>
 

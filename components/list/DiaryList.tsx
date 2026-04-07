@@ -1,7 +1,15 @@
 import { DiaryItem } from "@/api/dto/list/response/getCalendarListResponseDTO";
-import { Icon } from "@/shared/components/Icon";
+import { HStack } from "@/shared/components/stack/HStack";
+import { VStack } from "@/shared/components/stack/VStack";
 import { Typo } from "@/shared/components/typo/Typo";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  FlatList,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { PromptHeader } from "./PromptHeader";
 
 type ListHeaderItem = {
@@ -51,10 +59,7 @@ function buildFlatListData(diaries: DiaryItem[]): ListItem[] {
     });
 
     if (i < diaries.length - 1) {
-      items.push({
-        type: "divider",
-        dateKey: diary.date,
-      });
+      items.push({ type: "divider", dateKey: diary.date });
     }
   }
   return items;
@@ -67,10 +72,21 @@ function renderListItem({ item }: { item: ListItem }) {
 
   if (item.type === "header") {
     return (
-      <View style={styles.dateHeaderContainer}>
-        <View style={styles.headerLeft}>
+      <HStack
+        style={{
+          justifyContent: "space-between",
+          paddingHorizontal: 20,
+          paddingTop: 24,
+          paddingBottom: 15,
+        }}
+      >
+        <HStack alignment={4} style={{ gap: 7 }}>
           <View style={styles.dayIconContainer}>
-            <Icon.IcClover width={24} height={24} />
+            <Image
+              source={require("@/assets/icons/btn_clover.svg")}
+              style={{ width: 24, height: 24 }}
+              resizeMode="contain"
+            />
             <View style={styles.dayNumberOverlay}>
               <Typo.Body variant="body12" style={{ color: "#FFFFFF" }}>
                 {item.dayNumber}
@@ -80,9 +96,9 @@ function renderListItem({ item }: { item: ListItem }) {
           <Typo.Body variant="body5" style={{ color: "#6B7684" }}>
             {item.dayOfWeek}
           </Typo.Body>
-        </View>
+        </HStack>
 
-        <View style={styles.headerRight}>
+        <HStack style={{ gap: 8 }}>
           <Pressable
             onPress={() => alert("답장확인")}
             style={styles.replyButton}
@@ -91,26 +107,31 @@ function renderListItem({ item }: { item: ListItem }) {
               답장확인
             </Typo.Body>
           </Pressable>
-
-          <Pressable onPress={() => alert("더보기")} style={styles.moreButton}>
-            <Text style={styles.moreButtonText}>⋮</Text>
+          <Pressable onPress={() => alert("더보기")}>
+            <Image
+              source={require("@/assets/images/ic_more_vertical.png")}
+              style={{ width: 24, height: 24 }}
+              resizeMode="contain"
+            />
           </Pressable>
-        </View>
-      </View>
+        </HStack>
+      </HStack>
     );
   }
 
   return (
-    <View style={styles.contentRow}>
-      <View style={styles.contentNumberContainer}>
-        <Text style={styles.contentNumberText}>{item.index}</Text>
+    <HStack
+      style={{ paddingHorizontal: 20, gap: 10, alignItems: "flex-start" }}
+    >
+      <View style={styles.numberBadge}>
+        <Text style={styles.numberText}>{item.index}</Text>
       </View>
-      <View style={styles.contentTextContainer}>
+      <VStack style={{ flex: 1, paddingBottom: 10 }}>
         <Typo.Body variant="body10" style={{ color: "#212124" }}>
           {item.content}
         </Typo.Body>
-      </View>
-    </View>
+      </VStack>
+    </HStack>
   );
 }
 
@@ -139,24 +160,6 @@ export function DiaryList({ diaries, prompt }: DiaryListProps) {
 }
 
 const styles = StyleSheet.create({
-  dateHeaderContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 15,
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
   dayIconContainer: {
     width: 24,
     height: 24,
@@ -169,7 +172,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   replyButton: {
-    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 8,
@@ -177,24 +179,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F2F3F6",
     borderRadius: 5,
   },
-  moreButton: {
-    width: 24,
-    height: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  moreButtonText: {
-    fontSize: 18,
-    color: "#8791A0",
-    lineHeight: 24,
-  },
-  contentRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    paddingHorizontal: 20,
-    gap: 10,
-  },
-  contentNumberContainer: {
+  numberBadge: {
     width: 16,
     height: 16,
     backgroundColor: "#F3F4F6",
@@ -203,7 +188,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 2,
   },
-  contentNumberText: {
+  numberText: {
     fontFamily: "PretendardSemiBold",
     fontWeight: "600",
     fontSize: 10.67,
@@ -211,10 +196,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.21,
     color: "#565F6B",
     textAlign: "center",
-  },
-  contentTextContainer: {
-    flex: 1,
-    paddingBottom: 10,
   },
   divider: {
     height: 1,

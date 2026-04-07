@@ -1,27 +1,35 @@
-import { createAPIRequest, HeaderType } from '@/shared/http';
+import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
 import { GetJournalPromptResponseDTO } from './dto/list/response/getJournalPromptResponseDTO';
 import { GetCalendarListResponseDTO } from './dto/list/response/getCalendarListResponseDTO';
 
+const BASE_URL = 'https://test.clodycorp.com';
+
+const getAuthHeaders = async () => {
+  const accessToken = await SecureStore.getItemAsync('accessToken');
+  if (!accessToken) throw new Error('accessToken이 없습니다.');
+  return {
+    Authorization: `Bearer ${accessToken}`,
+    'Time-Zone': 'Asia/Seoul',
+  };
+};
+
 export const ListAPI = {
   getJournalPrompt: async (month: number, date: number) => {
-    const resp = await createAPIRequest<GetJournalPromptResponseDTO>(
-      'get',
-      '/api/v1/journal/prompt',
-      HeaderType.TIME_ZONE,
-      undefined,
-      { params: { month, date } },
+    const headers = await getAuthHeaders();
+    const res = await axios.get<{ data: GetJournalPromptResponseDTO }>(
+      `${BASE_URL}/api/v1/journal/prompt`,
+      { params: { month, date }, headers },
     );
-    return resp.data.data;
+    return res.data.data;
   },
 
   getCalendarList: async (year: number, month: number) => {
-    const resp = await createAPIRequest<GetCalendarListResponseDTO>(
-      'get',
-      '/api/v1/calendar/list',
-      HeaderType.TIME_ZONE,
-      undefined,
-      { params: { year, month } },
+    const headers = await getAuthHeaders();
+    const res = await axios.get<{ data: GetCalendarListResponseDTO }>(
+      `${BASE_URL}/api/v1/calendar/list`,
+      { params: { year, month }, headers },
     );
-    return resp.data.data;
+    return res.data.data;
   },
 };
