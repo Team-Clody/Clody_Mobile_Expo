@@ -1,6 +1,7 @@
 import { DiaryItem } from "@/api/dto/list/response/getCalendarListResponseDTO";
 import { ListAPI } from "@/api/listAPI";
 import { DiaryList } from "@/components/list/DiaryList";
+import { Icon } from "@/shared/components";
 import {
   MonthPickerBottomSheet,
   MonthPickerValue,
@@ -8,7 +9,7 @@ import {
 import { HStack } from "@/shared/components/stack/HStack";
 import { Typo } from "@/shared/components/typo/Typo";
 import { useEffect, useState } from "react";
-import { Image, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const MOCK_DIARIES: DiaryItem[] = [
@@ -94,15 +95,16 @@ export default function ListScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <View style={{ paddingHorizontal: 20, paddingVertical: 12 }}>
         <Pressable onPress={() => setBottomSheetVisible(true)}>
-          <HStack style={{ gap: 4, alignSelf: "flex-start" }}>
+          <HStack
+            alignment={4}
+            style={{
+              gap: 4,
+            }}
+          >
             <Typo.Head variant="head1" style={{ color: "#293038" }}>
               {`${selectedYear}년 ${selectedMonth}월`}
             </Typo.Head>
-            <Image
-              source={require("@/assets/images/ic_down.png")}
-              style={{ width: 24, height: 24 }}
-              resizeMode="contain"
-            />
+            <Icon.IcDropdown width={24} height={24} />
           </HStack>
         </Pressable>
       </View>

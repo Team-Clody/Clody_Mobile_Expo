@@ -1,3 +1,4 @@
+import { Icon } from "@/shared/components";
 import { HStack } from "@/shared/components/stack/HStack";
 import { VStack } from "@/shared/components/stack/VStack";
 import { Typo } from "@/shared/components/typo/Typo";
@@ -30,11 +31,7 @@ export function PromptHeader({ prompt }: PromptHeaderProps) {
         >
           <VStack style={{ gap: 4, flex: 1, flexShrink: 1 }}>
             <HStack alignment={4} style={{ gap: 4 }}>
-              <Image
-                source={require("@/assets/images/ic_stars.png")}
-                style={{ width: 18, height: 18 }}
-                resizeMode="contain"
-              />
+              <Icon.IcStars width={18} height={18} />
               <Typo.Body variant="body5" style={{ color: "#13B567" }}>
                 오늘의 감사 추천
               </Typo.Body>

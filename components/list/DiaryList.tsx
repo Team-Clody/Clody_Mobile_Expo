@@ -9,7 +9,6 @@ import { Typo } from "@/shared/components/typo/Typo";
 import React from "react";
 import {
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -142,11 +141,7 @@ function renderListItem({ item }: { item: ListItem }) {
             </Typo.Body>
           </Pressable>
           <Pressable onPress={() => alert("더보기")}>
-            <Image
-              source={require("@/assets/images/ic_more_vertical.png")}
-              style={{ width: 24, height: 24 }}
-              resizeMode="contain"
-            />
+            <Icon.IcKebob width={24} height={24} />
           </Pressable>
         </HStack>
       </HStack>
