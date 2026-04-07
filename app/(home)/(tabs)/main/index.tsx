@@ -877,6 +877,191 @@ export default function Main() {
     }),
   ).current;
 
+  const renderDatePickerLayer = () => (
+    <>
+      <Pressable
+        onPress={() => closeDatePicker()}
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          backgroundColor: "rgba(0,0,0,0.35)",
+        }}
+      />
+      <Animated.View
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "#fff",
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          paddingTop: 20,
+          paddingHorizontal: 20,
+          paddingBottom: 30,
+          transform: [{ translateY: datePickerTranslateY }],
+        }}
+      >
+        <Text
+          style={[
+            fontPreset.bold,
+            { fontSize: 16, color: "#20232a", marginBottom: 18 },
+          ]}
+        >
+          {i18n.t("main.datePicker.title")}
+        </Text>
+        <View
+          style={{
+            height: 220,
+            marginBottom: 20,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+          }}
+        >
+          {isKo ? (
+            <>
+              <WheelPicker
+                key={`ko-year-${datePickerSessionKey}`}
+                items={yearItems}
+                initValue={`${draftYear}년`}
+                itemHeight={44}
+                fontFamily="PretendardSemiBold"
+                onItemChange={(item) => {
+                  const nextYear = getNumericValue(item);
+                  if (!Number.isFinite(nextYear)) return;
+                  setDraftYear(nextYear);
+                }}
+                containerStyle={{ width: 104 }}
+              />
+              <WheelPicker
+                key={`ko-month-${datePickerSessionKey}`}
+                items={monthItems}
+                initValue={`${draftMonth}월`}
+                itemHeight={44}
+                fontFamily="PretendardSemiBold"
+                onItemChange={(item) => {
+                  const nextMonth = getNumericValue(item);
+                  if (!Number.isFinite(nextMonth)) return;
+                  if (nextMonth < 1 || nextMonth > 12) return;
+                  setDraftMonth(nextMonth);
+                }}
+                containerStyle={{ width: 92 }}
+              />
+              <WheelPicker
+                key={`ko-day-${datePickerSessionKey}`}
+                items={dayItems}
+                initValue={`${draftDay}일`}
+                itemHeight={44}
+                fontFamily="PretendardSemiBold"
+                onItemChange={(item) => {
+                  const nextDay = getNumericValue(item);
+                  if (!Number.isFinite(nextDay)) return;
+                  if (nextDay < 1 || nextDay > getDaysInMonth(draftYear, draftMonth))
+                    return;
+                  setDraftDay(nextDay);
+                }}
+                containerStyle={{ width: 92 }}
+              />
+            </>
+          ) : (
+            <>
+              <WheelPicker
+                key={`en-month-${datePickerSessionKey}`}
+                items={monthItems}
+                initValue={monthItems[draftMonth - 1]}
+                itemHeight={44}
+                onItemChange={(item) => {
+                  const nextMonth = monthItems.indexOf(item) + 1;
+                  if (!Number.isFinite(nextMonth)) return;
+                  if (nextMonth < 1 || nextMonth > 12) return;
+                  setDraftMonth(nextMonth);
+                }}
+                containerStyle={{ width: 138 }}
+              />
+              <WheelPicker
+                key={`en-day-${datePickerSessionKey}`}
+                items={dayItems}
+                initValue={`${draftDay}`}
+                itemHeight={44}
+                onItemChange={(item) => {
+                  const nextDay = getNumericValue(item);
+                  if (!Number.isFinite(nextDay)) return;
+                  if (nextDay < 1 || nextDay > getDaysInMonth(draftYear, draftMonth))
+                    return;
+                  setDraftDay(nextDay);
+                }}
+                containerStyle={{ width: 82 }}
+              />
+              <WheelPicker
+                key={`en-year-${datePickerSessionKey}`}
+                items={yearItems}
+                initValue={`${draftYear}`}
+                itemHeight={44}
+                onItemChange={(item) => {
+                  const nextYear = getNumericValue(item);
+                  if (!Number.isFinite(nextYear)) return;
+                  setDraftYear(nextYear);
+                }}
+                containerStyle={{ width: 112 }}
+              />
+            </>
+          )}
+          <View
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: 88,
+              height: 44,
+              backgroundColor: "#f1f2f5",
+              borderRadius: 8,
+              zIndex: -1,
+            }}
+          />
+        </View>
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <Pressable
+            onPress={applyTodayAndClose}
+            style={{
+              flex: 1,
+              height: 48,
+              borderRadius: 8,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#ECEFF3",
+            }}
+          >
+            <Text
+              style={[fontPreset.semibold, { color: "#596273", fontSize: 18 }]}
+            >
+              {i18n.t("main.datePicker.today")}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={applyPickedDateAndClose}
+            style={{
+              flex: 3,
+              height: 48,
+              borderRadius: 8,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#2D3645",
+            }}
+          >
+            <Text
+              style={[fontPreset.semibold, { color: "#fff", fontSize: 18 }]}
+            >
+              {i18n.t("main.datePicker.confirm")}
+            </Text>
+          </Pressable>
+        </View>
+      </Animated.View>
+    </>
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: "#F8F9FC" }}>
       {/* 헤더 */}
@@ -1548,7 +1733,7 @@ export default function Main() {
       >
         {/* Blur */}
         <Pressable
-          onPress={closeMonthly}
+          onPress={() => closeMonthly()}
           style={{
             position: "absolute",
             width: "100%",
@@ -1786,7 +1971,7 @@ export default function Main() {
             ))}
           </View>
           <Pressable
-            onPress={closeMonthly}
+            onPress={() => closeMonthly()}
             hitSlop={{ top: 40, bottom: 40, left: 20, right: 20 }}
             style={{
               position: "absolute",
@@ -1818,194 +2003,16 @@ export default function Main() {
             }}
           />
         </Animated.View>
+        {isDatePickerOpen && renderDatePickerLayer()}
       </Modal>
       <Modal
         transparent
-        visible={isDatePickerOpen}
+        visible={isDatePickerOpen && !isMonthlyOpen}
         animationType="none"
         presentationStyle="overFullScreen"
         statusBarTranslucent
       >
-        <Pressable
-          onPress={() => closeDatePicker()}
-          style={{
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0,0,0,0.35)",
-          }}
-        />
-        <Animated.View
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "#fff",
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            paddingTop: 20,
-            paddingHorizontal: 20,
-            paddingBottom: 30,
-            transform: [{ translateY: datePickerTranslateY }],
-          }}
-        >
-          <Text
-            style={[
-              fontPreset.bold,
-              { fontSize: 16, color: "#20232a", marginBottom: 18 },
-            ]}
-          >
-            {i18n.t("main.datePicker.title")}
-          </Text>
-          <View
-            style={{
-              height: 220,
-              marginBottom: 20,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-            }}
-          >
-            {isKo ? (
-              <>
-                <WheelPicker
-                  key={`ko-year-${datePickerSessionKey}`}
-                  items={yearItems}
-                  initValue={`${draftYear}년`}
-                  itemHeight={44}
-                  fontFamily="PretendardSemiBold"
-                  onItemChange={(item) => {
-                    const nextYear = getNumericValue(item);
-                    if (!Number.isFinite(nextYear)) return;
-                    setDraftYear(nextYear);
-                  }}
-                  containerStyle={{ width: 104 }}
-                />
-                <WheelPicker
-                  key={`ko-month-${datePickerSessionKey}`}
-                  items={monthItems}
-                  initValue={`${draftMonth}월`}
-                  itemHeight={44}
-                  fontFamily="PretendardSemiBold"
-                  onItemChange={(item) => {
-                    const nextMonth = getNumericValue(item);
-                    if (!Number.isFinite(nextMonth)) return;
-                    if (nextMonth < 1 || nextMonth > 12) return;
-                    setDraftMonth(nextMonth);
-                  }}
-                  containerStyle={{ width: 92 }}
-                />
-                <WheelPicker
-                  key={`ko-day-${datePickerSessionKey}`}
-                  items={dayItems}
-                  initValue={`${draftDay}일`}
-                  itemHeight={44}
-                  fontFamily="PretendardSemiBold"
-                  onItemChange={(item) => {
-                    const nextDay = getNumericValue(item);
-                    if (!Number.isFinite(nextDay)) return;
-                    if (nextDay < 1 || nextDay > getDaysInMonth(draftYear, draftMonth))
-                      return;
-                    setDraftDay(nextDay);
-                  }}
-                  containerStyle={{ width: 92 }}
-                />
-              </>
-            ) : (
-              <>
-                <WheelPicker
-                  key={`en-month-${datePickerSessionKey}`}
-                  items={monthItems}
-                  initValue={monthItems[draftMonth - 1]}
-                  itemHeight={44}
-                  onItemChange={(item) => {
-                    const nextMonth = monthItems.indexOf(item) + 1;
-                    if (!Number.isFinite(nextMonth)) return;
-                    if (nextMonth < 1 || nextMonth > 12) return;
-                    setDraftMonth(nextMonth);
-                  }}
-                  containerStyle={{ width: 138 }}
-                />
-                <WheelPicker
-                  key={`en-day-${datePickerSessionKey}`}
-                  items={dayItems}
-                  initValue={`${draftDay}`}
-                  itemHeight={44}
-                  onItemChange={(item) => {
-                    const nextDay = getNumericValue(item);
-                    if (!Number.isFinite(nextDay)) return;
-                    if (nextDay < 1 || nextDay > getDaysInMonth(draftYear, draftMonth))
-                      return;
-                    setDraftDay(nextDay);
-                  }}
-                  containerStyle={{ width: 82 }}
-                />
-                <WheelPicker
-                  key={`en-year-${datePickerSessionKey}`}
-                  items={yearItems}
-                  initValue={`${draftYear}`}
-                  itemHeight={44}
-                  onItemChange={(item) => {
-                    const nextYear = getNumericValue(item);
-                    if (!Number.isFinite(nextYear)) return;
-                    setDraftYear(nextYear);
-                  }}
-                  containerStyle={{ width: 112 }}
-                />
-              </>
-            )}
-            <View
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                top: 88,
-                height: 44,
-                backgroundColor: "#f1f2f5",
-                borderRadius: 8,
-                zIndex: -1,
-              }}
-            />
-          </View>
-          <View style={{ flexDirection: "row", gap: 12 }}>
-            <Pressable
-              onPress={applyTodayAndClose}
-              style={{
-                flex: 1,
-                height: 48,
-                borderRadius: 8,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#ECEFF3",
-              }}
-            >
-              <Text
-                style={[fontPreset.semibold, { color: "#596273", fontSize: 18 }]}
-              >
-                {i18n.t("main.datePicker.today")}
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={applyPickedDateAndClose}
-              style={{
-                flex: 3,
-                height: 48,
-                borderRadius: 8,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#2D3645",
-              }}
-            >
-              <Text
-                style={[fontPreset.semibold, { color: "#fff", fontSize: 18 }]}
-              >
-                {i18n.t("main.datePicker.confirm")}
-              </Text>
-            </Pressable>
-          </View>
-        </Animated.View>
+        {renderDatePickerLayer()}
       </Modal>
     </View>
   );
