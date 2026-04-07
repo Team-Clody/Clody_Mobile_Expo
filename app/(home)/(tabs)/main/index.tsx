@@ -347,6 +347,7 @@ const getMonthMatrix = (date: Date) => {
 export default function Main() {
   const { logout } = useContext(AuthContext);
   const router = useRouter();
+  const [showReward, setShowReward] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
   const pendingPickedDateRef = useRef<Date | null>(null);
