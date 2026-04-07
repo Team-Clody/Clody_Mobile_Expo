@@ -1,15 +1,29 @@
 import { Tabs } from "expo-router";
-import { Image, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "@/app/i18n/i18n";
+import IcHomeOn from "@/assets/icons/ic_home_on.svg";
+import IcHomeOff from "@/assets/icons/ic_home_off.svg";
+import IcListOn from "@/assets/icons/ic_list_on.svg";
+import IcListOff from "@/assets/icons/ic_list_off.svg";
+import IcMyOn from "@/assets/icons/ic_my_on.svg";
+import IcMyOff from "@/assets/icons/ic_my_off.svg";
+
+const ICON_SIZE = 28;
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: {
+          ...styles.tabBar,
+          height: 64 + insets.bottom,
+          paddingBottom: insets.bottom + 12,
+        },
         tabBarActiveTintColor: "#000",
-        tabBarInactiveTintColor: "#8E8E93",
+        tabBarInactiveTintColor: "#C7C7CC",
         tabBarLabelStyle: styles.tabBarLabel,
       }}
     >
@@ -17,36 +31,36 @@ export default function TabsLayout() {
         name="main"
         options={{
           title: i18n.t("home"),
-          tabBarIcon: ({ focused }) => (
-            <Image
-              source={require("@/assets/icons/btn_home.png")}
-              style={[styles.icon, { opacity: focused ? 1 : 0.5 }]}
-            />
-          ),
+          tabBarIcon: ({ focused }) =>
+            focused ? (
+              <IcHomeOn width={ICON_SIZE} height={ICON_SIZE} />
+            ) : (
+              <IcHomeOff width={ICON_SIZE} height={ICON_SIZE} />
+            ),
         }}
       />
       <Tabs.Screen
         name="list"
         options={{
           title: i18n.t("calander"),
-          tabBarIcon: ({ focused }) => (
-            <Image
-              source={require("@/assets/icons/btn_list.png")}
-              style={[styles.icon, { opacity: focused ? 1 : 0.5 }]}
-            />
-          ),
+          tabBarIcon: ({ focused }) =>
+            focused ? (
+              <IcListOn width={ICON_SIZE} height={ICON_SIZE} />
+            ) : (
+              <IcListOff width={ICON_SIZE} height={ICON_SIZE} />
+            ),
         }}
       />
       <Tabs.Screen
         name="mypage"
         options={{
           title: i18n.t("mypage"),
-          tabBarIcon: ({ focused }) => (
-            <Image
-              source={require("@/assets/icons/btn_mypage.png")}
-              style={[styles.icon, { opacity: focused ? 1 : 0.5 }]}
-            />
-          ),
+          tabBarIcon: ({ focused }) =>
+            focused ? (
+              <IcMyOn width={ICON_SIZE} height={ICON_SIZE} />
+            ) : (
+              <IcMyOff width={ICON_SIZE} height={ICON_SIZE} />
+            ),
         }}
       />
     </Tabs>
@@ -58,15 +72,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: "#E5E5EA",
     backgroundColor: "#fff",
-    paddingTop: 6,
+    paddingTop: 8,
   },
   tabBarLabel: {
     fontSize: 11,
-    marginTop: 2,
-  },
-  icon: {
-    width: 22,
-    height: 22,
-    resizeMode: "contain",
+    marginTop: 4,
   },
 });

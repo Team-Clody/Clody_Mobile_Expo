@@ -153,8 +153,12 @@ const reissueWithRefreshToken = async (
     await SecureStore.setItemAsync("refreshToken", newRefreshToken);
     console;
     return true;
-  } catch (err) {
-    console.error("reissue failed:", err);
+  } catch (err: any) {
+    console.error("reissue failed:", err?.response?.status, err?.message);
+    if (err?.response?.status === 401) {
+      await SecureStore.deleteItemAsync("accessToken");
+      await SecureStore.deleteItemAsync("refreshToken");
+    }
     return false;
   }
 };

@@ -16,6 +16,7 @@ import {
   GoogleSignin,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { DeviceProvider } from "@/shared/contexts/DeviceContext";
 import { ModalProvider } from "@/shared/contexts/ModalContext";
 import { ToastProvider } from "@/shared/contexts/ToastContext";
@@ -72,31 +73,17 @@ export default function RootLayout() {
         const id = await getKeyHashAndroid();
         let accessToken = await SecureStore.getItemAsync("accessToken");
         let refreshToken = await SecureStore.getItemAsync("refreshToken");
-        if (accessToken) {
-          if (await authService.isAccessTokenValid(accessToken)) {
-            setIsLoggedIn(true);
-            return;
-          } else {
-            if (refreshToken) {
-              await authService.reissueWithRefreshToken(refreshToken);
-              setIsLoggedIn(true);
-              return;
-            } else {
-              setIsLoggedIn(false);
-              return;
-            }
-          }
-        } else {
-          if (refreshToken) {
-            await authService.reissueWithRefreshToken(refreshToken);
-            setIsLoggedIn(true);
-            return;
-          } else {
-            setIsLoggedIn(false);
-            return;
-          }
+        if (accessToken && (await authService.isAccessTokenValid(accessToken))) {
+          setIsLoggedIn(true);
           return;
         }
+        if (refreshToken) {
+          const ok = await authService.reissueWithRefreshToken(refreshToken);
+          setIsLoggedIn(ok);
+          return;
+        }
+        setIsLoggedIn(false);
+        return;
         setIsLoggedIn(false);
         return;
       } catch (e) {
@@ -180,6 +167,7 @@ export default function RootLayout() {
     } catch (e) {}
   };
   return (
+    <SafeAreaProvider>
     <DeviceProvider>
       <ModalProvider>
         <ToastProvider>
@@ -203,5 +191,6 @@ export default function RootLayout() {
         </ToastProvider>
       </ModalProvider>
     </DeviceProvider>
+    </SafeAreaProvider>
   );
 }
