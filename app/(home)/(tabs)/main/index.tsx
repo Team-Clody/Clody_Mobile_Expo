@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Text,
   View,
@@ -36,6 +36,9 @@ import ReplyUnreadDotIcon from "@/assets/Ellipse2636.svg";
 import WheelPicker from "@/components/WheelPicker";
 import { GradientText } from "@/components/GradientText";
 import GroupCharacter from "@/assets/images/Group.svg";
+import CloverRewardBottomSheet from "@/components/CloverRewardBottomSheet";
+import { useStorageStore } from "@/store/useStorageStore";
+import { useFocusEffect } from "expo-router";
 
 const bgDefaultPng = require("../../../../assets/images/bg_default.png");
 const { width } = Dimensions.get("window");
@@ -348,6 +351,22 @@ export default function Main() {
   const { logout } = useContext(AuthContext);
   const router = useRouter();
   const [showReward, setShowReward] = useState(false);
+  const shouldReopenReward = useStorageStore(
+    (s: { shouldReopenReward: boolean }) => s.shouldReopenReward,
+  );
+  const setShouldReopenReward = useStorageStore(
+    (s: { setShouldReopenReward: (value: boolean) => void }) =>
+      s.setShouldReopenReward,
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (shouldReopenReward) {
+        setShowReward(true);
+        setShouldReopenReward(false);
+      }
+    }, [shouldReopenReward, setShouldReopenReward]),
+  );
 
   const flatListRef = useRef<FlatList>(null);
   const pendingPickedDateRef = useRef<Date | null>(null);
@@ -1328,15 +1347,13 @@ export default function Main() {
             <View
               style={{
                 alignItems: "center",
-                transform: [
-                  {
-                    translateY: Platform.OS === "ios" ? 100 : 120,
-                  },
-                ],
+                marginTop: Platform.OS === "ios" ? 100 : 120,
               }}
             >
               <GroupCharacter width={128} height={183} style={{ marginBottom: 6 }} />
-              <View
+              <Pressable
+                onPress={() => setShowReward(true)}
+                hitSlop={16}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
@@ -1376,7 +1393,7 @@ export default function Main() {
                   height={12}
                   style={{ marginLeft: 6, transform: [{ translateY: 1 }] }}
                 />
-              </View>
+              </Pressable>
             </View>
             <View style={{ flex: 1, minHeight: 0 }} />
           </View>
@@ -2015,6 +2032,11 @@ export default function Main() {
       >
         {renderDatePickerLayer()}
       </Modal>
+      <CloverRewardBottomSheet
+        visible={showReward}
+        onClose={() => setShowReward(false)}
+        totalClovers={totalCloverCount}
+      />
     </View>
   );
 }
