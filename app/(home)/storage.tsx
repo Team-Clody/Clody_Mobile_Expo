@@ -9,9 +9,22 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useStorageStore } from "@/store/useStorageStore";
 import IcBack from "@/assets/icons/ic_back.svg";
+import IcFarmer from "@/assets/icons/ic_farmer.svg";
+import IcPrincess from "@/assets/icons/ic_princess.svg";
+import IcDevil from "@/assets/icons/ic_devil.svg";
+
+const COSTUME_ICONS: Record<
+  number,
+  { Icon: React.FC<{ width: number; height: number }>; width: number; height: number }
+> = {
+  1: { Icon: IcFarmer, width: 40, height: 40 },
+  2: { Icon: IcPrincess, width: 40, height: 40 },
+  3: { Icon: IcDevil, width: 50, height: 50 },
+};
 import { SkinAPI } from "@/api/skinAPI";
 import { InventoryAPI } from "@/api/inventoryAPI";
 import { SkinStatusItemResponseDTO } from "@/api/dto/skin/response/getSkinStatusListResponseDTO";
@@ -19,6 +32,8 @@ import { UserInventoryItemResponseDTO } from "@/api/dto/inventory/response/getUs
 
 const COSTUME_LODY: Record<number, any> = {
   1: require("@/assets/images/farmer.png"),
+  2: require("@/assets/images/princess.png"),
+  3: require("@/assets/images/devil.png"),
 };
 
 const COSTUME_NAMES: Record<number, string> = {
@@ -193,7 +208,13 @@ export default function StorageScreen() {
                   onPress={() => handleSelect(item.inventoryItemId)}
                 >
                   <View style={styles.itemIcon}>
-                    {item.url ? (
+                    {COSTUME_ICONS[item.stage] ? (
+                      (() => {
+                        const { Icon, width, height } =
+                          COSTUME_ICONS[item.stage];
+                        return <Icon width={width} height={height} />;
+                      })()
+                    ) : item.url ? (
                       <Image
                         source={{ uri: item.url }}
                         style={{ width: 40, height: 40 }}
@@ -213,6 +234,16 @@ export default function StorageScreen() {
         )}
       </View>
 
+      <LinearGradient
+        colors={[
+          "rgba(255,255,255,0)",
+          "#FFFFFF",
+          "#FFFFFF",
+        ]}
+        locations={[0, 0.0819, 1]}
+        style={styles.bottomGradient}
+        pointerEvents="none"
+      />
       <View style={styles.bottomBar}>
         <Pressable
           style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
@@ -302,6 +333,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#111111",
     fontWeight: "500",
+  },
+  bottomGradient: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 76,
+    height: 40,
   },
   bottomBar: {
     paddingHorizontal: 20,
