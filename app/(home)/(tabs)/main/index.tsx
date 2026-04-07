@@ -347,6 +347,7 @@ const getMonthMatrix = (date: Date) => {
   return matrix;
 };
 
+
 export default function Main() {
   const { logout } = useContext(AuthContext);
   const router = useRouter();
@@ -1081,6 +1082,7 @@ export default function Main() {
       </Animated.View>
     </>
   );
+
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F8F9FC" }}>
