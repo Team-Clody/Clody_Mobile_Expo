@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { AuthContext } from "../../../_layout";
+import { HomeContext } from "../../_layout";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
 import { getDeviceTimeZone } from "@/shared/utils/timezone";
@@ -350,6 +351,7 @@ const getMonthMatrix = (date: Date) => {
 
 export default function Main() {
   const { logout } = useContext(AuthContext);
+  const homeContext = useContext(HomeContext);
   const router = useRouter();
   const [showReward, setShowReward] = useState(false);
   const shouldReopenReward = useStorageStore(
@@ -627,8 +629,10 @@ export default function Main() {
       : { weekday: "short", month: "short", day: "numeric" },
   );
   const cloversPerLevel = 2;
-  const currentLevel = Math.floor(totalCloverCount / cloversPerLevel) + 1;
-  const currentLevelProgress = totalCloverCount % cloversPerLevel;
+  const profileCloverCount = homeContext?.form?.cloverCount ?? 0;
+  const effectiveTotalCloverCount = Math.max(totalCloverCount, profileCloverCount);
+  const currentLevel = Math.floor(effectiveTotalCloverCount / cloversPerLevel) + 1;
+  const currentLevelProgress = effectiveTotalCloverCount % cloversPerLevel;
   const selectedDateKey = formatDateKey(gratitudeDate);
   const selectedDiaryCount = diaryCountByDate[selectedDateKey] ?? 0;
   const getDisplayReplyStatusForDate = (date: Date, diaryCount: number): ReplyStatus => {
@@ -1133,7 +1137,13 @@ export default function Main() {
                 />
               </Pressable>
             </View>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                transform: [{ translateY: -1 }],
+              }}
+            >
               <Pressable onPress={goToToday}>
                 <Text style={headerActionTextStyle}>
                   {i18n.t("main.header.today")}
@@ -1359,7 +1369,7 @@ export default function Main() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  backgroundColor: "rgba(241, 245, 249, 0.72)",
+                  backgroundColor: "rgba(241, 245, 249, 0.46)",
                   borderRadius: 999,
                   paddingVertical: 5,
                   paddingHorizontal: 7,
@@ -1391,7 +1401,7 @@ export default function Main() {
                     },
                   ]}
                 >
-                  {currentLevelProgress} / {cloversPerLevel}{" "}
+                  {effectiveTotalCloverCount} / {cloversPerLevel}{" "}
                   <Text
                     style={{
                       fontSize: 14,
@@ -1667,8 +1677,8 @@ export default function Main() {
                       style={{
                         backgroundColor: "#F3F4F6",
                         borderRadius: 8,
-                        paddingHorizontal: 8,
-                        paddingVertical: 6,
+                        paddingHorizontal: 10,
+                        paddingVertical: 10,
                       }}
                     >
                       <Text
