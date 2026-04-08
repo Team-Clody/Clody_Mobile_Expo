@@ -34,6 +34,7 @@ import NewIcon from "@/assets/icons/ic_new.svg";
 import AdToReplyKoIcon from "@/assets/icons/btn_ad_to_reply_ko.svg";
 import AdToReplyEnIcon from "@/assets/icons/btn_ad_to_reply_en.svg";
 import ReplyUnreadDotIcon from "@/assets/Ellipse2636.svg";
+import DotDotDotIcon from "@/assets/icons/dotdotdot.svg";
 import WheelPicker from "@/components/WheelPicker";
 import { GradientText } from "@/components/GradientText";
 import GroupCharacter from "@/assets/images/Group.svg";
@@ -1258,9 +1259,15 @@ export default function Main() {
                     const diaryCount = diaryCountByDate[dateKey] ?? 0;
                     const isFuture = isFutureDate(date);
                     const dateReplyStatus = getDisplayReplyStatusForDate(date, diaryCount);
-                    const cloverColor = getDisplayCloverColor(diaryCount, dateReplyStatus);
+                    const isDraftReply =
+                      !isFuture &&
+                      (dateReplyStatus === "HAS_DRAFT" ||
+                        dateReplyStatus === "INVALID_DRAFT");
+                    const cloverColor = isFuture
+                      ? "#D1D5DD"
+                      : getDisplayCloverColor(diaryCount, dateReplyStatus);
                     const showReplyUnreadDot =
-                      dateReplyStatus === "READY_NOT_READ";
+                      !isFuture && dateReplyStatus === "READY_NOT_READ";
 
                     return (
                       <View
@@ -1299,23 +1306,27 @@ export default function Main() {
                             />
                           )}
 
-                          <Text
-                            style={[
-                              fontPreset.semibold,
-                              {
-                                position: "absolute",
-                                width: 32,
-                                textAlign: "center",
-                                color: "#fff",
-                                fontSize: 12,
-                                lineHeight: 14,
-                                includeFontPadding: false,
-                                textAlignVertical: "center",
-                              },
-                            ]}
-                          >
-                            {date.getDate()}
-                          </Text>
+                          {isDraftReply ? (
+                            <DotDotDotIcon width={12} height={3} style={{ position: "absolute" }} />
+                          ) : (
+                            <Text
+                              style={[
+                                fontPreset.semibold,
+                                {
+                                  position: "absolute",
+                                  width: 32,
+                                  textAlign: "center",
+                                  color: "#fff",
+                                  fontSize: 12,
+                                  lineHeight: 14,
+                                  includeFontPadding: false,
+                                  textAlignVertical: "center",
+                                },
+                              ]}
+                            >
+                              {date.getDate()}
+                            </Text>
+                          )}
                         </Pressable>
                       </View>
                     );
@@ -1934,8 +1945,14 @@ export default function Main() {
                   const dateKey = formatDateKey(date);
                   const diaryCount = diaryCountByDate[dateKey] ?? 0;
                   const dateReplyStatus = getDisplayReplyStatusForDate(date, diaryCount);
-                  const showReplyUnreadDot = dateReplyStatus === "READY_NOT_READ";
-                  const cloverColor = getDisplayCloverColor(diaryCount, dateReplyStatus);
+                  const isDraftReply =
+                    !isFuture &&
+                    (dateReplyStatus === "HAS_DRAFT" ||
+                      dateReplyStatus === "INVALID_DRAFT");
+                  const showReplyUnreadDot = !isFuture && dateReplyStatus === "READY_NOT_READ";
+                  const cloverColor = isFuture
+                    ? "#D1D5DD"
+                    : getDisplayCloverColor(diaryCount, dateReplyStatus);
 
                   return (
                     <View
@@ -2005,23 +2022,27 @@ export default function Main() {
                           )}
 
                           {/* 🔥 텍스트 중앙 */}
-                          <Text
-                            style={[
-                              fontPreset.semibold,
-                              {
-                              position: "absolute",
-                              width: 32,
-                              textAlign: "center",
-                              color: "#fff",
-                              fontSize: 12,
-                              lineHeight: 14,
-                              includeFontPadding: false,
-                              textAlignVertical: "center",
-                            },
-                            ]}
-                          >
-                            {date.getDate()}
-                          </Text>
+                          {isDraftReply ? (
+                            <DotDotDotIcon width={12} height={3} style={{ position: "absolute" }} />
+                          ) : (
+                            <Text
+                              style={[
+                                fontPreset.semibold,
+                                {
+                                position: "absolute",
+                                width: 32,
+                                textAlign: "center",
+                                color: "#fff",
+                                fontSize: 12,
+                                lineHeight: 14,
+                                includeFontPadding: false,
+                                textAlignVertical: "center",
+                              },
+                              ]}
+                            >
+                              {date.getDate()}
+                            </Text>
+                          )}
                         </Pressable>
                       )}
                     </View>
