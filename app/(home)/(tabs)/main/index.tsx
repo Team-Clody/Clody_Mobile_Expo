@@ -1199,6 +1199,7 @@ export default function Main() {
                   {weekDays.map((d, index) => {
                     const columnDate = item[index];
                     const isSelectedWeekdayHighlight = isSameDate(columnDate, gratitudeDate);
+                    const isTodayWeekdayHighlight = isCalendarToday(columnDate);
 
                     return (
                       <View
@@ -1210,16 +1211,17 @@ export default function Main() {
                       >
                         <View
                           style={{
-                            minWidth: 28,
+                            width: 28,
                             height: 28,
-                            paddingHorizontal: 6,
                             borderRadius: 999,
                             overflow: "hidden",
                             justifyContent: "center",
                             alignItems: "center",
                             backgroundColor: isSelectedWeekdayHighlight
                               ? "#2B313D"
-                              : "transparent",
+                              : isTodayWeekdayHighlight
+                                ? "#F2F3F6"
+                                : "transparent",
                           }}
                         >
                           <Text
@@ -1888,6 +1890,8 @@ export default function Main() {
             <View style={{ flexDirection: "row", marginBottom: 28 }}>
               {weekDays.map((d, index) => {
                 const isSelectedWeekday = index === selectedWeekdayIndex;
+                const todayWeekdayIndex = (today.getDay() + 6) % 7;
+                const isTodayWeekday = index === todayWeekdayIndex;
                 return (
                   <View
                     key={d}
@@ -1898,13 +1902,17 @@ export default function Main() {
                   >
                     <View
                       style={{
-                        width: 28,
-                        height: 28,
+                        width: !isKo ? 28 : 28,
+                        height: !isKo ? 28 : 28,
                         borderRadius: 14,
                         justifyContent: "center",
                         alignItems: "center",
                         overflow: "hidden",
-                        backgroundColor: isSelectedWeekday ? "#2B313D" : "transparent",
+                        backgroundColor: isSelectedWeekday
+                          ? "#2B313D"
+                          : isTodayWeekday
+                            ? "#F2F3F6"
+                            : "transparent",
                       }}
                     >
                       <Text
