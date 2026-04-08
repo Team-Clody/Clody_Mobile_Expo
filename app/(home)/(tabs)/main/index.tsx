@@ -619,9 +619,23 @@ export default function Main() {
   const cloverCountTextStyle = isKo
     ? [fontPreset.semibold, { fontWeight: "600" as const }]
     : [fontPreset.medium, { fontWeight: "500" as const }];
-  const pastDayBadgeLabel = isCalendarYesterday(gratitudeDate)
-    ? i18n.t("main.gratitude.pastBadgeYesterday")
-    : i18n.t("main.gratitude.pastBadgePast");
+  const todayStart = startOfLocalDay(new Date());
+  const selectedStart = startOfLocalDay(gratitudeDate);
+  const diffDaysFromToday = Math.max(
+    0,
+    Math.floor((todayStart.getTime() - selectedStart.getTime()) / 86400000),
+  );
+  const pastDayBadgeLabel = (() => {
+    if (diffDaysFromToday <= 0) return i18n.t("main.gratitude.todayBadge");
+    if (diffDaysFromToday === 1) return i18n.t("main.gratitude.pastBadgeYesterday");
+    if (diffDaysFromToday >= 365) {
+      const years = Math.floor(diffDaysFromToday / 365);
+      return isKo ? `${years}년 전` : `${years} year${years > 1 ? "s" : ""} ago`;
+    }
+    return isKo
+      ? `${diffDaysFromToday}일 전`
+      : `${diffDaysFromToday} day${diffDaysFromToday > 1 ? "s" : ""} ago`;
+  })();
   const pastCardDateLabel = gratitudeDate.toLocaleDateString(
     isKo ? "ko-KR" : "en-US",
     isKo
