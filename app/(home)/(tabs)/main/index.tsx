@@ -1702,6 +1702,7 @@ export default function Main() {
                       style={{
                         backgroundColor: "#F3F4F6",
                         borderRadius: 8,
+                        marginLeft: !isKo && diffDaysFromToday >= 2 ? -10 : -10,
                         paddingHorizontal: 10,
                         paddingVertical: 10,
                       }}
