@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { AuthContext } from "../../../_layout";
+import { HomeContext } from "../../_layout";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
 import { getDeviceTimeZone } from "@/shared/utils/timezone";
@@ -33,6 +34,7 @@ import NewIcon from "@/assets/icons/ic_new.svg";
 import AdToReplyKoIcon from "@/assets/icons/btn_ad_to_reply_ko.svg";
 import AdToReplyEnIcon from "@/assets/icons/btn_ad_to_reply_en.svg";
 import ReplyUnreadDotIcon from "@/assets/Ellipse2636.svg";
+import DotDotDotIcon from "@/assets/icons/dotdotdot.svg";
 import WheelPicker from "@/components/WheelPicker";
 import { GradientText } from "@/components/GradientText";
 import GroupCharacter from "@/assets/images/Group.svg";
@@ -350,6 +352,7 @@ const getMonthMatrix = (date: Date) => {
 
 export default function Main() {
   const { logout } = useContext(AuthContext);
+  const homeContext = useContext(HomeContext);
   const router = useRouter();
   const [showReward, setShowReward] = useState(false);
   const shouldReopenReward = useStorageStore(
@@ -617,9 +620,23 @@ export default function Main() {
   const cloverCountTextStyle = isKo
     ? [fontPreset.semibold, { fontWeight: "600" as const }]
     : [fontPreset.medium, { fontWeight: "500" as const }];
-  const pastDayBadgeLabel = isCalendarYesterday(gratitudeDate)
-    ? i18n.t("main.gratitude.pastBadgeYesterday")
-    : i18n.t("main.gratitude.pastBadgePast");
+  const todayStart = startOfLocalDay(new Date());
+  const selectedStart = startOfLocalDay(gratitudeDate);
+  const diffDaysFromToday = Math.max(
+    0,
+    Math.floor((todayStart.getTime() - selectedStart.getTime()) / 86400000),
+  );
+  const pastDayBadgeLabel = (() => {
+    if (diffDaysFromToday <= 0) return i18n.t("main.gratitude.todayBadge");
+    if (diffDaysFromToday === 1) return i18n.t("main.gratitude.pastBadgeYesterday");
+    if (diffDaysFromToday >= 365) {
+      const years = Math.floor(diffDaysFromToday / 365);
+      return isKo ? `${years}년 전` : `${years} year${years > 1 ? "s" : ""} ago`;
+    }
+    return isKo
+      ? `${diffDaysFromToday}일 전`
+      : `${diffDaysFromToday} day${diffDaysFromToday > 1 ? "s" : ""} ago`;
+  })();
   const pastCardDateLabel = gratitudeDate.toLocaleDateString(
     isKo ? "ko-KR" : "en-US",
     isKo
@@ -627,8 +644,10 @@ export default function Main() {
       : { weekday: "short", month: "short", day: "numeric" },
   );
   const cloversPerLevel = 2;
-  const currentLevel = Math.floor(totalCloverCount / cloversPerLevel) + 1;
-  const currentLevelProgress = totalCloverCount % cloversPerLevel;
+  const profileCloverCount = homeContext?.form?.cloverCount ?? 0;
+  const effectiveTotalCloverCount = Math.max(totalCloverCount, profileCloverCount);
+  const currentLevel = Math.floor(effectiveTotalCloverCount / cloversPerLevel) + 1;
+  const currentLevelProgress = effectiveTotalCloverCount % cloversPerLevel;
   const selectedDateKey = formatDateKey(gratitudeDate);
   const selectedDiaryCount = diaryCountByDate[selectedDateKey] ?? 0;
   const getDisplayReplyStatusForDate = (date: Date, diaryCount: number): ReplyStatus => {
@@ -1133,7 +1152,13 @@ export default function Main() {
                 />
               </Pressable>
             </View>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                transform: [{ translateY: -1 }],
+              }}
+            >
               <Pressable onPress={goToToday}>
                 <Text style={headerActionTextStyle}>
                   {i18n.t("main.header.today")}
@@ -1174,6 +1199,7 @@ export default function Main() {
                   {weekDays.map((d, index) => {
                     const columnDate = item[index];
                     const isSelectedWeekdayHighlight = isSameDate(columnDate, gratitudeDate);
+                    const isTodayWeekdayHighlight = isCalendarToday(columnDate);
 
                     return (
                       <View
@@ -1185,16 +1211,17 @@ export default function Main() {
                       >
                         <View
                           style={{
-                            minWidth: 28,
+                            width: 28,
                             height: 28,
-                            paddingHorizontal: 6,
                             borderRadius: 999,
                             overflow: "hidden",
                             justifyContent: "center",
                             alignItems: "center",
                             backgroundColor: isSelectedWeekdayHighlight
                               ? "#2B313D"
-                              : "transparent",
+                              : isTodayWeekdayHighlight
+                                ? "#F2F3F6"
+                                : "transparent",
                           }}
                         >
                           <Text
@@ -1234,9 +1261,15 @@ export default function Main() {
                     const diaryCount = diaryCountByDate[dateKey] ?? 0;
                     const isFuture = isFutureDate(date);
                     const dateReplyStatus = getDisplayReplyStatusForDate(date, diaryCount);
-                    const cloverColor = getDisplayCloverColor(diaryCount, dateReplyStatus);
+                    const isDraftReply =
+                      !isFuture &&
+                      (dateReplyStatus === "HAS_DRAFT" ||
+                        dateReplyStatus === "INVALID_DRAFT");
+                    const cloverColor = isFuture
+                      ? "#D1D5DD"
+                      : getDisplayCloverColor(diaryCount, dateReplyStatus);
                     const showReplyUnreadDot =
-                      dateReplyStatus === "READY_NOT_READ";
+                      !isFuture && dateReplyStatus === "READY_NOT_READ";
 
                     return (
                       <View
@@ -1275,23 +1308,27 @@ export default function Main() {
                             />
                           )}
 
-                          <Text
-                            style={[
-                              fontPreset.semibold,
-                              {
-                                position: "absolute",
-                                width: 32,
-                                textAlign: "center",
-                                color: "#fff",
-                                fontSize: 12,
-                                lineHeight: 14,
-                                includeFontPadding: false,
-                                textAlignVertical: "center",
-                              },
-                            ]}
-                          >
-                            {date.getDate()}
-                          </Text>
+                          {isDraftReply ? (
+                            <DotDotDotIcon width={12} height={3} style={{ position: "absolute" }} />
+                          ) : (
+                            <Text
+                              style={[
+                                fontPreset.semibold,
+                                {
+                                  position: "absolute",
+                                  width: 32,
+                                  textAlign: "center",
+                                  color: "#fff",
+                                  fontSize: 12,
+                                  lineHeight: 14,
+                                  includeFontPadding: false,
+                                  textAlignVertical: "center",
+                                },
+                              ]}
+                            >
+                              {date.getDate()}
+                            </Text>
+                          )}
                         </Pressable>
                       </View>
                     );
@@ -1359,7 +1396,7 @@ export default function Main() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  backgroundColor: "rgba(241, 245, 249, 0.72)",
+                  backgroundColor: "rgba(241, 245, 249, 0.46)",
                   borderRadius: 999,
                   paddingVertical: 5,
                   paddingHorizontal: 7,
@@ -1391,7 +1428,7 @@ export default function Main() {
                     },
                   ]}
                 >
-                  {currentLevelProgress} / {cloversPerLevel}{" "}
+                  {effectiveTotalCloverCount} / {cloversPerLevel}{" "}
                   <Text
                     style={{
                       fontSize: 14,
@@ -1667,8 +1704,9 @@ export default function Main() {
                       style={{
                         backgroundColor: "#F3F4F6",
                         borderRadius: 8,
-                        paddingHorizontal: 8,
-                        paddingVertical: 6,
+                        marginLeft: !isKo && diffDaysFromToday >= 2 ? -10 : -10,
+                        paddingHorizontal: 10,
+                        paddingVertical: 10,
                       }}
                     >
                       <Text
@@ -1852,6 +1890,8 @@ export default function Main() {
             <View style={{ flexDirection: "row", marginBottom: 28 }}>
               {weekDays.map((d, index) => {
                 const isSelectedWeekday = index === selectedWeekdayIndex;
+                const todayWeekdayIndex = (today.getDay() + 6) % 7;
+                const isTodayWeekday = index === todayWeekdayIndex;
                 return (
                   <View
                     key={d}
@@ -1862,13 +1902,17 @@ export default function Main() {
                   >
                     <View
                       style={{
-                        width: 28,
-                        height: 28,
+                        width: !isKo ? 28 : 28,
+                        height: !isKo ? 28 : 28,
                         borderRadius: 14,
                         justifyContent: "center",
                         alignItems: "center",
                         overflow: "hidden",
-                        backgroundColor: isSelectedWeekday ? "#2B313D" : "transparent",
+                        backgroundColor: isSelectedWeekday
+                          ? "#2B313D"
+                          : isTodayWeekday
+                            ? "#F2F3F6"
+                            : "transparent",
                       }}
                     >
                       <Text
@@ -1910,8 +1954,14 @@ export default function Main() {
                   const dateKey = formatDateKey(date);
                   const diaryCount = diaryCountByDate[dateKey] ?? 0;
                   const dateReplyStatus = getDisplayReplyStatusForDate(date, diaryCount);
-                  const showReplyUnreadDot = dateReplyStatus === "READY_NOT_READ";
-                  const cloverColor = getDisplayCloverColor(diaryCount, dateReplyStatus);
+                  const isDraftReply =
+                    !isFuture &&
+                    (dateReplyStatus === "HAS_DRAFT" ||
+                      dateReplyStatus === "INVALID_DRAFT");
+                  const showReplyUnreadDot = !isFuture && dateReplyStatus === "READY_NOT_READ";
+                  const cloverColor = isFuture
+                    ? "#D1D5DD"
+                    : getDisplayCloverColor(diaryCount, dateReplyStatus);
 
                   return (
                     <View
@@ -1981,23 +2031,27 @@ export default function Main() {
                           )}
 
                           {/* 🔥 텍스트 중앙 */}
-                          <Text
-                            style={[
-                              fontPreset.semibold,
-                              {
-                              position: "absolute",
-                              width: 32,
-                              textAlign: "center",
-                              color: "#fff",
-                              fontSize: 12,
-                              lineHeight: 14,
-                              includeFontPadding: false,
-                              textAlignVertical: "center",
-                            },
-                            ]}
-                          >
-                            {date.getDate()}
-                          </Text>
+                          {isDraftReply ? (
+                            <DotDotDotIcon width={12} height={3} style={{ position: "absolute" }} />
+                          ) : (
+                            <Text
+                              style={[
+                                fontPreset.semibold,
+                                {
+                                position: "absolute",
+                                width: 32,
+                                textAlign: "center",
+                                color: "#fff",
+                                fontSize: 12,
+                                lineHeight: 14,
+                                includeFontPadding: false,
+                                textAlignVertical: "center",
+                              },
+                              ]}
+                            >
+                              {date.getDate()}
+                            </Text>
+                          )}
                         </Pressable>
                       )}
                     </View>
