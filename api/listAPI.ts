@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { logCalendarDiaryQuery } from '@/shared/utils/debugCalendarDiaries';
 import { GetJournalPromptResponseDTO } from './dto/list/response/getJournalPromptResponseDTO';
 import { GetCalendarListResponseDTO } from './dto/list/response/getCalendarListResponseDTO';
 
@@ -30,6 +31,8 @@ export const ListAPI = {
       `${BASE_URL}/api/v1/calendar/list`,
       { params: { year, month }, headers },
     );
-    return res.data.data;
+    const data = res.data.data;
+    logCalendarDiaryQuery('ListAPI.getCalendarList', year, month, data);
+    return data;
   },
 };
