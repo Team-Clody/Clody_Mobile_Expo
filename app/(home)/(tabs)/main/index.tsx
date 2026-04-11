@@ -20,8 +20,11 @@ import { AuthContext } from "../../../_layout";
 import { HomeContext } from "../../_layout";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
+import { logCalendarDiaryQuery } from "@/shared/utils/debugCalendarDiaries";
 import { getDeviceTimeZone } from "@/shared/utils/timezone";
 import authService from "@/services/authService";
+import { DiaryAPI } from "@/api/diaryAPI";
+import { diaryCreatedToReplyReadyMs } from "@/shared/utils/diaryReplyTimer";
 import i18n from "@/app/i18n/i18n";
 import CloverIcon from "@/assets/icons/ic_clover.svg";
 import DownIcon from "@/assets/icons/ic_down.svg";
@@ -112,9 +115,6 @@ const isCalendarToday = (d: Date) => {
 const startOfLocalDay = (d: Date) =>
   new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
-const isCalendarYesterday = (d: Date) =>
-  isSameDate(d, addDays(new Date(), -1));
-
 const isFutureDate = (d: Date) => startOfLocalDay(d) > startOfLocalDay(new Date());
 
 /** 감사 카드 슬롯 고정 높이 — 있을 때/없을 때 동일하게 유지해 캐릭터·레벨 위치 고정 */
@@ -136,6 +136,7 @@ type CalendarDiary = {
   date: string;
   diary?: Array<{ content: string }>;
   isDeleted?: boolean;
+  replyAvailableAt?: string;
 };
 
 type ReplyStatus =
@@ -152,67 +153,8 @@ const formatDateKey = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const REPLY_READY_WAIT_MS = 12 * 60 * 60 * 1000;
-// QA/디자인 확인용 임시 오버라이드: null이면 목 랜덤, 값 지정하면 강제 상태
+// QA/디자인 확인용: null이면 API 값 사용, 값 지정하면 해당 날짜만 강제
 const FORCE_REPLY_STATUS_PREVIEW: ReplyStatus | null = null;
-
-const getSeededNumber = (seedText: string) => {
-  let hash = 0;
-  for (let i = 0; i < seedText.length; i++) {
-    hash = (hash * 31 + seedText.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash);
-};
-
-const mockReadyNotReadMonthCache = new Map<string, Set<number>>();
-
-const getMockReadyNotReadDaysForMonth = (
-  year: number,
-  month: number,
-  today: Date,
-) => {
-  const todayKey = formatDateKey(today);
-  const cacheKey = `${year}-${month}|${todayKey}`;
-  const cached = mockReadyNotReadMonthCache.get(cacheKey);
-  if (cached) return cached;
-
-  const todayStart = startOfLocalDay(today);
-  const yesterday = addDays(today, -1);
-  const isYesterdayInTargetMonth =
-    yesterday.getFullYear() === year && yesterday.getMonth() + 1 === month;
-
-  // 월 전체 기준 3~4개 목표(어제 고정 READY_NOT_READ가 있으면 랜덤 할당 수 1개 차감)
-  const monthlyTargetBase =
-    3 + (getSeededNumber(`${year}-${month}|readyNotReadCount`) % 2); // 3 or 4
-  const randomTarget = Math.max(0, monthlyTargetBase - (isYesterdayInTargetMonth ? 1 : 0));
-
-  const rankedCandidates: Array<{ day: number; rank: number }> = [];
-  const daysInMonth = getDaysInMonth(year, month);
-  for (let day = 1; day <= daysInMonth; day++) {
-    const d = new Date(year, month - 1, day);
-    const dStart = startOfLocalDay(d);
-    if (dStart > todayStart) continue;
-    if (isCalendarToday(d) || isCalendarYesterday(d)) continue;
-    const rank = getSeededNumber(`${year}-${month}-${day}|readyNotReadRank`);
-    rankedCandidates.push({ day, rank });
-  }
-
-  rankedCandidates.sort((a, b) => a.rank - b.rank);
-  const picked = new Set<number>(
-    rankedCandidates.slice(0, randomTarget).map((candidate) => candidate.day),
-  );
-  mockReadyNotReadMonthCache.set(cacheKey, picked);
-  return picked;
-};
-
-const isMockReadyNotReadDate = (date: Date) => {
-  const today = new Date();
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const pickedDays = getMockReadyNotReadDaysForMonth(year, month, today);
-  return pickedDays.has(day);
-};
 
 const formatRemainingTime = (ms: number) => {
   const totalSec = Math.max(0, Math.floor(ms / 1000));
@@ -220,30 +162,6 @@ const formatRemainingTime = (ms: number) => {
   const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, "0");
   const s = String(totalSec % 60).padStart(2, "0");
   return `${h}:${m}:${s}`;
-};
-
-const getMockReplyStatus = (date: Date, hasDiary: boolean): ReplyStatus => {
-  // 요청 규칙: 오늘은 무조건 광고(UNREADY), 어제는 무조건 미열람 답장
-  if (isCalendarToday(date)) return "UNREADY";
-  if (isCalendarYesterday(date)) return "READY_NOT_READ";
-
-  if (!hasDiary) {
-    return getSeededNumber(`${formatDateKey(date)}|draft`) % 2 === 0
-      ? "HAS_DRAFT"
-      : "INVALID_DRAFT";
-  }
-
-  // 월별 READY_NOT_READ는 대략 3~4개(오늘/어제 고정치 포함)만 보이도록 제한
-  if (isMockReadyNotReadDate(date)) return "READY_NOT_READ";
-  return "READY_READ";
-};
-
-const getMockUnreadyRemainingMs = (date: Date) => {
-  const min = 10 * 60 * 1000;
-  const max = REPLY_READY_WAIT_MS - 60 * 1000;
-  const span = Math.max(1, max - min);
-  const seeded = getSeededNumber(`${formatDateKey(date)}|unreadyRemaining`) % span;
-  return min + seeded;
 };
 
 const getDisplayCloverColor = (diaryCount: number, replyStatus: ReplyStatus) => {
@@ -263,7 +181,7 @@ const getDaysInMonth = (year: number, month: number) => {
   return new Date(year, month, 0).getDate();
 };
 
-/** 오늘(로컬)보다 이후 날짜는 일기가 있을 수 없음 — 표시·더미 모두 0으로 통일 */
+/** 오늘(로컬)보다 이후 날짜는 일기가 있을 수 없음 — API 값도 0으로 통일 */
 const zeroDiaryCountsAfterToday = (map: Record<string, number>) => {
   const todayStart = startOfLocalDay(new Date());
   const next = { ...map };
@@ -282,48 +200,29 @@ const zeroDiaryCountsAfterToday = (map: Record<string, number>) => {
   return next;
 };
 
-const buildDiaryCountMap = (
-  diaries: CalendarDiary[],
-  year: number,
-  month: number,
-) => {
+const buildDiaryCountMap = (diaries: CalendarDiary[]) => {
   const diaryCountMap = diaries.reduce<Record<string, number>>((acc, diaryItem) => {
     acc[diaryItem.date] = diaryItem.diaryCount ?? 0;
     return acc;
   }, {});
-
-  const hasNonZeroDiaryCount = Object.values(diaryCountMap).some((count) => count > 0);
-  if (hasNonZeroDiaryCount) {
-    return zeroDiaryCountsAfterToday(diaryCountMap);
-  }
-
-  // 테스트용: 응답이 비어있거나 모두 0이면 0개 날짜가 반드시 포함되게 생성
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const zeroDaysTarget = Math.max(5, Math.floor(daysInMonth * 0.25));
-
-  const zeroDaySet = new Set<number>();
-  while (zeroDaySet.size < zeroDaysTarget) {
-    zeroDaySet.add(Math.floor(Math.random() * daysInMonth) + 1);
-  }
-
-  const todayStart = startOfLocalDay(new Date());
-
-  for (let day = 1; day <= daysInMonth; day++) {
-    const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const cellDay = startOfLocalDay(new Date(year, month - 1, day));
-    if (cellDay > todayStart) {
-      diaryCountMap[dateKey] = 0;
-      continue;
-    }
-    if (zeroDaySet.has(day)) {
-      diaryCountMap[dateKey] = 0;
-      continue;
-    }
-
-    diaryCountMap[dateKey] = Math.floor(Math.random() * 5) + 1;
-  }
-
   return zeroDiaryCountsAfterToday(diaryCountMap);
+};
+
+const buildReplyMetaMaps = (diaries: CalendarDiary[]) => {
+  const replyStatusByDate: Record<string, ReplyStatus> = {};
+  const replyReadyAtByDate: Record<string, number> = {};
+  for (const diaryItem of diaries) {
+    if (diaryItem.replyStatus) {
+      replyStatusByDate[diaryItem.date] = diaryItem.replyStatus;
+    }
+    if (diaryItem.replyAvailableAt) {
+      const t = Date.parse(diaryItem.replyAvailableAt);
+      if (!Number.isNaN(t)) {
+        replyReadyAtByDate[diaryItem.date] = t;
+      }
+    }
+  }
+  return { replyStatusByDate, replyReadyAtByDate };
 };
 
 // 🔥 Monthly Matrix 생성
@@ -384,6 +283,12 @@ export default function Main() {
   const [diaryCountByDate, setDiaryCountByDate] = useState<
     Record<string, number>
   >({});
+  const [replyStatusByDate, setReplyStatusByDate] = useState<
+    Record<string, ReplyStatus>
+  >({});
+  const [replyReadyAtByDate, setReplyReadyAtByDate] = useState<
+    Record<string, number>
+  >({});
   const [totalCloverCount, setTotalCloverCount] = useState(0);
   const [journalPromptText, setJournalPromptText] = useState("");
   const [nowTickMs, setNowTickMs] = useState(() => Date.now());
@@ -419,14 +324,13 @@ export default function Main() {
           },
         });
       };
-      const mergeMonthDiaryCount = (
-        diaries: CalendarDiary[],
-        year: number,
-        month: number,
-        totalClover: number,
-      ) => {
-        const diaryCountMap = buildDiaryCountMap(diaries, year, month);
+      const mergeMonthDiaryCount = (diaries: CalendarDiary[], totalClover: number) => {
+        const diaryCountMap = buildDiaryCountMap(diaries);
+        const { replyStatusByDate: rs, replyReadyAtByDate: rr } =
+          buildReplyMetaMaps(diaries);
         setDiaryCountByDate((prev) => ({ ...prev, ...diaryCountMap }));
+        setReplyStatusByDate((prev) => ({ ...prev, ...rs }));
+        setReplyReadyAtByDate((prev) => ({ ...prev, ...rr }));
         setTotalCloverCount(totalClover);
       };
       const fetchMonth = async (
@@ -445,9 +349,10 @@ export default function Main() {
         fetchingMonthKeysRef.current.add(monthKey);
         try {
           const resp = await requestCalendarList(accessToken, year, month);
+          logCalendarDiaryQuery("Main.fetchMonth", year, month, resp.data?.data);
           const diaries = (resp.data?.data?.diaries ?? []) as CalendarDiary[];
           const totalClover = Number(resp.data?.data?.totalCloverCount ?? 0);
-          mergeMonthDiaryCount(diaries, year, month, totalClover);
+          mergeMonthDiaryCount(diaries, totalClover);
           fetchedMonthKeysRef.current.add(monthKey);
         } finally {
           fetchingMonthKeysRef.current.delete(monthKey);
@@ -654,18 +559,28 @@ export default function Main() {
     if (FORCE_REPLY_STATUS_PREVIEW && isSameDate(date, gratitudeDate)) {
       return FORCE_REPLY_STATUS_PREVIEW;
     }
-    return getMockReplyStatus(date, diaryCount > 0);
+    const key = formatDateKey(date);
+    const fromApi = replyStatusByDate[key];
+    if (fromApi) {
+      return fromApi;
+    }
+    return diaryCount > 0 ? "UNREADY" : "READY_READ";
   };
   const selectedReplyStatus = useMemo(() => {
     return getDisplayReplyStatusForDate(gratitudeDate, selectedDiaryCount);
-  }, [selectedDateKey, selectedDiaryCount, gratitudeDate]);
+  }, [selectedDateKey, selectedDiaryCount, gratitudeDate, replyStatusByDate]);
+  const replyReadyDeadlineMs = replyReadyAtByDate[selectedDateKey];
   const selectedReplyReadyAtMs = useMemo(() => {
     if (selectedReplyStatus !== "UNREADY") return null;
-    return Date.now() + getMockUnreadyRemainingMs(gratitudeDate);
-  }, [selectedDateKey, selectedReplyStatus, gratitudeDate]);
-  const replyRemainingMs = selectedReplyReadyAtMs
-    ? Math.max(0, selectedReplyReadyAtMs - nowTickMs)
-    : 0;
+    if (replyReadyDeadlineMs != null && replyReadyDeadlineMs > 0) {
+      return replyReadyDeadlineMs;
+    }
+    return null;
+  }, [selectedDateKey, selectedReplyStatus, replyReadyDeadlineMs]);
+  const replyRemainingMs =
+    selectedReplyReadyAtMs != null
+      ? Math.max(0, selectedReplyReadyAtMs - nowTickMs)
+      : 0;
   const isUnready = selectedReplyStatus === "UNREADY";
   const isReadyNotRead = selectedReplyStatus === "READY_NOT_READ";
   const isReadyRead = selectedReplyStatus === "READY_READ";
@@ -676,7 +591,76 @@ export default function Main() {
   const timerText = isKo
     ? `답장 ${formatRemainingTime(replyRemainingMs)} 남음`
     : `Reply available in ${formatRemainingTime(replyRemainingMs)}`;
+  const unreadyNoScheduleText = isKo ? "답장 준비 중" : "Reply getting ready";
   const AdToReplyIcon = isKo ? AdToReplyKoIcon : AdToReplyEnIcon;
+
+  useEffect(() => {
+    if (selectedReplyStatus !== "UNREADY" || selectedDiaryCount <= 0) {
+      return;
+    }
+    if (replyReadyDeadlineMs != null && replyReadyDeadlineMs > 0) {
+      return;
+    }
+
+    let cancelled = false;
+    const dateKey = selectedDateKey;
+    const ymd = selectedDateKey.split("-").map(Number);
+    const year = ymd[0];
+    const month = ymd[1];
+    const date = ymd[2];
+    if (!year || !month || !date) {
+      return;
+    }
+
+    const tryFetch = async (token: string) => {
+      const data = await DiaryAPI.getDiaryCreatedTime(year, month, date);
+      if (cancelled) return;
+      const readyMs = diaryCreatedToReplyReadyMs(data);
+      if (readyMs == null) return;
+      setReplyReadyAtByDate((prev) => {
+        if (prev[dateKey] != null && prev[dateKey]! > 0) {
+          return prev;
+        }
+        return { ...prev, [dateKey]: readyMs };
+      });
+    };
+
+    void (async () => {
+      try {
+        const accessToken = await SecureStore.getItemAsync("accessToken");
+        if (!accessToken || cancelled) return;
+        try {
+          await tryFetch(accessToken);
+        } catch (error) {
+          if (axios.isAxiosError(error) && error.response?.status === 401) {
+            try {
+              const refreshToken = await SecureStore.getItemAsync("refreshToken");
+              const reissued =
+                await authService.reissueWithRefreshToken(refreshToken);
+              if (reissued && !cancelled) {
+                const newToken = await SecureStore.getItemAsync("accessToken");
+                if (newToken) {
+                  try {
+                    await tryFetch(newToken);
+                  } catch {
+                    /* 404 등 */
+                  }
+                }
+              }
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+      } catch {
+        /* no token */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedReplyStatus, selectedDiaryCount, selectedDateKey, replyReadyDeadlineMs]);
 
   const todayYmd = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
   const weeks = useMemo(() => {
@@ -687,6 +671,16 @@ export default function Main() {
       return Array.from({ length: 7 }, (_, j) => addDays(start, j));
     });
   }, [todayYmd]);
+
+  /** weeks 참조는 자정이 지나기 전까지 같아서, 일기/답장 상태가 바뀌어도 FlatList가 셀을 다시 안 그릴 수 있음 → extraData로 갱신 */
+  const weekStripExtraData = useMemo(
+    () => ({
+      diaryCountByDate,
+      replyStatusByDate,
+      gratitudeKey: formatDateKey(gratitudeDate),
+    }),
+    [diaryCountByDate, replyStatusByDate, gratitudeDate],
+  );
 
   /** 주간 스트립을 `picked`가 포함된 주로 맞춤 (`scrollToOffset`이 모달 직후에도 더 안정적) */
   const scrollWeekStripToDate = (picked: Date, animated = true) => {
@@ -1179,6 +1173,7 @@ export default function Main() {
         <FlatList
           ref={flatListRef}
           data={weeks}
+          extraData={weekStripExtraData}
           horizontal
           pagingEnabled
           snapToInterval={width}
@@ -1622,7 +1617,7 @@ export default function Main() {
                       ]}
                       numberOfLines={1}
                     >
-                      {timerText}
+                      {selectedReplyReadyAtMs != null ? timerText : unreadyNoScheduleText}
                     </Text>
                   ) : (
                     <Pressable
@@ -1749,7 +1744,7 @@ export default function Main() {
                       ]}
                       numberOfLines={1}
                     >
-                      {timerText}
+                      {selectedReplyReadyAtMs != null ? timerText : unreadyNoScheduleText}
                     </Text>
                   ) : (
                     <Pressable

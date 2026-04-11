@@ -15,6 +15,8 @@ export interface DiaryItem {
   date: string;
   diary: DiaryContent[];
   isDeleted: boolean;
+  /** 답장 열람 가능 시각(ISO 8601). UNREADY 카운트다운에 사용 */
+  replyAvailableAt?: string;
 }
 
 export interface GetCalendarListResponseDTO {

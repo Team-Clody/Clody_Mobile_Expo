@@ -12,58 +12,20 @@ import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const MOCK_DIARIES: DiaryItem[] = [
-  {
-    diaryCount: 3,
-    replyStatus: "READY_READ",
-    date: "2026-04-01",
-    diary: [
-      {
-        content:
-          "친구들이 나랑 놀아줘서 감사해 친구들이 나랑 클로디를 만들 수 있어서 감사해",
-      },
-      { content: "클로디를 만들 수 있어서 감사해" },
-      { content: "건강한 식사를 할 수 있어 감사해" },
-    ],
-    isDeleted: false,
-  },
-  {
-    diaryCount: 3,
-    replyStatus: "READY_NOT_READ",
-    date: "2026-04-04",
-    diary: [
-      {
-        content:
-          "친구들이 나랑 놀아줘서 감사해 친구들이 나랑 클로디를 만들 수 있어서 감사해",
-      },
-      { content: "클로디를 만들 수 있어서 감사해" },
-      { content: "건강한 식사를 할 수 있어 감사해" },
-    ],
-    isDeleted: false,
-  },
-  {
-    diaryCount: 1,
-    replyStatus: "UNREADY",
-    date: "2026-04-05",
-    diary: [{ content: "좋은 날씨에 감사했다" }],
-    isDeleted: false,
-  },
-];
-
 export default function ListScreen() {
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
-  const [diaries, setDiaries] = useState<DiaryItem[]>(MOCK_DIARIES);
+  const [diaries, setDiaries] = useState<DiaryItem[]>([]);
   const [prompt, setPrompt] = useState("");
 
   const fetchCalendarList = async (year: number, month: number) => {
     try {
       const data = await ListAPI.getCalendarList(year, month);
-      setDiaries(data.diaries?.length ? data.diaries : MOCK_DIARIES);
+      setDiaries(data.diaries ?? []);
     } catch {
-      setDiaries(MOCK_DIARIES);
+      setDiaries([]);
     }
   };
 
