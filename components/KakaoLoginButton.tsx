@@ -44,11 +44,13 @@ const styles = StyleSheet.create({
   },
   text: {
     color: "#000",
-    fontSize: 17,
-    fontWeight: "600",
+    fontSize: 15,
+    lineHeight: 23,
+    letterSpacing: -0.05,
     fontFamily: "PretendardSemiBold",
+    textAlign: "center",
   },
   disabled: {
-    opacity: 0, // 흐리게
+    opacity: 0.55,
   },
 });

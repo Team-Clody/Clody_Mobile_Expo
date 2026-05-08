@@ -4,31 +4,62 @@ import {
   StyleSheet,
   TouchableOpacity,
   Pressable,
+  Modal,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { HomeContext } from "./_layout";
-import { AuthContext } from "../_layout";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Modal } from "react-native";
-import i18n from "../i18n/i18n";
+
 import BottomToast from "@/components/BottomToast";
+import { AuthAPI } from "@/api/authAPI";
+import i18n from "@/app/i18n/i18n";
+import { useApp } from "@/lib/store";
+import { tokenStorage } from "@/shared/storage/tokenStorage";
+
 export default function Profile() {
   const context = useContext(HomeContext);
-  const { logout, revoke } = useContext(AuthContext);
+  const { setIsLoggedIn } = useApp();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const params = useLocalSearchParams();
+  const router = useRouter();
 
   useEffect(() => {
-    if (params.toast) {
-      setToastMessage(params.toast as string);
+    const toast = params.toast;
+    if (typeof toast === "string" && toast.length > 0) {
+      setToastMessage(toast);
       setToastVisible(true);
     }
-  }, []);
-  const router = useRouter();
+  }, [params.toast]);
+
+  const handleLogout = useCallback(async () => {
+    setShowLogoutModal(false);
+    try {
+      await tokenStorage.clearTokens();
+      setIsLoggedIn(false);
+      router.replace("/introduce");
+    } catch (e) {
+      console.error(e);
+      Alert.alert("", "로그아웃 처리 중 오류가 났어요. 다시 시도해 주세요.");
+    }
+  }, [router, setIsLoggedIn]);
+
+  const handleRevoke = useCallback(async () => {
+    setShowWithdrawModal(false);
+    try {
+      await AuthAPI.deleteUser();
+      await tokenStorage.clearTokens();
+      setIsLoggedIn(false);
+      router.replace("/introduce");
+    } catch (e) {
+      console.error(e);
+      Alert.alert("", "회원탈퇴 처리에 실패했어요. 다시 시도해 주세요.");
+    }
+  }, [router, setIsLoggedIn]);
 
   if (!context) return null;
 
@@ -102,8 +133,7 @@ export default function Profile() {
               <TouchableOpacity
                 style={styles.logoutBtn}
                 onPress={() => {
-                  setShowLogoutModal(false);
-                  logout();
+                  void handleLogout();
                 }}
               >
                 <Text style={styles.logoutText}>{i18n.t("logout")}</Text>
@@ -132,8 +162,7 @@ export default function Profile() {
               <TouchableOpacity
                 style={styles.withdrawBtn}
                 onPress={() => {
-                  setShowWithdrawModal(false);
-                  revoke();
+                  void handleRevoke();
                 }}
               >
                 <Text style={styles.withdrawText}>

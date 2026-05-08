@@ -155,7 +155,7 @@ export default function StorageScreen() {
     if (!canSave || selectedInventoryId == null) return;
     try {
       await SkinAPI.equipSkin(selectedInventoryId);
-      router.replace("/(home)/(tabs)/main");
+      router.replace("/(home)/(tabs)/(main)");
     } catch (e) {
       console.log("스킨 장착 실패", e);
     }

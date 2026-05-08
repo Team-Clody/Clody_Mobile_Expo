@@ -4,6 +4,7 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 import {
   GoogleSignin,
@@ -25,6 +26,22 @@ function convertBirth(raw: string) {
 
   return `${fullYear}-${mm}-${dd}`;
 }
+
+let googleConfigured = false;
+
+const ensureGoogleSigninConfigured = () => {
+  if (googleConfigured) return;
+
+  const extra = Constants.expoConfig?.extra as
+    | { googleIosClientId?: string }
+    | undefined;
+
+  GoogleSignin.configure({
+    iosClientId: extra?.googleIosClientId,
+  });
+
+  googleConfigured = true;
+};
 
 const AppleLogin = async () => {
   const { accessToken, refreshToken } = await onAppleLogin();
@@ -67,6 +84,7 @@ const kakaoLogin = async () => {
 };
 const googleLogin = async () => {
   try {
+    ensureGoogleSigninConfigured();
     const userInfo = await GoogleSignin.signIn();
     console.log(userInfo);
     const { idToken } = userInfo.data;

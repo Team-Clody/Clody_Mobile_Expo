@@ -16,7 +16,6 @@ import {
   ScrollView,
 } from "react-native";
 import { BlurView } from "expo-blur";
-import { AuthContext } from "../../../_layout";
 import { HomeContext } from "../../_layout";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
@@ -44,6 +43,7 @@ import GroupCharacter from "@/assets/images/Group.svg";
 import CloverRewardBottomSheet from "@/components/CloverRewardBottomSheet";
 import { useStorageStore } from "@/store/useStorageStore";
 import { useFocusEffect } from "expo-router";
+import { useApp } from "@/lib/store";
 
 const bgDefaultPng = require("../../../../assets/images/bg_default.png");
 const { width } = Dimensions.get("window");
@@ -250,9 +250,17 @@ const getMonthMatrix = (date: Date) => {
 
 
 export default function Main() {
-  const { logout } = useContext(AuthContext);
   const homeContext = useContext(HomeContext);
   const router = useRouter();
+  const { isLoggedIn, authReady } = useApp();
+
+  useEffect(() => {
+    if (!authReady) return;
+    if (!isLoggedIn) {
+      router.replace("/introduce");
+    }
+  }, [authReady, isLoggedIn, router]);
+
   const [showReward, setShowReward] = useState(false);
   const shouldReopenReward = useStorageStore(
     (s: { shouldReopenReward: boolean }) => s.shouldReopenReward,
@@ -1096,6 +1104,9 @@ export default function Main() {
     </>
   );
 
+  if (!authReady || !isLoggedIn) {
+    return null;
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F8F9FC" }}>
@@ -1376,15 +1387,23 @@ export default function Main() {
               width: "100%",
               minHeight: 0,
             }}
+            pointerEvents="box-none"
           >
-            <View style={{ flex: 1, minHeight: 0 }} />
+            <View style={{ flex: 1, minHeight: 0 }} pointerEvents="none" />
             <View
               style={{
                 alignItems: "center",
                 marginTop: Platform.OS === "ios" ? 70 : 123,
+                zIndex: 2,
+                elevation: Platform.OS === "android" ? 6 : 0,
               }}
             >
-              <GroupCharacter width={128} height={183} style={{ marginBottom: 6 }} />
+              <GroupCharacter
+                width={128}
+                height={183}
+                style={{ marginBottom: 6 }}
+                pointerEvents="none"
+              />
               <Pressable
                 onPress={() => setShowReward(true)}
                 hitSlop={16}
@@ -1445,7 +1464,7 @@ export default function Main() {
                 />
               </Pressable>
             </View>
-            <View style={{ flex: 1, minHeight: 0 }} />
+            <View style={{ flex: 1, minHeight: 0 }} pointerEvents="none" />
           </View>
         </View>
 
