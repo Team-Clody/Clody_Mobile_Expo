@@ -118,10 +118,9 @@ const startOfLocalDay = (d: Date) =>
 const isFutureDate = (d: Date) => startOfLocalDay(d) > startOfLocalDay(new Date());
 
 /** 감사 카드 슬롯 고정 높이 — 있을 때/없을 때 동일하게 유지해 캐릭터·레벨 위치 고정 */
-const GRATITUDE_SLOT_MARGIN_TOP = Platform.OS === "ios" ? 92 : 40;
+const GRATITUDE_SLOT_MARGIN_TOP = 40;
 const GRATITUDE_SLOT_HEIGHT = 326;
-/** 슬롯 안에서 카드가 더 아래로 오도록 (iOS 여유 더 큼) */
-const GRATITUDE_SCROLL_PADDING_TOP = Platform.OS === "ios" ? 128 : 92;
+const GRATITUDE_SCROLL_PADDING_TOP = 92;
 /** 탭 바 상단과 감사 카드 슬롯 사이 간격(씬은 이미 탭 위 영역이므로 insets.bottom 미가산) */
 const GRATITUDE_ABOVE_TAB_BAR = 12;
 
@@ -1124,7 +1123,7 @@ export default function Main() {
           ],
         }}
       >
-        <View style={{ paddingTop: 60, paddingHorizontal: 20 }}>
+        <View style={{ paddingTop: 8, paddingHorizontal: 20 }}>
           <View
             style={{
               flexDirection: "row",
@@ -1371,7 +1370,7 @@ export default function Main() {
               width,
               transform: [
                 {
-                  translateY: Platform.OS === "ios" ? -60 : -14,
+                  translateY: -14,
                 },
               ],
             }}
