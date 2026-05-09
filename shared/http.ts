@@ -8,7 +8,7 @@ import { AuthAPI } from '@/api/authAPI';
 import { getDeviceTimeZone } from '@/shared/utils/timezone';
 import { getDeviceLocale } from '@/shared/utils/locale';
 
-const BASE_URL = 'https://test.clodycorp.com';
+export const BASE_URL = 'https://test.clodycorp.com';
 
 export interface ApiResponse<T> {
   status: number;

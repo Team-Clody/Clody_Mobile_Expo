@@ -28,7 +28,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="(main)/index"
+        name="main"
         options={{
           title: i18n.t("home"),
           tabBarIcon: ({ focused }) =>

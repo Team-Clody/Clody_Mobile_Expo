@@ -18,6 +18,7 @@ import IntroduceFirstImage from "@/assets/introduce/1.svg";
 import IntroduceSecondImage from "@/assets/introduce/2.svg";
 import IntroduceThirdImage from "@/assets/introduce/3.svg";
 import GoogleIcon from "@/assets/icons/ic_google.svg";
+import type { AxiosError } from "axios";
 
 import KakaoLoginButton from "@/components/KakaoLoginButton";
 import { useApp } from "@/lib/store";
@@ -84,9 +85,14 @@ export default function Introduce() {
       const { accessToken, refreshToken } = await authService.kakaoLogin();
       await tokenStorage.saveTokens(accessToken, refreshToken);
       setIsLoggedIn(true);
-      router.replace("/(home)/(tabs)/(main)");
+      router.replace("/(home)/(tabs)/main");
     } catch (error) {
       console.error(error);
+      const status = (error as AxiosError)?.response?.status;
+      if (status === 404) {
+        router.replace("/register" as never);
+        return;
+      }
       Alert.alert(
         isKorean ? "로그인 실패" : "Sign-in failed",
         isKorean
@@ -107,9 +113,14 @@ export default function Introduce() {
       const { accessToken, refreshToken } = await authService.googleLogin();
       await tokenStorage.saveTokens(accessToken, refreshToken);
       setIsLoggedIn(true);
-      router.replace("/(home)/(tabs)/(main)");
+      router.replace("/(home)/(tabs)/main");
     } catch (error) {
       console.error(error);
+      const status = (error as AxiosError)?.response?.status;
+      if (status === 404) {
+        router.replace("/register" as never);
+        return;
+      }
       Alert.alert(
         isKorean ? "로그인 실패" : "Sign-in failed",
         isKorean

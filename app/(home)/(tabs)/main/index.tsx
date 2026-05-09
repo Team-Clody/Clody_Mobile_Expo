@@ -254,12 +254,7 @@ export default function Main() {
   const router = useRouter();
   const { isLoggedIn, authReady } = useApp();
 
-  useEffect(() => {
-    if (!authReady) return;
-    if (!isLoggedIn) {
-      router.replace("/introduce");
-    }
-  }, [authReady, isLoggedIn, router]);
+ 
 
   const [showReward, setShowReward] = useState(false);
   const shouldReopenReward = useStorageStore(
