@@ -20,7 +20,7 @@ export default function MyPage() {
         <View style={styles.card}>
           <TouchableOpacity
             style={styles.row}
-            onPress={() => router.push("/(home)/nickname")}
+            onPress={() => router.push("/(home)/profile")}
           >
             <View style={styles.profileLeft}>
               <View style={styles.avatar} />
