@@ -86,6 +86,9 @@ export default {
       /** iOS Google Sign-In configure용 Client ID */
       googleIosClientId:
         "430648671385-2l5bjp3apfjp0bed20646vk3orvj04e3.apps.googleusercontent.com",
+      /** Web Google Sign-In configure용 Client ID (서버 idToken 검증용 audience) */
+      googleWebClientId:
+        "430648671385-fpd7ugcuko0dphopbt329mh9r7lml8bc.apps.googleusercontent.com",
       eas: {
         projectId: "32473cd1-e225-4303-b3b1-8c52103eded6",
       },

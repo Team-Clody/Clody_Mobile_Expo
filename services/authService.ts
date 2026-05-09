@@ -33,11 +33,14 @@ const ensureGoogleSigninConfigured = () => {
   if (googleConfigured) return;
 
   const extra = Constants.expoConfig?.extra as
-    | { googleIosClientId?: string }
+    | { googleIosClientId?: string; googleWebClientId?: string }
     | undefined;
 
   GoogleSignin.configure({
+    webClientId: extra?.googleWebClientId,
     iosClientId: extra?.googleIosClientId,
+    offlineAccess: true,
+    forceCodeForRefreshToken: true,
   });
 
   googleConfigured = true;

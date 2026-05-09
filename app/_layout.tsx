@@ -1,4 +1,5 @@
 import { initializeKakaoSDK } from "@react-native-kakao/core";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import Constants from "expo-constants";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -28,6 +29,19 @@ export default function RootLayout() {
       return;
     }
     void initializeKakaoSDK(key);
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    const extra = Constants.expoConfig?.extra as
+      | { googleIosClientId?: string; googleWebClientId?: string }
+      | undefined;
+    GoogleSignin.configure({
+      webClientId: extra?.googleWebClientId,
+      iosClientId: extra?.googleIosClientId,
+      offlineAccess: true,
+      forceCodeForRefreshToken: true,
+    });
   }, []);
 
   return (

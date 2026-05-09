@@ -1,8 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import Constants from "expo-constants";
 import { router } from "expo-router";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -184,7 +182,7 @@ export default function RegisterScreen() {
       ]);
 
       const platform = platformRaw as PlatformType | null;
-      let authCode =
+      const authCode =
         platform === "kakao"
           ? kakaoToken
           : platform === "google"
@@ -195,37 +193,17 @@ export default function RegisterScreen() {
         throw new Error("SIGNUP_CONTEXT_MISSING");
       }
 
-      if (platform === "google") {
-        try {
-          const extra = Constants.expoConfig?.extra as
-            | { googleIosClientId?: string }
-            | undefined;
-          GoogleSignin.configure({ iosClientId: extra?.googleIosClientId });
-          const fresh = await GoogleSignin.getTokens();
-          if (fresh?.idToken) {
-            authCode = fresh.idToken;
-            await AsyncStorage.setItem("google_accessToken", fresh.idToken);
-          }
-        } catch (e) {
-          console.warn("[signup] failed to refresh google idToken:", e);
-        }
-      }
-
-      const fcmTokenRaw = await authService.getPushToken();
-      const fcmToken = fcmTokenRaw && fcmTokenRaw.length > 0 ? fcmTokenRaw : "simulator-no-fcm";
+      const fcmToken = await authService.getPushToken();
       const payload = {
         platform,
-        email,
+        fcmToken: fcmToken ? fcmToken : null,
         name: nickname,
-        fcmToken,
         gender,
         birthDate: isKorean
           ? normalizeKoreanBirthDateFromRaw(koreanBirthRaw)
           : normalizeBirthDate(birthDate),
+        email,
       };
-
-      console.log("[signup] payload =", JSON.stringify(payload));
-      console.log("[signup] authCode prefix =", authCode?.slice(0, 12));
 
       const res = await axios.post(`${BASE_URL}/api/v1/auth/signup`, payload, {
         headers: { Authorization: `Bearer ${authCode}` },
@@ -246,28 +224,14 @@ export default function RegisterScreen() {
       setIsLoggedIn(true);
       router.replace("/(home)/(tabs)/main");
     } catch (error) {
-      const ax = error as {
-        message?: string;
-        response?: { status?: number; data?: unknown };
-      };
-      console.error("[signup] failed:", ax.message);
-      console.error("[signup] response status:", ax.response?.status);
-      console.error("[signup] response data:", JSON.stringify(ax.response?.data));
+      console.error(error);
       Alert.alert(
         isKorean ? "회원가입 실패" : "Sign-up failed",
         isKorean
-          ? `회원가입을 완료할 수 없습니다. (${ax.response?.status ?? "?"})\n${
-              typeof ax.response?.data === "object"
-                ? (ax.response?.data as { message?: string })?.message ?? ""
-                : ""
-            }`
-          : `We couldn't complete sign-up. (${ax.response?.status ?? "?"})\n${
-              typeof ax.response?.data === "object"
-                ? (ax.response?.data as { message?: string })?.message ?? ""
-                : ""
-            }`,
+          ? "회원가입을 완료할 수 없습니다. 잠시 후 다시 시도해 주세요."
+          : "We couldn't complete sign-up. Please try again.",
       );
-      if (ax.message === "SIGNUP_CONTEXT_MISSING") {
+      if ((error as { message?: string }).message === "SIGNUP_CONTEXT_MISSING") {
         router.replace("/introduce");
       }
     } finally {
