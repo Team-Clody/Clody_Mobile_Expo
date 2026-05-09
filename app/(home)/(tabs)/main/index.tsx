@@ -121,6 +121,13 @@ const isFutureDate = (d: Date) => startOfLocalDay(d) > startOfLocalDay(new Date(
 const GRATITUDE_SLOT_MARGIN_TOP = 40;
 const GRATITUDE_SLOT_HEIGHT = 326;
 const GRATITUDE_SCROLL_PADDING_TOP = 92;
+/**
+ * bg_default.png 가로:세로 비율(약 1:1).
+ * width:100%/aspectRatio로 높이를 고정해 기기별 크기 차이를 줄임.
+ */
+const BG_DEFAULT_ASPECT_RATIO = 1;
+const BG_CENTER_TRANSLATE_Y = 18;
+const CHARACTER_TOP_RATIO = 0.4;
 /** 탭 바 상단과 감사 카드 슬롯 사이 간격(씬은 이미 탭 위 영역이므로 insets.bottom 미가산) */
 const GRATITUDE_ABOVE_TAB_BAR = 12;
 
@@ -294,6 +301,7 @@ export default function Main() {
   const [totalCloverCount, setTotalCloverCount] = useState(0);
   const [journalPromptText, setJournalPromptText] = useState("");
   const [nowTickMs, setNowTickMs] = useState(() => Date.now());
+  const [visualAreaSize, setVisualAreaSize] = useState({ width: 0, height: 0 });
   const fetchedMonthKeysRef = useRef<Set<string>>(new Set());
   const fetchingMonthKeysRef = useRef<Set<string>>(new Set());
   /** 같은 날·로케일로 다시 오늘 선택 시 journal/prompt 재호출 방지 */
@@ -555,6 +563,10 @@ export default function Main() {
   const effectiveTotalCloverCount = Math.max(totalCloverCount, profileCloverCount);
   const currentLevel = Math.floor(effectiveTotalCloverCount / cloversPerLevel) + 1;
   const currentLevelProgress = effectiveTotalCloverCount % cloversPerLevel;
+  const characterTop = useMemo(() => {
+    if (!visualAreaSize.height) return 0;
+    return Math.round(visualAreaSize.height * CHARACTER_TOP_RATIO);
+  }, [visualAreaSize.height]);
   const selectedDateKey = formatDateKey(gratitudeDate);
   const selectedDiaryCount = diaryCountByDate[selectedDateKey] ?? 0;
   const getDisplayReplyStatusForDate = (date: Date, diaryCount: number): ReplyStatus => {
@@ -1358,38 +1370,44 @@ export default function Main() {
             minHeight: 0,
             width: "100%",
           }}
+          onLayout={(e) => {
+            const { width, height } = e.nativeEvent.layout;
+            setVisualAreaSize((prev) =>
+              prev.width === width && prev.height === height ? prev : { width, height },
+            );
+          }}
         >
-          <Image
-            source={bgDefaultPng}
-            resizeMode="cover"
+          <View
+            pointerEvents="none"
             style={{
-              position: "absolute",
-              top: 0,
-              bottom: 0,
-              left: 0,
-              width,
-              transform: [
-                {
-                  translateY: -14,
-                },
-              ],
+              ...StyleSheet.absoluteFillObject,
+              justifyContent: "center",
+              transform: [{ translateY: BG_CENTER_TRANSLATE_Y }],
             }}
-          />
+          >
+            <Image
+              source={bgDefaultPng}
+              resizeMode="cover"
+              style={{
+                width: "100%",
+                aspectRatio: BG_DEFAULT_ASPECT_RATIO,
+              }}
+            />
+          </View>
           <View
             style={{
-              flex: 1,
-              width: "100%",
-              minHeight: 0,
+              ...StyleSheet.absoluteFillObject,
+              alignItems: "center",
+              zIndex: 2,
+              elevation: Platform.OS === "android" ? 6 : 0,
             }}
             pointerEvents="box-none"
           >
-            <View style={{ flex: 1, minHeight: 0 }} pointerEvents="none" />
             <View
               style={{
+                position: "absolute",
+                top: characterTop,
                 alignItems: "center",
-                marginTop: Platform.OS === "ios" ? 70 : 123,
-                zIndex: 2,
-                elevation: Platform.OS === "android" ? 6 : 0,
               }}
             >
               <GroupCharacter
@@ -1458,7 +1476,6 @@ export default function Main() {
                 />
               </Pressable>
             </View>
-            <View style={{ flex: 1, minHeight: 0 }} pointerEvents="none" />
           </View>
         </View>
 

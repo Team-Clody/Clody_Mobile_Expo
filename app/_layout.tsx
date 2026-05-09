@@ -1,7 +1,9 @@
 import { initializeKakaoSDK } from "@react-native-kakao/core";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import Constants from "expo-constants";
+import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { useEffect } from "react";
@@ -13,11 +15,24 @@ import {
 import { AppProvider } from "@/lib/store";
 
 const APP_BACKGROUND = "#FFFFFF";
+void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    PretendardRegular: require("@/assets/fonts/Pretendard-Regular.otf"),
+    PretendardMedium: require("@/assets/fonts/Pretendard-Medium.otf"),
+    PretendardSemiBold: require("@/assets/fonts/Pretendard-SemiBold.otf"),
+    PretendardBold: require("@/assets/fonts/Pretendard-Bold.otf"),
+  });
+
   useEffect(() => {
     void SystemUI.setBackgroundColorAsync(APP_BACKGROUND);
   }, []);
+
+  useEffect(() => {
+    if (!fontsLoaded) return;
+    void SplashScreen.hideAsync();
+  }, [fontsLoaded]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;
@@ -43,6 +58,8 @@ export default function RootLayout() {
       forceCodeForRefreshToken: true,
     });
   }, []);
+
+  if (!fontsLoaded) return null;
 
   return (
     <SafeAreaProvider>
