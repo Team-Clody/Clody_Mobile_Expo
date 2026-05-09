@@ -7,7 +7,6 @@ import {
   Modal,
   Alert,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { HomeContext } from "./_layout";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -66,7 +65,7 @@ export default function Profile() {
   const { form } = context;
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
+    <View style={styles.safe}>
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity
@@ -178,7 +177,7 @@ export default function Profile() {
         message={toastMessage}
         onHide={() => setToastVisible(false)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -234,11 +233,11 @@ function formatGender(gender: string) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#F3F3F6",
+    backgroundColor: "#FFFFFF",
   },
   container: {
     flex: 1,
-    backgroundColor: "#F3F3F6",
+    backgroundColor: "#FFFFFF",
   },
 
   header: {
@@ -272,7 +271,7 @@ const styles = StyleSheet.create({
 
   infoCard: {
     marginTop: 18,
-    backgroundColor: "#F3F3F6",
+    backgroundColor: "#FFFFFF",
   },
 
   row: {
@@ -282,7 +281,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#F3F3F6",
+    backgroundColor: "#FFFFFF",
   },
   rowBorder: {
     borderBottomWidth: 1,
@@ -324,7 +323,7 @@ const styles = StyleSheet.create({
     height: 48,
     justifyContent: "center",
     paddingHorizontal: 15,
-    backgroundColor: "#F3F3F6",
+    backgroundColor: "#FFFFFF",
   },
   actionText: {
     fontSize: 16,

@@ -1,5 +1,4 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useContext } from "react";
 import { HomeContext } from "../../_layout";
 import { useRouter } from "expo-router";
@@ -14,14 +13,14 @@ export default function MyPage() {
   const { form } = context;
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
+    <View style={styles.safe}>
       <View style={styles.container}>
         <Text style={styles.title}>{i18n.t("mypage")}</Text>
 
         <View style={styles.card}>
           <TouchableOpacity
             style={styles.row}
-            onPress={() => router.push("/(home)/profile")}
+            onPress={() => router.push("/(home)/nickname")}
           >
             <View style={styles.profileLeft}>
               <View style={styles.avatar} />
@@ -69,7 +68,7 @@ export default function MyPage() {
           />
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
