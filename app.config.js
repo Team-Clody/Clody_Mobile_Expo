@@ -74,7 +74,6 @@ export default {
           },
         },
       ],
-      "@react-native-kakao/core",
     ],
     experiments: {
       typedRoutes: true,
@@ -82,6 +81,14 @@ export default {
     },
     extra: {
       router: {},
+      /** JS에서 `initializeKakaoSDK` 호출 시 사용 (네이티브 플러그인 nativeAppKey와 동일해야 함) */
+      kakaoNativeAppKey: "eb5b3511f81201dba4850861989793f6",
+      /** iOS Google Sign-In configure용 Client ID */
+      googleIosClientId:
+        "430648671385-2l5bjp3apfjp0bed20646vk3orvj04e3.apps.googleusercontent.com",
+      /** Web Google Sign-In configure용 Client ID (서버 idToken 검증용 audience) */
+      googleWebClientId:
+        "430648671385-fpd7ugcuko0dphopbt329mh9r7lml8bc.apps.googleusercontent.com",
       eas: {
         projectId: "32473cd1-e225-4303-b3b1-8c52103eded6",
       },

@@ -1,23 +1,20 @@
 import { View } from "react-native";
 import WheelPicker from "./WheelPicker";
-import { useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-interface Time {
+export interface BirthPickerValue {
   ampm: string;
   hour: string;
   minute: string;
 }
 
 interface Props {
-  onTimeChange: (time: Time) => void;
+  onTimeChange: (time: BirthPickerValue) => void;
   itemHeight: number;
-  initValue?: Time;
+  initValue?: BirthPickerValue;
 }
 
-const TimePicker = ({ onTimeChange, itemHeight, initValue }: Props) => {
-  const dayItems = Array.from({ length: 31 }, (_, i) =>
-    (i + 1).toString().padStart(2, "0"),
-  );
+const BirthPicker = ({ onTimeChange, itemHeight, initValue }: Props) => {
   const monthItems = [
     "January",
     "February",
@@ -39,78 +36,100 @@ const TimePicker = ({ onTimeChange, itemHeight, initValue }: Props) => {
     { length: currentYear - startYear + 1 },
     (_, i) => (startYear + i).toString(),
   );
-  const { ampm, hour, minute } = initValue || {};
+  const [selectedDay, setSelectedDay] = useState(
+    initValue?.ampm && /^\d{2}$/.test(initValue.ampm) ? initValue.ampm : "01",
+  );
+  const [selectedMonth, setSelectedMonth] = useState(
+    initValue?.hour && monthItems.includes(initValue.hour)
+      ? initValue.hour
+      : monthItems[0],
+  );
+  const [selectedYear, setSelectedYear] = useState(
+    initValue?.minute && yearItems.includes(initValue.minute)
+      ? initValue.minute
+      : yearItems[yearItems.length - 1],
+  );
+  const lastEmittedRef = useRef<BirthPickerValue | null>(null);
 
-  const selectedAMPM = useRef("");
-  const selectedHour = useRef("");
-  const selectedMinute = useRef("");
+  const dayItems = useMemo(() => {
+    const monthIndex = monthItems.indexOf(selectedMonth);
+    const year = Number(selectedYear);
+    const maxDay = new Date(year, monthIndex + 1, 0).getDate();
+    return Array.from({ length: maxDay }, (_, i) => String(i + 1).padStart(2, "0"));
+  }, [monthItems, selectedMonth, selectedYear]);
 
-  const handleIndexChange = (category: string, item: string) => {
-    switch (category) {
-      case "day":
-        selectedAMPM.current = item;
-        break;
-      case "month":
-        selectedHour.current = item;
-        break;
-      case "year":
-        selectedMinute.current = item;
-        break;
-      default:
-        throw new Error("Invalid time category");
+  useEffect(() => {
+    const clampedDay = Math.min(Number(selectedDay), dayItems.length);
+    const nextDay = String(Math.max(1, clampedDay)).padStart(2, "0");
+    if (nextDay !== selectedDay) {
+      setSelectedDay(nextDay);
     }
+  }, [dayItems, selectedDay]);
 
-    onTimeChange({
-      ampm: selectedAMPM.current,
-      hour: selectedHour.current,
-      minute: selectedMinute.current,
-    });
-  };
+  useEffect(() => {
+    const nextValue: BirthPickerValue = {
+      ampm: selectedDay,
+      hour: selectedMonth,
+      minute: selectedYear,
+    };
+    const prevValue = lastEmittedRef.current;
+    const hasChanged =
+      !prevValue ||
+      prevValue.ampm !== nextValue.ampm ||
+      prevValue.hour !== nextValue.hour ||
+      prevValue.minute !== nextValue.minute;
+
+    if (!hasChanged) return;
+
+    lastEmittedRef.current = nextValue;
+    onTimeChange(nextValue);
+  }, [selectedDay, selectedMonth, selectedYear, onTimeChange]);
 
   return (
     <View
       style={{
         flexDirection: "row",
-        height: itemHeight * 3,
+        height: itemHeight * 5,
         justifyContent: "center",
       }}
     >
       <WheelPicker
         items={dayItems}
-        onItemChange={(item) => handleIndexChange("day", item)}
+        onItemChange={setSelectedDay}
         itemHeight={itemHeight}
-        initValue={ampm}
-        containerStyle={{ marginRight: 60 }}
+        initValue={selectedDay}
+        containerStyle={{ marginRight: 60, zIndex: 1 }}
       />
       <WheelPicker
         items={monthItems}
-        onItemChange={(item) => handleIndexChange("month", item)}
+        onItemChange={setSelectedMonth}
         itemHeight={itemHeight}
-        initValue={hour}
-        containerStyle={{ marginHorizontal: 12 }}
+        initValue={selectedMonth}
+        containerStyle={{ marginHorizontal: 12, zIndex: 1 }}
       />
       <WheelPicker
         items={yearItems}
-        onItemChange={(item) => handleIndexChange("year", item)}
+        onItemChange={setSelectedYear}
         itemHeight={itemHeight}
-        initValue={minute}
-        containerStyle={{ paddingHorizontal: 20 }}
+        initValue={selectedYear}
+        containerStyle={{ paddingHorizontal: 20, zIndex: 1 }}
       />
       <View
+        pointerEvents="none"
         style={{
           position: "absolute",
           height: itemHeight,
-          top: itemHeight,
+          top: itemHeight * 2,
           //   backgroundColor: Color.neutral5,
           backgroundColor: "#f1f2f3",
           borderRadius: 7,
           left: 0,
           right: 0,
-          zIndex: -1,
+          zIndex: 0,
         }}
       ></View>
     </View>
   );
 };
 
-export default TimePicker;
+export default BirthPicker;

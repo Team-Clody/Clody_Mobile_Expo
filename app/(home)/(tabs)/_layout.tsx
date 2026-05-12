@@ -1,6 +1,5 @@
 import { Tabs } from "expo-router";
 import { StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "@/app/i18n/i18n";
 import IcHomeOn from "@/assets/icons/ic_home_on.svg";
 import IcHomeOff from "@/assets/icons/ic_home_off.svg";
@@ -12,15 +11,15 @@ import IcMyOff from "@/assets/icons/ic_my_off.svg";
 const ICON_SIZE = 28;
 
 export default function TabsLayout() {
-  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
           ...styles.tabBar,
-          height: 64 + insets.bottom,
-          paddingBottom: insets.bottom + 12,
+          height: 62,
+          paddingBottom: 8,
+          paddingTop: 8,
         },
         tabBarActiveTintColor: "#000",
         tabBarInactiveTintColor: "#000",

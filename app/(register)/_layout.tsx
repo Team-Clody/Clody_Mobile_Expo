@@ -1,36 +1,52 @@
 import { Stack } from "expo-router";
-import { createContext, useState } from "react";
-interface RegisterForm {
-  email: string;
+import {
+  createContext,
+  useMemo,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
+
+const APP_BACKGROUND = "#FFFFFF";
+
+export type RegisterForm = {
   nickname: string;
+  /** YYMMDD (6 digits) for `authService` `convertBirth` */
   birthDate: string;
-  fcmToken: string;
-  gender: "male" | "female" | "none";
+  gender: string;
+  /** ISO string; only hours/minutes matter for notifications */
   alarm: string;
-}
-interface RegisterContextType {
+};
+
+const defaultAlarmIso = (): string => {
+  const d = new Date();
+  d.setHours(21, 30, 0, 0);
+  return d.toISOString();
+};
+
+export const RegisterContext = createContext<{
   form: RegisterForm;
-  setForm: React.Dispatch<React.SetStateAction<RegisterForm>>;
-}
-export const RegisterContext = createContext<RegisterContextType | null>(null);
-export default function Register() {
+  setForm: Dispatch<SetStateAction<RegisterForm>>;
+} | null>(null);
+
+export default function RegisterLayout() {
   const [form, setForm] = useState<RegisterForm>({
-    email: "",
     nickname: "",
     birthDate: "",
-    fcmToken: "",
-    gender: "none",
-    alarm: "",
+    gender: "",
+    alarm: defaultAlarmIso(),
   });
 
+  const value = useMemo(() => ({ form, setForm }), [form]);
+
   return (
-    <RegisterContext value={{ form, setForm }}>
+    <RegisterContext.Provider value={value}>
       <Stack
         screenOptions={{
           headerShown: false,
-          animation: "slide_from_right",
+          contentStyle: { backgroundColor: APP_BACKGROUND },
         }}
       />
-    </RegisterContext>
+    </RegisterContext.Provider>
   );
 }

@@ -16,7 +16,6 @@ import {
   ScrollView,
 } from "react-native";
 import { BlurView } from "expo-blur";
-import { AuthContext } from "../../../_layout";
 import { HomeContext } from "../../_layout";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
@@ -44,6 +43,7 @@ import GroupCharacter from "@/assets/images/Group.svg";
 import CloverRewardBottomSheet from "@/components/CloverRewardBottomSheet";
 import { useStorageStore } from "@/store/useStorageStore";
 import { useFocusEffect } from "expo-router";
+import { useApp } from "@/lib/store";
 
 const bgDefaultPng = require("../../../../assets/images/bg_default.png");
 const { width } = Dimensions.get("window");
@@ -118,10 +118,16 @@ const startOfLocalDay = (d: Date) =>
 const isFutureDate = (d: Date) => startOfLocalDay(d) > startOfLocalDay(new Date());
 
 /** 감사 카드 슬롯 고정 높이 — 있을 때/없을 때 동일하게 유지해 캐릭터·레벨 위치 고정 */
-const GRATITUDE_SLOT_MARGIN_TOP = Platform.OS === "ios" ? 92 : 40;
+const GRATITUDE_SLOT_MARGIN_TOP = 40;
 const GRATITUDE_SLOT_HEIGHT = 326;
-/** 슬롯 안에서 카드가 더 아래로 오도록 (iOS 여유 더 큼) */
-const GRATITUDE_SCROLL_PADDING_TOP = Platform.OS === "ios" ? 128 : 92;
+const GRATITUDE_SCROLL_PADDING_TOP = 92;
+/**
+ * bg_default.png 가로:세로 비율(약 1:1).
+ * width:100%/aspectRatio로 높이를 고정해 기기별 크기 차이를 줄임.
+ */
+const BG_DEFAULT_ASPECT_RATIO = 1;
+const BG_CENTER_TRANSLATE_Y = 18;
+const CHARACTER_TOP_RATIO = 0.4;
 /** 탭 바 상단과 감사 카드 슬롯 사이 간격(씬은 이미 탭 위 영역이므로 insets.bottom 미가산) */
 const GRATITUDE_ABOVE_TAB_BAR = 12;
 
@@ -250,9 +256,12 @@ const getMonthMatrix = (date: Date) => {
 
 
 export default function Main() {
-  const { logout } = useContext(AuthContext);
   const homeContext = useContext(HomeContext);
   const router = useRouter();
+  const { isLoggedIn, authReady } = useApp();
+
+ 
+
   const [showReward, setShowReward] = useState(false);
   const shouldReopenReward = useStorageStore(
     (s: { shouldReopenReward: boolean }) => s.shouldReopenReward,
@@ -292,6 +301,7 @@ export default function Main() {
   const [totalCloverCount, setTotalCloverCount] = useState(0);
   const [journalPromptText, setJournalPromptText] = useState("");
   const [nowTickMs, setNowTickMs] = useState(() => Date.now());
+  const [visualAreaSize, setVisualAreaSize] = useState({ width: 0, height: 0 });
   const fetchedMonthKeysRef = useRef<Set<string>>(new Set());
   const fetchingMonthKeysRef = useRef<Set<string>>(new Set());
   /** 같은 날·로케일로 다시 오늘 선택 시 journal/prompt 재호출 방지 */
@@ -553,6 +563,10 @@ export default function Main() {
   const effectiveTotalCloverCount = Math.max(totalCloverCount, profileCloverCount);
   const currentLevel = Math.floor(effectiveTotalCloverCount / cloversPerLevel) + 1;
   const currentLevelProgress = effectiveTotalCloverCount % cloversPerLevel;
+  const characterTop = useMemo(() => {
+    if (!visualAreaSize.height) return 0;
+    return Math.round(visualAreaSize.height * CHARACTER_TOP_RATIO);
+  }, [visualAreaSize.height]);
   const selectedDateKey = formatDateKey(gratitudeDate);
   const selectedDiaryCount = diaryCountByDate[selectedDateKey] ?? 0;
   const getDisplayReplyStatusForDate = (date: Date, diaryCount: number): ReplyStatus => {
@@ -1096,6 +1110,9 @@ export default function Main() {
     </>
   );
 
+  if (!authReady || !isLoggedIn) {
+    return null;
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: "#F8F9FC" }}>
@@ -1118,7 +1135,7 @@ export default function Main() {
           ],
         }}
       >
-        <View style={{ paddingTop: 60, paddingHorizontal: 20 }}>
+        <View style={{ paddingTop: 8, paddingHorizontal: 20 }}>
           <View
             style={{
               flexDirection: "row",
@@ -1353,38 +1370,52 @@ export default function Main() {
             minHeight: 0,
             width: "100%",
           }}
+          onLayout={(e) => {
+            const { width, height } = e.nativeEvent.layout;
+            setVisualAreaSize((prev) =>
+              prev.width === width && prev.height === height ? prev : { width, height },
+            );
+          }}
         >
-          <Image
-            source={bgDefaultPng}
-            resizeMode="cover"
-            style={{
-              position: "absolute",
-              top: 0,
-              bottom: 0,
-              left: 0,
-              width,
-              transform: [
-                {
-                  translateY: Platform.OS === "ios" ? -60 : -14,
-                },
-              ],
-            }}
-          />
           <View
+            pointerEvents="none"
             style={{
-              flex: 1,
-              width: "100%",
-              minHeight: 0,
+              ...StyleSheet.absoluteFillObject,
+              justifyContent: "center",
+              transform: [{ translateY: BG_CENTER_TRANSLATE_Y }],
             }}
           >
-            <View style={{ flex: 1, minHeight: 0 }} />
+            <Image
+              source={bgDefaultPng}
+              resizeMode="cover"
+              style={{
+                width: "100%",
+                aspectRatio: BG_DEFAULT_ASPECT_RATIO,
+              }}
+            />
+          </View>
+          <View
+            style={{
+              ...StyleSheet.absoluteFillObject,
+              alignItems: "center",
+              zIndex: 2,
+              elevation: Platform.OS === "android" ? 6 : 0,
+            }}
+            pointerEvents="box-none"
+          >
             <View
               style={{
+                position: "absolute",
+                top: characterTop,
                 alignItems: "center",
-                marginTop: Platform.OS === "ios" ? 70 : 123,
               }}
             >
-              <GroupCharacter width={128} height={183} style={{ marginBottom: 6 }} />
+              <GroupCharacter
+                width={128}
+                height={183}
+                style={{ marginBottom: 6 }}
+                pointerEvents="none"
+              />
               <Pressable
                 onPress={() => setShowReward(true)}
                 hitSlop={16}
@@ -1445,7 +1476,6 @@ export default function Main() {
                 />
               </Pressable>
             </View>
-            <View style={{ flex: 1, minHeight: 0 }} />
           </View>
         </View>
 

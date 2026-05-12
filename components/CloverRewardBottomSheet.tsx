@@ -94,6 +94,9 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
   const [acquiredItem, setAcquiredItem] =
     useState<SkinStatusItemResponseDTO | null>(null);
 
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
+
   const fetchData = useCallback(async () => {
     try {
       const res = await SkinAPI.getSkinStatusList();
@@ -133,7 +136,11 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
           duration: 250,
           useNativeDriver: true,
         }),
-      ]).start(() => setShowModal(false));
+      ]).start(({ finished }) => {
+        if (finished && !visibleRef.current) {
+          setShowModal(false);
+        }
+      });
     }
   }, [visible, fetchData]);
 
@@ -159,7 +166,7 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
     }
   }, [visible, currentStage]);
 
-  if (!showModal) return null;
+  if (!visible && !showModal) return null;
 
   const handleClose = () => onClose();
 
@@ -297,7 +304,7 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
   );
 
   return (
-    <Modal transparent visible={showModal} animationType="none">
+    <Modal transparent visible={visible || showModal} animationType="none">
       <View style={styles.overlay}>
         <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />

@@ -71,9 +71,13 @@ const WheelPicker: React.FC<Props> = (props) => {
           style={[
             //TYPOS.headline4,
             {
-              color: selectedItem === item ? "#1B1C20" : "#bebfc5",
+              color: selectedItem === item ? "#212124" : "#B7BFCC",
               fontSize: 18,
+              lineHeight: 22,
               fontFamily: fontFamily ?? "PretendardMedium",
+              textAlign: "center",
+              includeFontPadding: false,
+              textAlignVertical: "center",
             },
           ]}
         >
@@ -83,7 +87,7 @@ const WheelPicker: React.FC<Props> = (props) => {
     );
   };
 
-  const momentumScrollEnd = (
+  const syncSelectionToOffset = (
     event: NativeSyntheticEvent<NativeScrollEvent>,
   ) => {
     // 초기 마운트 직후 발생하는 불안정한 이벤트 무시
@@ -92,10 +96,17 @@ const WheelPicker: React.FC<Props> = (props) => {
     const y = event.nativeEvent.contentOffset.y;
     const index = Math.round(y / itemHeight);
     const clampedIndex = Math.max(0, Math.min(items.length - 1, index));
+    const snappedOffset = clampedIndex * itemHeight;
+
+    // Keep interpolation value aligned without triggering recursive scroll events.
+    scrollY.setValue(snappedOffset);
+
     currentIndexRef.current = clampedIndex;
     const nextItem = items[clampedIndex];
-    setSelectedItem(nextItem);
-    onItemChange(nextItem);
+    if (selectedItem !== nextItem) {
+      setSelectedItem(nextItem);
+      onItemChange(nextItem);
+    }
   };
 
   useEffect(() => {
@@ -108,6 +119,8 @@ const WheelPicker: React.FC<Props> = (props) => {
     setSelectedItem(nextItem);
 
     requestAnimationFrame(() => {
+      // Keep visual interpolation in sync with the initial offset.
+      scrollY.setValue(safeIndex * itemHeight);
       listRef.current?.scrollToOffset({
         offset: safeIndex * itemHeight,
         animated: didInitialSyncRef.current,
@@ -128,7 +141,8 @@ const WheelPicker: React.FC<Props> = (props) => {
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
         snapToInterval={itemHeight}
-        onMomentumScrollEnd={momentumScrollEnd}
+        onScrollEndDrag={syncSelectionToOffset}
+        onMomentumScrollEnd={syncSelectionToOffset}
         scrollEventThrottle={16}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],

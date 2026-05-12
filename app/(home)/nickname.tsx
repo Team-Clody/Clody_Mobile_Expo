@@ -9,28 +9,24 @@ import {
   Pressable,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useContext, useEffect, useState } from "react";
 import { HomeContext } from "./_layout";
-import { AuthContext } from "../_layout";
 import { useRouter } from "expo-router";
 import { Modal } from "react-native";
 import i18n from "../i18n/i18n";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
 
 export default function Profile() {
   const context = useContext(HomeContext);
+  if (!context) return null;
   const { form, setForm } = context;
-  const { resetAuthState } = useContext(AuthContext);
   const [isValid, setIsValid] = useState(false);
   const [nickname, setNickname] = useState("");
   const router = useRouter();
   const [keyboardShow, setKeyboardShow] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const insets = useSafeAreaInsets();
   useEffect(() => {
     const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
       const height = e.endCoordinates.height;
@@ -49,7 +45,7 @@ export default function Profile() {
     };
   }, []);
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
+    <View style={styles.safe}>
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity
@@ -116,8 +112,8 @@ export default function Profile() {
               bottom: keyboardShow
                 ? Platform.OS === "ios"
                   ? keyboardHeight
-                  : keyboardHeight + insets.bottom
-                : insets.bottom,
+                  : keyboardHeight
+                : 0,
             },
           ]}
         >
@@ -145,7 +141,7 @@ export default function Profile() {
               console.log(name);
               setForm({ ...form, nickname });
               router.replace({
-                pathname: "/(home)/profile",
+                pathname: "/profile",
                 params: { toast: i18n.t("nicknameSuccess") },
               });
             }}
@@ -161,7 +157,7 @@ export default function Profile() {
           </Pressable>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

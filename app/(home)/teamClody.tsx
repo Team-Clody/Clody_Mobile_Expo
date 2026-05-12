@@ -5,17 +5,14 @@ import {
   TouchableOpacity,
   Pressable,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useContext, useEffect, useState } from "react";
 import { HomeContext } from "./_layout";
-import { AuthContext } from "../_layout";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Modal } from "react-native";
 import i18n from "../i18n/i18n";
 import BottomToast from "@/components/BottomToast";
 export default function Profile() {
   const context = useContext(HomeContext);
-  const { logout, revoke } = useContext(AuthContext);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
@@ -35,7 +32,7 @@ export default function Profile() {
   const { form } = context;
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
+    <View style={styles.safe}>
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity
@@ -64,7 +61,7 @@ export default function Profile() {
           />
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
