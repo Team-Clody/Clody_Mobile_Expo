@@ -21,7 +21,7 @@ import GoogleIcon from "@/assets/icons/ic_google.svg";
 import type { AxiosError } from "axios";
 
 import KakaoLoginButton from "@/components/KakaoLoginButton";
-import { useApp } from "@/lib/store";
+import { useApp } from "@/store/useAppStore";
 import authService from "@/services/authService";
 import { tokenStorage } from "@/shared/storage/tokenStorage";
 import { getLanguageCode } from "@/shared/utils/locale";

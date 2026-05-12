@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -14,9 +14,28 @@ import {
   ViewStyle,
 } from "react-native";
 
-export type ReminderPeriod = "오전" | "오후" | "AM" | "PM";
+/** 12시간제 오전/오후 — UI 문구는 로케일로 별도 생성 */
+export type ReminderPeriod = "am" | "pm";
 
 export type ReminderLocale = "ko" | "en";
+
+const REMINDER_PERIOD_ORDER: ReminderPeriod[] = ["am", "pm"];
+
+export function getReminderPeriodLabel(
+  period: ReminderPeriod,
+  locale: ReminderLocale,
+): string {
+  if (locale === "ko") {
+    return period === "am" ? "오전" : "오후";
+  }
+  const d = new Date(2000, 0, 1, period === "am" ? 9 : 15, 0, 0);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    hour12: true,
+  }).formatToParts(d);
+  const dayPeriod = parts.find((p) => p.type === "dayPeriod");
+  return dayPeriod?.value ?? (period === "am" ? "AM" : "PM");
+}
 
 export interface ReminderTimeValue {
   period: ReminderPeriod;
@@ -36,8 +55,6 @@ const ITEM_HEIGHT = 40;
 const VISIBLE_COUNT = 5;
 const COLUMN_HEIGHT = ITEM_HEIGHT * VISIBLE_COUNT;
 
-const PERIOD_ITEMS_KO: ReminderPeriod[] = ["오전", "오후"];
-const PERIOD_ITEMS_EN: ReminderPeriod[] = ["AM", "PM"];
 const HOUR_ITEMS = Array.from({ length: 12 }, (_, i) =>
   String(i + 1).padStart(2, "0"),
 );
@@ -174,7 +191,10 @@ export default function ReminderTimeBottomSheet({
   onConfirm,
   locale = "ko",
 }: Props) {
-  const periodItems = locale === "en" ? PERIOD_ITEMS_EN : PERIOD_ITEMS_KO;
+  const periodLabels = useMemo(
+    () => REMINDER_PERIOD_ORDER.map((p) => getReminderPeriodLabel(p, locale)),
+    [locale],
+  );
   const sheetTitle =
     locale === "en" ? "Change reminder time" : "알림 시간을 선택해주세요";
   const confirmLabel = locale === "en" ? "Save" : "확인";
@@ -256,9 +276,12 @@ export default function ReminderTimeBottomSheet({
           <View style={styles.pickerWrap}>
             <View pointerEvents="none" style={styles.highlightBar} />
             <ReminderColumn
-              items={periodItems}
-              initialValue={period}
-              onChange={(v) => setPeriod(v as ReminderPeriod)}
+              items={periodLabels}
+              initialValue={getReminderPeriodLabel(period, locale)}
+              onChange={(label) => {
+                const idx = periodLabels.indexOf(label);
+                if (idx >= 0) setPeriod(REMINDER_PERIOD_ORDER[idx]!);
+              }}
               align="right"
               containerStyle={styles.periodColumn}
             />
