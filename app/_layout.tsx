@@ -12,7 +12,7 @@ import {
   SafeAreaProvider,
   SafeAreaView,
 } from "react-native-safe-area-context";
-import { AppProvider } from "@/lib/store";
+import { useAppStore } from "@/store/useAppStore";
 
 const APP_BACKGROUND = "#FFFFFF";
 void SplashScreen.preventAutoHideAsync();
@@ -59,24 +59,27 @@ export default function RootLayout() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!fontsLoaded) return;
+    void useAppStore.getState().hydrateAuthFromStorage();
+  }, [fontsLoaded]);
+
   if (!fontsLoaded) return null;
 
   return (
     <SafeAreaProvider>
-      <AppProvider>
-        <SafeAreaView
-          style={{ flex: 1, backgroundColor: APP_BACKGROUND }}
-          edges={["top", "right", "bottom", "left"]}
-        >
-          <StatusBar style="auto" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: APP_BACKGROUND },
-            }}
-          />
-        </SafeAreaView>
-      </AppProvider>
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: APP_BACKGROUND }}
+        edges={["top", "right", "bottom", "left"]}
+      >
+        <StatusBar style="auto" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: APP_BACKGROUND },
+          }}
+        />
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }

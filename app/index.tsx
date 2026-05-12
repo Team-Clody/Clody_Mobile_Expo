@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 
 import { AuthAPI } from "@/api/authAPI";
 import type { GetAccountResponseDTO } from "@/api/dto/myPage/response/getAccountResponseDTO";
-import { useApp } from "@/lib/store";
+import { useApp } from "@/store/useAppStore";
 import { ApiResponse, BASE_URL } from "@/shared/http";
 import { tokenStorage } from "@/shared/storage/tokenStorage";
 

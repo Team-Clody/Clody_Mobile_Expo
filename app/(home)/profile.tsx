@@ -14,7 +14,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import BottomToast from "@/components/BottomToast";
 import { AuthAPI } from "@/api/authAPI";
 import i18n from "@/app/i18n/i18n";
-import { useApp } from "@/lib/store";
+import { useApp } from "@/store/useAppStore";
 import { tokenStorage } from "@/shared/storage/tokenStorage";
 
 export default function Profile() {

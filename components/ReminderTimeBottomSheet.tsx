@@ -25,9 +25,11 @@ export function getReminderPeriodLabel(
   period: ReminderPeriod,
   locale: ReminderLocale,
 ): string {
-  const localeTag = locale === "ko" ? "ko-KR" : "en-US";
+  if (locale === "ko") {
+    return period === "am" ? "오전" : "오후";
+  }
   const d = new Date(2000, 0, 1, period === "am" ? 9 : 15, 0, 0);
-  const parts = new Intl.DateTimeFormat(localeTag, {
+  const parts = new Intl.DateTimeFormat("en-US", {
     hour: "numeric",
     hour12: true,
   }).formatToParts(d);

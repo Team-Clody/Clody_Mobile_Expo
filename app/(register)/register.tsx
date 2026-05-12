@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useApp } from "@/lib/store";
+import { useApp } from "@/store/useAppStore";
 import { BASE_URL } from "@/shared/http";
 import { tokenStorage } from "@/shared/storage/tokenStorage";
 import { getLanguageCode } from "@/shared/utils/locale";

@@ -43,7 +43,7 @@ import GroupCharacter from "@/assets/images/Group.svg";
 import CloverRewardBottomSheet from "@/components/CloverRewardBottomSheet";
 import { useStorageStore } from "@/store/useStorageStore";
 import { useFocusEffect } from "expo-router";
-import { useApp } from "@/lib/store";
+import { useApp } from "@/store/useAppStore";
 
 const bgDefaultPng = require("../../../../assets/images/bg_default.png");
 const { width } = Dimensions.get("window");
