@@ -25,6 +25,7 @@ import IcCheckGreen from "@/assets/icons/ic_check_green.svg";
 import IcCheckGray from "@/assets/icons/ic_check_gray.svg";
 import BirthPicker, { BirthPickerValue } from "@/components/BirthPicker";
 import ReminderTimeBottomSheet, {
+  getReminderPeriodLabel,
   ReminderTimeValue,
 } from "@/components/ReminderTimeBottomSheet";
 
@@ -100,11 +101,11 @@ export default function RegisterScreen() {
   const [koreanBirthError, setKoreanBirthError] = useState("");
   const [gender, setGender] = useState<Gender>("none");
   const [reminderTime, setReminderTime] = useState("09:30");
-  const [reminderValue, setReminderValue] = useState<ReminderTimeValue>(
-    isKorean
-      ? { period: "오전", hour: "09", minute: "30" }
-      : { period: "PM", hour: "09", minute: "30" },
-  );
+  const [reminderValue, setReminderValue] = useState<ReminderTimeValue>({
+    period: "am",
+    hour: "09",
+    minute: "30",
+  });
   const [reminderSheetOpen, setReminderSheetOpen] = useState(false);
   const [birthPickerOpen, setBirthPickerOpen] = useState(false);
   const [birthPickerValue, setBirthPickerValue] = useState<BirthPickerValue>({
@@ -134,11 +135,15 @@ export default function RegisterScreen() {
   const reminderDisplay = useMemo(() => {
     const hourNumber = Number(reminderValue.hour || "0");
     const minuteText = (reminderValue.minute || "0").padStart(2, "0");
+    const periodLabel = getReminderPeriodLabel(
+      reminderValue.period,
+      isKorean ? "ko" : "en",
+    );
     if (isKorean) {
       const minuteNumber = Number(reminderValue.minute || "0");
-      return `${reminderValue.period} ${hourNumber}시 ${minuteNumber}분`;
+      return `${periodLabel} ${hourNumber}시 ${minuteNumber}분`;
     }
-    return `${hourNumber}:${minuteText} ${reminderValue.period}`;
+    return `${hourNumber}:${minuteText} ${periodLabel}`;
   }, [reminderValue, isKorean]);
 
   const handleNicknameChange = (text: string) => {
@@ -308,8 +313,8 @@ export default function RegisterScreen() {
 
   const handleReminderConfirm = useCallback((value: ReminderTimeValue) => {
     setReminderValue(value);
-    const isPM = value.period === "오후" || value.period === "PM";
-    const isAM = value.period === "오전" || value.period === "AM";
+    const isPM = value.period === "pm";
+    const isAM = value.period === "am";
     let hour24 = Number(value.hour);
     if (isPM && hour24 < 12) hour24 += 12;
     if (isAM && hour24 === 12) hour24 = 0;
