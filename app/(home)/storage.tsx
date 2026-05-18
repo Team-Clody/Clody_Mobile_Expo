@@ -4,6 +4,7 @@ import {
   Image,
   ImageBackground,
   Pressable,
+  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -163,6 +164,7 @@ export default function StorageScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <StatusBar backgroundColor="#F8F9FC" barStyle="dark-content" />
       <View style={styles.header}>
         <Pressable onPress={goBackToReward} hitSlop={12}>
           <IcBack width={24} height={24} />
@@ -234,32 +236,35 @@ export default function StorageScreen() {
         )}
       </View>
 
-      <LinearGradient
-        colors={[
-          "rgba(255,255,255,0)",
-          "#FFFFFF",
-          "#FFFFFF",
-        ]}
-        locations={[0, 0.0819, 1]}
-        style={styles.bottomGradient}
-        pointerEvents="none"
-      />
-      <View style={styles.bottomBar}>
-        <Pressable
-          style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
-          onPress={handleSave}
-          disabled={!canSave}
-        >
-          <Text
-            style={[
-              styles.saveButtonText,
-              !canSave && styles.saveButtonTextDisabled,
-            ]}
-          >
-            저장하기
-          </Text>
-        </Pressable>
-      </View>
+      {!isEmpty && (
+        <>
+          <LinearGradient
+            colors={["rgba(255,255,255,0)", "#FFFFFF", "#FFFFFF"]}
+            locations={[0, 0.0819, 1]}
+            style={styles.bottomGradient}
+            pointerEvents="none"
+          />
+          <View style={styles.bottomBar}>
+            <Pressable
+              style={[
+                styles.saveButton,
+                !canSave && styles.saveButtonDisabled,
+              ]}
+              onPress={handleSave}
+              disabled={!canSave}
+            >
+              <Text
+                style={[
+                  styles.saveButtonText,
+                  !canSave && styles.saveButtonTextDisabled,
+                ]}
+              >
+                저장하기
+              </Text>
+            </Pressable>
+          </View>
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -267,27 +272,30 @@ export default function StorageScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F8F9FC",
   },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
   characterArea: {
-    height: 360,
-    justifyContent: "flex-end",
+    height: 320,
+    justifyContent: "center",
     alignItems: "center",
     backgroundColor: "transparent",
   },
   character: {
     width: 200,
-    height: 240,
-    marginBottom: 40,
+    height: 210,
   },
   itemsArea: {
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 24,
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    marginTop: -20,
   },
   emptyWrap: {
     flex: 1,
@@ -318,7 +326,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   itemCardSelected: {
-    borderColor: "#4A4C54",
+    borderColor: "#293038",
   },
   itemIcon: {
     width: 50,
@@ -331,8 +339,9 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 13,
-    color: "#111111",
-    fontWeight: "500",
+    color: "#4A4C54",
+    fontWeight: "600",
+    letterSpacing: -0.26,
   },
   bottomGradient: {
     position: "absolute",
@@ -348,21 +357,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   saveButton: {
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: "#282A31",
+    height: 48,
+    borderRadius: 6,
+    backgroundColor: "#293038",
     justifyContent: "center",
     alignItems: "center",
   },
   saveButtonDisabled: {
-    backgroundColor: "#F0F0F0",
+    backgroundColor: "#F2F3F6",
   },
   saveButtonText: {
     fontSize: 16,
     fontWeight: "600",
     color: "#FFFFFF",
+    letterSpacing: -0.32,
   },
   saveButtonTextDisabled: {
-    color: "#9A9A9A",
+    color: "#ABAFBB",
   },
 });
