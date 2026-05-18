@@ -2,13 +2,18 @@ import { Icon } from "@/shared/components";
 import { HStack } from "@/shared/components/stack/HStack";
 import { VStack } from "@/shared/components/stack/VStack";
 import { Typo } from "@/shared/components/typo/Typo";
-import { Image, Pressable, View } from "react-native";
+import MaskedView from "@react-native-masked-view/masked-view";
+import { LinearGradient } from "expo-linear-gradient";
+import { Image, Pressable } from "react-native";
 
 interface PromptHeaderProps {
   prompt?: string;
 }
 
 export function PromptHeader({ prompt }: PromptHeaderProps) {
+  const promptText =
+    prompt || `"버텨줘서 고마워"라고 말해주고 싶은 나의 모습을 적어보세요`;
+
   return (
     <VStack
       style={{
@@ -37,10 +42,27 @@ export function PromptHeader({ prompt }: PromptHeaderProps) {
               </Typo.Body>
             </HStack>
 
-            <Typo.Display variant="display4" style={{ color: "#293038" }}>
-              {prompt ||
-                `"버텨줘서 고마워"라고 말해주고 싶은 나의 모습을 적어보세요`}
-            </Typo.Display>
+            <MaskedView
+              maskElement={
+                <Typo.Display
+                  variant="display4"
+                  style={{ backgroundColor: "transparent" }}
+                >
+                  {promptText}
+                </Typo.Display>
+              }
+            >
+              <LinearGradient
+                colors={["#004926", "#293038"]}
+                locations={[0, 0.7026]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+              >
+                <Typo.Display variant="display4" style={{ opacity: 0 }}>
+                  {promptText}
+                </Typo.Display>
+              </LinearGradient>
+            </MaskedView>
           </VStack>
 
           <Image
@@ -52,18 +74,19 @@ export function PromptHeader({ prompt }: PromptHeaderProps) {
 
         <Pressable
           onPress={() => alert("Button Pressed")}
-          style={{
-            alignSelf: "stretch",
-          }}
+          style={{ alignSelf: "stretch" }}
         >
-          <View
+          <LinearGradient
+            colors={["#5EC091", "#1C9D5F"]}
+            locations={[0.031, 0.9974]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
             style={{
               height: 36,
               borderRadius: 7,
               justifyContent: "center",
               alignItems: "center",
               alignSelf: "stretch",
-              backgroundColor: "#1C9D5F",
             }}
           >
             <Typo.Body
@@ -72,7 +95,7 @@ export function PromptHeader({ prompt }: PromptHeaderProps) {
             >
               오늘 일기쓰기
             </Typo.Body>
-          </View>
+          </LinearGradient>
         </Pressable>
       </VStack>
     </VStack>
