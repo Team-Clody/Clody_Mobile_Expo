@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import i18n from "@/app/i18n/i18n";
 import IcLock from "@/assets/icons/ic_lock.svg";
 import IcFarmer from "@/assets/icons/ic_farmer.svg";
 import IcPrincess from "@/assets/icons/ic_princess.svg";
@@ -36,28 +37,12 @@ const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } =
   Dimensions.get("window");
 const BOTTOM_SHEET_HEIGHT = SCREEN_HEIGHT * 0.85;
 
-const COSTUME_NAMES: Record<number, string> = {
-  1: "멜빵 바지",
-  2: "핑크 드레스",
-  3: "악마 코스튬",
-  4: "마녀 원피스",
-  5: "산타 유니폼",
-  6: "탐정 코트",
-  7: "해적 의상",
-  8: "우비",
-  9: "기모노",
-  10: "턱시도",
-  11: "파자마",
-  12: "운동복",
-  13: "요리사 복",
-  14: "경찰 제복",
-  15: "소방관 복",
-  16: "왕자 의상",
-  17: "메이드복",
-  18: "락스타 자켓",
-  19: "한복",
-  20: "우주복",
-};
+function getCostumeName(stage: number): string {
+  const key = `skin.costumeName.${stage}` as const;
+  const translated = i18n.t(key);
+  if (translated !== key) return translated;
+  return i18n.t("skin.level", { stage });
+}
 
 interface Props {
   visible: boolean;
@@ -77,9 +62,9 @@ function getTooltipMessage(
   if (needed <= 0) return null;
   if (collected >= needed) return null;
   const remaining = needed - collected;
-  if (remaining === 1) return "거의 다 왔어요!";
-  if (collected / needed >= 0.7) return "조금만 더 힘내요";
-  if (collected === 0) return "시작이 좋아요";
+  if (remaining === 1) return i18n.t("skin.tooltipAlmost");
+  if (collected / needed >= 0.7) return i18n.t("skin.tooltipKeepGoing");
+  if (collected === 0) return i18n.t("skin.tooltipGoodStart");
   return null;
 }
 
@@ -189,7 +174,7 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
 
   const renderCostumeItem = (skin: SkinStatusItemResponseDTO) => {
     const stageNum = getStageNumber(skin);
-    const name = COSTUME_NAMES[stageNum] ?? `${stageNum}단계`;
+    const name = getCostumeName(stageNum);
     const isReceived = skin.status === "RECEIVED";
     const canClaim = skin.status === "UNLOCKED";
     const isCurrent = stageNum === currentStage && !isReceived && !canClaim;
@@ -236,7 +221,7 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
             <Text
               style={[styles.levelText, isCurrent && styles.levelTextCurrent]}
             >
-              {stageNum}단계
+              {i18n.t("skin.level", { stage: stageNum })}
             </Text>
             <Text
               style={[styles.costumeName, isLocked && styles.costumeNameLocked]}
@@ -264,7 +249,7 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
                 style={styles.claimButton}
                 onPress={() => handleClaim(skin)}
               >
-                <Text style={styles.claimButtonText}>받기</Text>
+                <Text style={styles.claimButtonText}>{i18n.t("skin.claim")}</Text>
               </Pressable>
             ) : isCurrent ? (
               <View style={styles.progressBadge}>
@@ -273,7 +258,7 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
                 </Text>
               </View>
             ) : isReceived ? (
-              <Text style={styles.acquiredText}>획득 완료</Text>
+              <Text style={styles.acquiredText}>{i18n.t("skin.claimed")}</Text>
             ) : (
               <IcLock width={20} height={20} />
             )}
@@ -294,10 +279,10 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
       </View>
       <View style={styles.costumeInfo}>
         <Text style={[styles.levelText, { color: "#C4C4C4" }]}>
-          {skins.length + 1}단계
+          {i18n.t("skin.level", { stage: skins.length + 1 })}
         </Text>
         <Text style={[styles.costumeName, { color: "#C4C4C4" }]}>
-          Coming Soon
+          {i18n.t("skin.comingSoon")}
         </Text>
       </View>
     </View>
@@ -318,14 +303,14 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
           </View>
 
           <View style={styles.header}>
-            <Text style={styles.title}>클로버 획득 보상</Text>
+            <Text style={styles.title}>{i18n.t("skin.title")}</Text>
             <Text style={styles.subtitle}>
-              감사일기 작성하고, 로디 옷을 받아보세요.
+              {i18n.t("skin.subtitle")}
             </Text>
 
             <View style={styles.cloverCountCard}>
-              <Text style={styles.cloverLabel}>내 클로버</Text>
-              <Text style={styles.cloverCount}>{totalClovers}개</Text>
+              <Text style={styles.cloverLabel}>{i18n.t("skin.myClover")}</Text>
+              <Text style={styles.cloverCount}>{i18n.t("skin.cloverCount", { count: totalClovers })}</Text>
             </View>
           </View>
 
@@ -349,10 +334,10 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
               style={styles.storageButton}
               onPress={handleOpenStorage}
             >
-              <Text style={styles.storageButtonText}>보관함</Text>
+              <Text style={styles.storageButtonText}>{i18n.t("skin.inventory")}</Text>
             </Pressable>
             <Pressable style={styles.confirmButton} onPress={handleClose}>
-              <Text style={styles.confirmButtonText}>확인</Text>
+              <Text style={styles.confirmButtonText}>{i18n.t("skin.done")}</Text>
             </Pressable>
           </View>
         </Animated.View>
@@ -373,18 +358,16 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
                   )}
                 </View>
                 <Text style={styles.dialogTitle}>
-                  {COSTUME_NAMES[getStageNumber(acquiredItem)] ??
-                    `${getStageNumber(acquiredItem)}단계`}
-                  를 받았어요!
+                  {i18n.t("skin.unlocked", { name: getCostumeName(getStageNumber(acquiredItem)) })}
                 </Text>
                 <Text style={styles.dialogSubtitle}>
-                  보관함에서 확인할 수 있어요.
+                  {i18n.t("skin.unlockedSub")}
                 </Text>
                 <Pressable
                   style={styles.dialogButton}
                   onPress={() => setAcquiredItem(null)}
                 >
-                  <Text style={styles.dialogButtonText}>확인</Text>
+                  <Text style={styles.dialogButtonText}>{i18n.t("skin.done")}</Text>
                 </Pressable>
               </View>
             </View>
