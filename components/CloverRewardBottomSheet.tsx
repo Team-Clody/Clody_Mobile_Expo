@@ -1,17 +1,13 @@
-import { useRouter } from "expo-router";
-import IcLock from "@/assets/icons/ic_lock.svg";
-import IcFarmer from "@/assets/icons/ic_farmer.svg";
-import IcPrincess from "@/assets/icons/ic_princess.svg";
+import {
+  GetSkinStatusListResponseDTO,
+  SkinStatusItemResponseDTO,
+} from "@/api/dto/skin/response/getSkinStatusListResponseDTO";
+import { SkinAPI } from "@/api/skinAPI";
 import IcDevil from "@/assets/icons/ic_devil.svg";
-
-const COSTUME_ICONS: Record<
-  number,
-  { Icon: React.FC<{ width: number; height: number }>; width: number; height: number }
-> = {
-  1: { Icon: IcFarmer, width: 28, height: 25 },
-  2: { Icon: IcPrincess, width: 34, height: 29 },
-  3: { Icon: IcDevil, width: 50, height: 27 },
-};
+import IcFarmer from "@/assets/icons/ic_farmer.svg";
+import IcLock from "@/assets/icons/ic_lock.svg";
+import IcPrincess from "@/assets/icons/ic_princess.svg";
+import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -26,15 +22,43 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Tooltip from "./Tooltip";
-import { SkinAPI } from "@/api/skinAPI";
-import {
-  GetSkinStatusListResponseDTO,
-  SkinStatusItemResponseDTO,
-} from "@/api/dto/skin/response/getSkinStatusListResponseDTO";
+
+const COSTUME_ICONS: Record<
+  number,
+  { Icon: React.FC<{ width: number; height: number }>; width: number; height: number }
+> = {
+  1: { Icon: IcFarmer, width: 28, height: 25 },
+  2: { Icon: IcPrincess, width: 34, height: 29 },
+  3: { Icon: IcDevil, width: 50, height: 27 },
+};
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } =
   Dimensions.get("window");
 const BOTTOM_SHEET_HEIGHT = SCREEN_HEIGHT * 0.85;
+
+const STAGE_MAX_BY_STAGE: Record<number, number> = {
+  1: 2,
+  2: 4,
+  3: 6,
+  4: 8,
+  5: 10,
+  6: 24,
+  7: 38,
+  8: 52,
+  9: 66,
+  10: 80,
+  11: 94,
+  12: 108,
+  13: 122,
+  14: 136,
+  15: 150,
+  16: 164,
+  17: 178,
+  18: 192,
+  19: 206,
+  20: 220,
+  21: 234,
+};
 
 const COSTUME_NAMES: Record<number, string> = {
   1: "멜빵 바지",
@@ -146,15 +170,8 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
 
   const totalClovers = data?.totalCloverCount ?? 0;
   const currentStageMax = data?.currentStageMaxClover ?? 0;
+  const currentStage = data?.currentStage ?? 0;
   const skins = data?.skins ?? [];
-
-  const lastReceivedOrUnlocked = skins
-    .filter((s) => s.status === "RECEIVED" || s.status === "UNLOCKED")
-    .reduce((max, s) => Math.max(max, getStageNumber(s)), 0);
-  const currentStage =
-    lastReceivedOrUnlocked > 0
-      ? lastReceivedOrUnlocked + 1
-      : (data?.currentStage ?? 0);
 
   useEffect(() => {
     if (visible && scrollViewRef.current && currentStage > 1) {
@@ -185,7 +202,11 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
     router.push("/(home)/storage");
   };
 
-  const tooltipMessage = getTooltipMessage(totalClovers, currentStageMax);
+  const currentPrevStageMax = STAGE_MAX_BY_STAGE[currentStage - 1] ?? 0;
+  const tooltipMessage = getTooltipMessage(
+    Math.max(0, totalClovers - currentPrevStageMax),
+    Math.max(0, currentStageMax - currentPrevStageMax),
+  );
 
   const renderCostumeItem = (skin: SkinStatusItemResponseDTO) => {
     const stageNum = getStageNumber(skin);
@@ -195,10 +216,12 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
     const isCurrent = stageNum === currentStage && !isReceived && !canClaim;
     const isLocked = skin.status === "LOCKED" && !isCurrent;
     const showProgressBar = isCurrent || canClaim;
+    const prevStageMax = STAGE_MAX_BY_STAGE[stageNum - 1] ?? 0;
+    const stageDelta = currentStageMax - prevStageMax;
     const itemProgress = canClaim
       ? 1
-      : isCurrent && currentStageMax > 0
-        ? Math.min(1, totalClovers / currentStageMax)
+      : isCurrent && stageDelta > 0
+        ? Math.max(0, Math.min(1, (totalClovers - prevStageMax) / stageDelta))
         : 0;
 
     return (
@@ -417,57 +440,62 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   handle: {
-    width: 40,
+    width: 30,
     height: 4,
-    backgroundColor: "#D9D9D9",
-    borderRadius: 2,
+    backgroundColor: "#E3E6ED",
+    borderRadius: 6,
   },
   header: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingBottom: 10,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
-    color: "#111111",
+    color: "#000000",
     marginTop: 26,
     marginBottom: 4,
+    letterSpacing: -0.36,
   },
   subtitle: {
-    fontSize: 14,
-    color: "#8E8E8E",
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#6B7684",
     marginBottom: 22,
+    letterSpacing: -0.26,
   },
   cloverCountCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 14,
+    height: 40,
     paddingHorizontal: 16,
-    backgroundColor: "#F4F6F8",
-    borderRadius: 12,
+    backgroundColor: "#F8F9FC",
+    borderRadius: 6,
   },
   cloverLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
-    color: "#3C3C43",
+    color: "#1B1C20",
+    letterSpacing: -0.28,
   },
   cloverCount: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111111",
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1B1C20",
+    letterSpacing: -0.28,
   },
   scrollArea: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 16,
   },
   costumeItemWrapper: {
     position: "relative",
-    marginBottom: 12,
+    marginBottom: 10,
     overflow: "visible",
   },
   tooltipAbs: {
@@ -506,7 +534,7 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   costumeIcon: {
-    marginRight: 12,
+    marginRight: 16,
   },
   iconPlaceholder: {
     width: 50,
@@ -538,21 +566,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   levelText: {
-    fontSize: 12,
-    color: "#8E8E8E",
+    fontSize: 11,
+    fontWeight: "500",
+    color: "#6B7684",
     marginBottom: 2,
+    letterSpacing: -0.22,
   },
   levelTextCurrent: {
-    color: "#5EB362",
-    fontWeight: "600",
+    color: "#00D159",
+    fontWeight: "500",
   },
   costumeName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111111",
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#000000",
+    letterSpacing: -0.3,
   },
   costumeNameLocked: {
-    color: "#111111",
+    color: "#000000",
   },
   progressContainer: {
     marginTop: 6,
@@ -560,21 +591,21 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 4,
-    backgroundColor: "#E8E8E8",
-    borderRadius: 2,
+    backgroundColor: "#E3E6ED",
+    borderRadius: 4,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#00D15A",
-    borderRadius: 2,
+    backgroundColor: "#00D159",
+    borderRadius: 4,
   },
   costumeRight: {
     marginLeft: 8,
     alignItems: "flex-end",
   },
   progressBadge: {
-    backgroundColor: "#00D15A",
+    backgroundColor: "#00D159",
     height: 28,
     paddingHorizontal: 10,
     paddingVertical: 2,
@@ -586,12 +617,13 @@ const styles = StyleSheet.create({
   progressBadgeText: {
     color: "#FFFFFF",
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "500",
+    letterSpacing: -0.26,
   },
   claimButton: {
     alignSelf: "flex-end",
     marginRight: -8,
-    backgroundColor: "#00D15A",
+    backgroundColor: "#00D159",
     height: 28,
     paddingHorizontal: 10,
     paddingVertical: 2,
@@ -603,7 +635,8 @@ const styles = StyleSheet.create({
   claimButtonText: {
     color: "#FFFFFF",
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "500",
+    letterSpacing: -0.26,
   },
   acquiredText: {
     fontSize: 13,
@@ -612,35 +645,39 @@ const styles = StyleSheet.create({
   },
   bottomButtons: {
     flexDirection: "row",
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingVertical: 16,
     paddingBottom: 34,
-    gap: 10,
+    gap: 14,
     backgroundColor: "#FFFFFF",
   },
   storageButton: {
     flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: "#F0F0F0",
+    height: 48,
+    justifyContent: "center",
+    borderRadius: 6,
+    backgroundColor: "#F2F3F6",
     alignItems: "center",
   },
   storageButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111111",
+    color: "#293038",
+    letterSpacing: -0.32,
   },
   confirmButton: {
     flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: "#282A31",
+    height: 48,
+    justifyContent: "center",
+    borderRadius: 6,
+    backgroundColor: "#293038",
     alignItems: "center",
   },
   confirmButtonText: {
     fontSize: 16,
     fontWeight: "600",
     color: "#FFFFFF",
+    letterSpacing: -0.32,
   },
   dialogOverlay: {
     ...StyleSheet.absoluteFillObject,
