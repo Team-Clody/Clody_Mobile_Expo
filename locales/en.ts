@@ -29,6 +29,8 @@ export default {
   withdrawConfirm: 'Withdraw',
   cancel: 'Cancel',
   nicknameError: 'Only letters and numbers are allowed.',
+  nicknameChange: 'Change Nickname',
+  nicknameSubmit: 'Change',
   editNickname: 'Edit Nickname',
   next: 'next',
   nicknameSuccess: 'Save Changes',

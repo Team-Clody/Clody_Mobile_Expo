@@ -44,17 +44,30 @@ import CloverRewardBottomSheet from "@/components/CloverRewardBottomSheet";
 import { useStorageStore } from "@/store/useStorageStore";
 import { useFocusEffect } from "expo-router";
 import { useApp } from "@/store/useAppStore";
+import { typography } from "@/shared/theme/typography";
 
 const bgDefaultPng = require("../../../../assets/images/bg_default.png");
 const { width } = Dimensions.get("window");
 
 const WEEK_DAYS_EN = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 const WEEK_DAYS_KO = ["월", "화", "수", "목", "금", "토", "일"];
+const WEEKDAY_LABEL_CIRCLE_SIZE = 28;
+const TODAY_WEEKDAY_LABEL_CIRCLE_SIZE = 24;
+const MONTHLY_SHEET_CLOVER_ROW_GAP = 24;
+const MONTHLY_TODAY_BADGE_SIZE = {
+  ko: { width: 30, height: 32, top: -24 },
+  en: { width: 34, height: 38, top: -29 },
+} as const;
+const MONTHLY_TODAY_BADGE_BG = "#4A4C54";
+const HEADER_ACTION_COLOR = "#3C3E48";
+const HEADER_ACTION_DIVIDER_COLOR = "#D1D5DD";
+
 const fontPreset = StyleSheet.create({
   regular: { fontFamily: "PretendardRegular" },
   medium: { fontFamily: "PretendardMedium" },
   semibold: { fontFamily: "PretendardSemiBold" },
   bold: { fontFamily: "PretendardBold" },
+  headerAction: { color: HEADER_ACTION_COLOR },
 });
 
 const getStartOfWeek = (date: Date) => {
@@ -130,6 +143,23 @@ const BG_CENTER_TRANSLATE_Y = 18;
 const CHARACTER_TOP_RATIO = 0.4;
 /** 탭 바 상단과 감사 카드 슬롯 사이 간격(씬은 이미 탭 위 영역이므로 insets.bottom 미가산) */
 const GRATITUDE_ABOVE_TAB_BAR = 12;
+/** 오늘 프롬프트 블록 높이 — 다른 날짜일 때 하단 카드 위치 고정용 */
+const GRATITUDE_PROMPT_BLOCK_HEIGHT = 98;
+
+/** 오늘의 감사 주제 — 프롬프트 문구 (Figma Display4) */
+const gratitudePromptTextStyle = typography.display4;
+/** 오늘 / 5월 25일 (월) 등 날짜 행 (Figma Body2) */
+const gratitudeDateRowTextStyle = typography.body2;
+/** 클로버 안 날짜 숫자 (Figma Body12) */
+const cloverDateTextStyle = {
+  ...typography.body12,
+  position: "absolute" as const,
+  width: 32,
+  textAlign: "center" as const,
+  color: "#fff",
+  includeFontPadding: false,
+  textAlignVertical: "center" as const,
+};
 
 const DUMMY_JOURNAL_PROMPT_KO =
   '"버텨줘서 고마워"라고 말해주고 싶은 나의 모습을 적어보세요.';
@@ -526,9 +556,13 @@ export default function Main() {
   const isKo = i18n.locale?.startsWith("ko");
   const TodayIcon = isKo ? TodayIconKo : TodayIconEn;
   const weekDays = isKo ? WEEK_DAYS_KO : WEEK_DAYS_EN;
-  const headerActionTextStyle = isKo
-    ? [fontPreset.medium, { fontWeight: "500" as const }]
-    : [fontPreset.regular, { fontWeight: "400" as const }];
+  const headerActionTextStyle = [
+    isKo ? fontPreset.medium : fontPreset.regular,
+    fontPreset.headerAction,
+    isKo
+      ? { fontWeight: "500" as const }
+      : { fontWeight: "400" as const },
+  ];
   const levelChipTextStyle = isKo
     ? [fontPreset.bold, { fontWeight: "700" as const }]
     : [fontPreset.semibold, { fontWeight: "600" as const }];
@@ -945,8 +979,6 @@ export default function Main() {
           backgroundColor: "#fff",
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
-          paddingTop: 20,
-          paddingHorizontal: 20,
           paddingBottom: 30,
           transform: [{ translateY: datePickerTranslateY }],
         }}
@@ -954,7 +986,13 @@ export default function Main() {
         <Text
           style={[
             fontPreset.bold,
-            { fontSize: 16, color: "#20232a", marginBottom: 18 },
+            {
+              fontSize: 16,
+              color: "#20232a",
+              marginTop: 20,
+              marginLeft: 20,
+              marginBottom: 18,
+            },
           ]}
         >
           {i18n.t("main.datePicker.title")}
@@ -963,10 +1001,11 @@ export default function Main() {
           style={{
             height: 220,
             marginBottom: 20,
+            paddingHorizontal: 20,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            gap: 6,
+            gap: 0,
           }}
         >
           {isKo ? (
@@ -976,34 +1015,31 @@ export default function Main() {
                 items={yearItems}
                 initValue={`${draftYear}년`}
                 itemHeight={44}
-                fontFamily="PretendardSemiBold"
                 onItemChange={(item) => {
                   const nextYear = getNumericValue(item);
                   if (!Number.isFinite(nextYear)) return;
                   setDraftYear(nextYear);
                 }}
-                containerStyle={{ width: 104 }}
+                containerStyle={{ width: 96 }}
               />
               <WheelPicker
                 key={`ko-month-${datePickerSessionKey}`}
                 items={monthItems}
                 initValue={`${draftMonth}월`}
                 itemHeight={44}
-                fontFamily="PretendardSemiBold"
                 onItemChange={(item) => {
                   const nextMonth = getNumericValue(item);
                   if (!Number.isFinite(nextMonth)) return;
                   if (nextMonth < 1 || nextMonth > 12) return;
                   setDraftMonth(nextMonth);
                 }}
-                containerStyle={{ width: 92 }}
+                containerStyle={{ width: 84 }}
               />
               <WheelPicker
                 key={`ko-day-${datePickerSessionKey}`}
                 items={dayItems}
                 initValue={`${draftDay}일`}
                 itemHeight={44}
-                fontFamily="PretendardSemiBold"
                 onItemChange={(item) => {
                   const nextDay = getNumericValue(item);
                   if (!Number.isFinite(nextDay)) return;
@@ -1011,7 +1047,7 @@ export default function Main() {
                     return;
                   setDraftDay(nextDay);
                 }}
-                containerStyle={{ width: 92 }}
+                containerStyle={{ width: 84 }}
               />
             </>
           ) : (
@@ -1027,7 +1063,7 @@ export default function Main() {
                   if (nextMonth < 1 || nextMonth > 12) return;
                   setDraftMonth(nextMonth);
                 }}
-                containerStyle={{ width: 138 }}
+                containerStyle={{ width: 128 }}
               />
               <WheelPicker
                 key={`en-day-${datePickerSessionKey}`}
@@ -1041,7 +1077,7 @@ export default function Main() {
                     return;
                   setDraftDay(nextDay);
                 }}
-                containerStyle={{ width: 82 }}
+                containerStyle={{ width: 76 }}
               />
               <WheelPicker
                 key={`en-year-${datePickerSessionKey}`}
@@ -1053,7 +1089,7 @@ export default function Main() {
                   if (!Number.isFinite(nextYear)) return;
                   setDraftYear(nextYear);
                 }}
-                containerStyle={{ width: 112 }}
+                containerStyle={{ width: 104 }}
               />
             </>
           )}
@@ -1070,13 +1106,21 @@ export default function Main() {
             }}
           />
         </View>
-        <View style={{ flexDirection: "row", gap: 12 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+            paddingVertical: 14,
+            paddingHorizontal: 20,
+          }}
+        >
           <Pressable
             onPress={applyTodayAndClose}
             style={{
-              flex: 1,
+              width: 80,
               height: 48,
-              borderRadius: 8,
+              borderRadius: 6,
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: "#ECEFF3",
@@ -1091,12 +1135,12 @@ export default function Main() {
           <Pressable
             onPress={applyPickedDateAndClose}
             style={{
-              flex: 3,
+              flex: 1,
               height: 48,
-              borderRadius: 8,
+              borderRadius: 6,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: "#2D3645",
+              backgroundColor: "#293038",
             }}
           >
             <Text
@@ -1176,7 +1220,14 @@ export default function Main() {
                 </Text>
               </Pressable>
 
-              <Text style={{ marginHorizontal: 8 }}>|</Text>
+              <Text
+                style={{
+                  marginHorizontal: 8,
+                  color: HEADER_ACTION_DIVIDER_COLOR,
+                }}
+              >
+                |
+              </Text>
 
               <Pressable onPress={openMonthly}>
                 <Text style={headerActionTextStyle}>
@@ -1212,6 +1263,9 @@ export default function Main() {
                     const columnDate = item[index];
                     const isSelectedWeekdayHighlight = isSameDate(columnDate, gratitudeDate);
                     const isTodayWeekdayHighlight = isCalendarToday(columnDate);
+                    const weekdayCircleSize = isTodayWeekdayHighlight
+                      ? TODAY_WEEKDAY_LABEL_CIRCLE_SIZE
+                      : WEEKDAY_LABEL_CIRCLE_SIZE;
 
                     return (
                       <View
@@ -1223,14 +1277,14 @@ export default function Main() {
                       >
                         <View
                           style={{
-                            width: 28,
-                            height: 28,
+                            width: weekdayCircleSize,
+                            height: weekdayCircleSize,
                             borderRadius: 999,
                             overflow: "hidden",
                             justifyContent: "center",
                             alignItems: "center",
                             backgroundColor: isSelectedWeekdayHighlight
-                              ? "#2B313D"
+                              ? "#293038"
                               : isTodayWeekdayHighlight
                                 ? "#F2F3F6"
                                 : "transparent",
@@ -1243,7 +1297,7 @@ export default function Main() {
                                 color: isSelectedWeekdayHighlight ? "#FFFFFF" : "#888",
                                 fontWeight: isSelectedWeekdayHighlight ? "600" : "500",
                                 fontSize: 13,
-                                lineHeight: 28,
+                                lineHeight: weekdayCircleSize,
                                 textAlign: "center",
                                 backgroundColor: "transparent",
                                 includeFontPadding: false,
@@ -1265,7 +1319,7 @@ export default function Main() {
                 <View
                   style={{
                     flexDirection: "row",
-                    marginTop: 10,
+                    marginTop: 6,
                   }}
                 >
                   {item.map((date: Date, i: number) => {
@@ -1323,21 +1377,7 @@ export default function Main() {
                           {isDraftReply ? (
                             <DotDotDotIcon width={12} height={3} style={{ position: "absolute" }} />
                           ) : (
-                            <Text
-                              style={[
-                                fontPreset.semibold,
-                                {
-                                  position: "absolute",
-                                  width: 32,
-                                  textAlign: "center",
-                                  color: "#fff",
-                                  fontSize: 12,
-                                  lineHeight: 14,
-                                  includeFontPadding: false,
-                                  textAlignVertical: "center",
-                                },
-                              ]}
-                            >
+                            <Text style={cloverDateTextStyle}>
                               {date.getDate()}
                             </Text>
                           )}
@@ -1413,7 +1453,7 @@ export default function Main() {
               <GroupCharacter
                 width={128}
                 height={183}
-                style={{ marginBottom: 6 }}
+                style={{ marginBottom: 9 }}
                 pointerEvents="none"
               />
               <Pressable
@@ -1472,7 +1512,7 @@ export default function Main() {
                 <ChevronDarkIcon
                   width={8}
                   height={12}
-                  style={{ marginLeft: 6, transform: [{ translateY: 1 }] }}
+                  style={{ marginLeft: 9, transform: [{ translateY: 1 }] }}
                 />
               </Pressable>
             </View>
@@ -1495,101 +1535,97 @@ export default function Main() {
               paddingBottom: 4,
             }}
           >
-            {isCalendarToday(gratitudeDate) ? (
-              <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={{
-                  flexGrow: 1,
-                  justifyContent: "flex-end",
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{
+                flexGrow: 1,
+                justifyContent: "flex-end",
+              }}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+              bounces={false}
+            >
+              {!isCalendarToday(gratitudeDate) && (
+                <View style={{ height: GRATITUDE_PROMPT_BLOCK_HEIGHT }} />
+              )}
+              <View
+                style={{
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: 16,
+                  paddingHorizontal: 15,
+                  paddingTop: 15,
+                  paddingBottom: 15,
+                  overflow: "visible",
+                  boxShadow: [
+                    {
+                      offsetX: 0,
+                      offsetY: 1,
+                      blurRadius: 6,
+                      color: "rgba(0, 0, 0, 0.05)",
+                    },
+                  ],
                 }}
-                showsVerticalScrollIndicator={false}
-                nestedScrollEnabled
-                bounces={false}
               >
-                <View
-                  style={{
-                    backgroundColor: "#FFFFFF",
-                    borderRadius: 16,
-                    paddingHorizontal: 15,
-                    paddingTop:15,
-                    paddingBottom: 15,
-                    overflow: "visible",
-                    boxShadow: [
-                      {
-                        offsetX: 0,
-                        offsetY: 1,
-                        blurRadius: 6,
-                        color: "rgba(0, 0, 0, 0.05)",
-                      },
-                    ],
-                  }}
-                >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginBottom: 8,
-                  }}
-                >
-                  <PromptIcon width={18} height={18} style={{ marginRight: 6 }} />
-                  <Text
-                    style={[
-                      fontPreset.semibold,
-                      { color: "#00A34A", fontSize: 15 },
-                    ]}
-                  >
-                    {i18n.t("main.gratitude.title")}
-                  </Text>
-                </View>
-                <View style={{ width: "100%", marginBottom: 12 }}>
-                  <GradientText
-                    style={[
-                      fontPreset.bold,
-                      {
-                        fontSize: 16,
-                        lineHeight: 16 * 1.4,
-                        letterSpacing: 16 * -0.02,
-                      },
-                    ]}
-                  >
-                    {journalPromptText ||
-                      (isKo ? DUMMY_JOURNAL_PROMPT_KO : DUMMY_JOURNAL_PROMPT_EN)}
-                  </GradientText>
-                </View>
-                <View
-                  style={{
-                    position: "relative",
-                    marginBottom: 14,
-                    overflow: "visible",
-                  }}
-                >
-                  <View
-                    style={{
-                      height: StyleSheet.hairlineWidth,
-                      backgroundColor: "#E5E7EB",
-                    }}
-                  />
-                  {isUnready && (
-                    <Pressable
-                      onPress={() => {}}
-                      hitSlop={8}
+                {isCalendarToday(gratitudeDate) && (
+                  <>
+                    <View
                       style={{
-                        position: "absolute",
-                        right: -15,
-                        top: -13,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <PromptIcon width={18} height={18} style={{ marginRight: 6 }} />
+                      <Text
+                        style={[
+                          fontPreset.semibold,
+                          { color: "#00A34A", fontSize: 12 },
+                        ]}
+                      >
+                        {i18n.t("main.gratitude.title")}
+                      </Text>
+                    </View>
+                    <View style={{ width: "100%", marginBottom: 12 }}>
+                      <GradientText style={gratitudePromptTextStyle}>
+                        {journalPromptText ||
+                          (isKo ? DUMMY_JOURNAL_PROMPT_KO : DUMMY_JOURNAL_PROMPT_EN)}
+                      </GradientText>
+                    </View>
+                    <View
+                      style={{
+                        position: "relative",
+                        marginBottom: 14,
                         overflow: "visible",
                       }}
                     >
-                      <AdToReplyIcon width={isKo ? 168 : 160} height={42} />
-                    </Pressable>
-                  )}
-                </View>
+                      <View
+                        style={{
+                          height: StyleSheet.hairlineWidth,
+                          backgroundColor: "#E5E7EB",
+                        }}
+                      />
+                      {isUnready && (
+                        <Pressable
+                          onPress={() => {}}
+                          hitSlop={8}
+                          style={{
+                            position: "absolute",
+                            right: -15,
+                            top: -13,
+                            overflow: "visible",
+                          }}
+                        >
+                          <AdToReplyIcon width={isKo ? 168 : 160} height={42} />
+                        </Pressable>
+                      )}
+                    </View>
+                  </>
+                )}
                 <View
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
                     minHeight: 34,
-                    paddingTop: isUnready ? 0 : 0,
                   }}
                 >
                   <View
@@ -1608,21 +1644,18 @@ export default function Main() {
                       }}
                     >
                       <Text
-                        style={[
-                          fontPreset.semibold,
-                          { color: "#6B7280", fontSize: 12, fontWeight: "600" },
-                        ]}
+                        style={[gratitudeDateRowTextStyle, { color: "#6B7280" }]}
                       >
-                        {i18n.t("main.gratitude.todayBadge")}
+                        {isCalendarToday(gratitudeDate)
+                          ? i18n.t("main.gratitude.todayBadge")
+                          : pastDayBadgeLabel}
                       </Text>
                     </View>
                     <Text
                       style={[
-                        fontPreset.semibold,
+                        gratitudeDateRowTextStyle,
                         {
                           color: "#111827",
-                          fontSize: isKo ? 15 : 14,
-                          fontWeight: "600",
                           marginLeft: isKo ? 10 : 8,
                           flexShrink: 1,
                         },
@@ -1689,136 +1722,8 @@ export default function Main() {
                     </Pressable>
                   )}
                 </View>
-                </View>
-              </ScrollView>
-            ) : (
-              <View style={{ flex: 1, justifyContent: "flex-end" }}>
-                <View
-                  style={{
-                    backgroundColor: "#FFFFFF",
-                    borderRadius: 16,
-                    paddingHorizontal: 22,
-                    paddingVertical: 15,
-                    overflow: "visible",
-                    boxShadow: [
-                      {
-                        offsetX: 0,
-                        offsetY: 1,
-                        blurRadius: 6,
-                        color: "rgba(0, 0, 0, 0.05)",
-                      },
-                    ],
-                  }}
-                >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    minHeight: 34,
-                    paddingTop: isUnready ? 6 : 0,
-                  }}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      flexShrink: 1,
-                    }}
-                  >
-                    <View
-                      style={{
-                        backgroundColor: "#F3F4F6",
-                        borderRadius: 8,
-                        marginLeft: !isKo && diffDaysFromToday >= 2 ? -10 : -10,
-                        paddingHorizontal: 10,
-                        paddingVertical: 10,
-                      }}
-                    >
-                      <Text
-                        style={[
-                          fontPreset.semibold,
-                          { color: "#6B7280", fontSize: 12, fontWeight: "600" },
-                        ]}
-                      >
-                        {pastDayBadgeLabel}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[
-                        fontPreset.semibold,
-                        {
-                          color: "#111827",
-                          fontSize: isKo ? 15 : 14,
-                          fontWeight: "600",
-                          marginLeft: isKo ? 10 : 8,
-                          flexShrink: 1,
-                        },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {pastCardDateLabel}
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1, minWidth: isKo ? 8 : 4 }} />
-                  {isUnready ? (
-                    <Text
-                      style={[
-                        fontPreset.medium,
-                        {
-                          color: "#4B5563",
-                          fontSize: isKo ? 15 : 13,
-                          fontWeight: "500",
-                          flexShrink: 0,
-                          fontFamily: "PretendardMedium",
-                        },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {selectedReplyReadyAtMs != null ? timerText : unreadyNoScheduleText}
-                    </Text>
-                  ) : (
-                    <Pressable
-                      onPress={() => {}}
-                      hitSlop={8}
-                      style={{ width: isKo ? 106 : 132, alignItems: "flex-end" }}
-                    >
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                        {isReadyNotRead && (
-                          <NewIcon width={14} height={14} style={{ marginRight: 0}} />
-                        )}
-                        <Text
-                          style={[
-                            fontPreset.semibold,
-                            {
-                              color: actionTextColor,
-                              fontSize: 14,
-                              fontWeight: "600",
-                              marginLeft: isReadyNotRead ? 2 : 0,
-                            },
-                          ]}
-                        >
-                          {actionLabel}
-                        </Text>
-                        {isReadyNotRead ? (
-                          <ChevronGreenIcon
-                            width={8}
-                            height={12}
-                            style={{ marginLeft: 6, transform: [{ translateY: 1 }] }}
-                          />
-                        ) : (
-                          <ChevronDarkIcon
-                            width={8}
-                            height={12}
-                            style={{ marginLeft: 6, transform: [{ translateY: 1 }] }}
-                          />
-                        )}
-                      </View>
-                    </Pressable>
-                  )}
-                </View>
-                </View>
               </View>
-            )}
+            </ScrollView>
           </View>
         </View>
       </View>
@@ -1917,6 +1822,9 @@ export default function Main() {
                 const isSelectedWeekday = index === selectedWeekdayIndex;
                 const todayWeekdayIndex = (today.getDay() + 6) % 7;
                 const isTodayWeekday = index === todayWeekdayIndex;
+                const weekdayCircleSize = isTodayWeekday
+                  ? TODAY_WEEKDAY_LABEL_CIRCLE_SIZE
+                  : WEEKDAY_LABEL_CIRCLE_SIZE;
                 return (
                   <View
                     key={d}
@@ -1927,14 +1835,14 @@ export default function Main() {
                   >
                     <View
                       style={{
-                        width: !isKo ? 28 : 28,
-                        height: !isKo ? 28 : 28,
-                        borderRadius: 14,
+                        width: weekdayCircleSize,
+                        height: weekdayCircleSize,
+                        borderRadius: weekdayCircleSize / 2,
                         justifyContent: "center",
                         alignItems: "center",
                         overflow: "hidden",
                         backgroundColor: isSelectedWeekday
-                          ? "#2B313D"
+                          ? "#293038"
                           : isTodayWeekday
                             ? "#F2F3F6"
                             : "transparent",
@@ -1968,7 +1876,7 @@ export default function Main() {
                 key={i}
                 style={{
                   flexDirection: "row",
-                  marginBottom: 18,
+                  marginBottom: MONTHLY_SHEET_CLOVER_ROW_GAP,
                 }}
               >
                 {week.map((date, j) => {
@@ -2025,11 +1933,22 @@ export default function Main() {
                           {/* Today */}
                           {isToday && (
                             <TodayIcon
-                              width={isKo ? 35 : 40}
-                              height={isKo ? 38 : 44}
+                              width={
+                                isKo
+                                  ? MONTHLY_TODAY_BADGE_SIZE.ko.width
+                                  : MONTHLY_TODAY_BADGE_SIZE.en.width
+                              }
+                              height={
+                                isKo
+                                  ? MONTHLY_TODAY_BADGE_SIZE.ko.height
+                                  : MONTHLY_TODAY_BADGE_SIZE.en.height
+                              }
+                              color={MONTHLY_TODAY_BADGE_BG}
                               style={{
                                 position: "absolute",
-                                top: isKo ? -29 : -34,
+                                top: isKo
+                                  ? MONTHLY_TODAY_BADGE_SIZE.ko.top
+                                  : MONTHLY_TODAY_BADGE_SIZE.en.top,
                               }}
                             />
                           )}
@@ -2059,21 +1978,7 @@ export default function Main() {
                           {isDraftReply ? (
                             <DotDotDotIcon width={12} height={3} style={{ position: "absolute" }} />
                           ) : (
-                            <Text
-                              style={[
-                                fontPreset.semibold,
-                                {
-                                position: "absolute",
-                                width: 32,
-                                textAlign: "center",
-                                color: "#fff",
-                                fontSize: 12,
-                                lineHeight: 14,
-                                includeFontPadding: false,
-                                textAlignVertical: "center",
-                              },
-                              ]}
-                            >
+                            <Text style={cloverDateTextStyle}>
                               {date.getDate()}
                             </Text>
                           )}
@@ -2102,7 +2007,7 @@ export default function Main() {
                 width: 40,
                 height: 4,
                 borderRadius: 2,
-                backgroundColor: "#D1D5DB",
+                backgroundColor: "#E3E6ED",
               }}
             />
           </Pressable>

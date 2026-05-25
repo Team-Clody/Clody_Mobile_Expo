@@ -11,11 +11,14 @@ import { useCallback, useContext, useEffect, useState } from "react";
 import { HomeContext } from "./_layout";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
+import LeftArrowIcon from "@/assets/icons/leftarrow.svg";
+import RightArrowIcon from "@/assets/icons/rightarrow.svg";
 import BottomToast from "@/components/BottomToast";
 import { AuthAPI } from "@/api/authAPI";
 import i18n from "@/app/i18n/i18n";
 import { useApp } from "@/store/useAppStore";
 import { tokenStorage } from "@/shared/storage/tokenStorage";
+import { typography } from "@/shared/theme/typography";
 
 export default function Profile() {
   const context = useContext(HomeContext);
@@ -72,7 +75,7 @@ export default function Profile() {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Text style={styles.backIcon}>‹</Text>
+            <LeftArrowIcon width={9} height={16} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{i18n.t("profileTitle")}</Text>
 
@@ -117,11 +120,13 @@ export default function Profile() {
       <Modal transparent visible={showLogoutModal} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>{i18n.t("logoutTitle")}</Text>
+            <Text style={styles.modalDisplayTitle}>
+              {i18n.t("logoutTitle")}
+            </Text>
 
             <Text style={styles.modalDesc}>{i18n.t("logoutDesc")}</Text>
 
-            <View style={styles.modalButtons}>
+            <View style={styles.modalActionButtons}>
               <TouchableOpacity
                 style={styles.cancelBtn}
                 onPress={() => setShowLogoutModal(false)}
@@ -144,11 +149,13 @@ export default function Profile() {
       <Modal transparent visible={showWithdrawModal} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>{i18n.t("withdrawTitle")}</Text>
+            <Text style={styles.modalDisplayTitle}>
+              {i18n.t("withdrawTitle")}
+            </Text>
 
             <Text style={styles.modalDesc}>{i18n.t("withdrawDesc")}</Text>
 
-            <View style={styles.modalButtons}>
+            <View style={styles.modalActionButtons}>
               <TouchableOpacity
                 style={styles.withdrawCancelBtn}
                 onPress={() => setShowWithdrawModal(false)}
@@ -204,7 +211,9 @@ function InfoRow({
             <Text style={styles.value} numberOfLines={1}>
               {value}
             </Text>
-            {arrow ? <Text style={styles.arrow}>{">"}</Text> : null}
+            {arrow ? (
+              <RightArrowIcon width={7} height={12} style={styles.arrow} />
+            ) : null}
           </View>
         </View>
       </Pressable>
@@ -252,12 +261,6 @@ const styles = StyleSheet.create({
     height: 28,
     justifyContent: "center",
     alignItems: "flex-start",
-  },
-  backIcon: {
-    fontSize: 30,
-    lineHeight: 30,
-    color: "#111111",
-    fontWeight: "300",
   },
   headerTitle: {
     fontSize: 16,
@@ -308,9 +311,6 @@ const styles = StyleSheet.create({
   },
   arrow: {
     marginLeft: 8,
-    fontSize: 18,
-    lineHeight: 18,
-    color: "#9A9AA2",
   },
 
   sectionDivider: {
@@ -345,10 +345,10 @@ const styles = StyleSheet.create({
     padding: 20,
   },
 
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+  modalDisplayTitle: {
+    ...typography.display3,
     textAlign: "center",
+    color: "#1B1C20",
   },
 
   modalDesc: {
@@ -358,26 +358,30 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  modalButtons: {
+  modalActionButtons: {
     flexDirection: "row",
     marginTop: 20,
     gap: 10,
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   cancelBtn: {
-    flex: 1,
+    width: 139,
+    height: 42,
+    borderRadius: 8,
     backgroundColor: "#E5E7EB",
-    paddingVertical: 12,
-    borderRadius: 10,
     alignItems: "center",
+    justifyContent: "center",
   },
 
   logoutBtn: {
-    flex: 1,
+    width: 139,
+    height: 42,
+    borderRadius: 8,
     backgroundColor: "#111827",
-    paddingVertical: 12,
-    borderRadius: 10,
     alignItems: "center",
+    justifyContent: "center",
   },
 
   cancelText: {
@@ -390,11 +394,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   withdrawCancelBtn: {
-    flex: 1,
-    backgroundColor: "#EF4444", // 빨강
-    paddingVertical: 12,
-    borderRadius: 10,
+    width: 139,
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: "#EF4444",
     alignItems: "center",
+    justifyContent: "center",
   },
 
   withdrawCancelText: {
@@ -403,11 +408,12 @@ const styles = StyleSheet.create({
   },
 
   withdrawBtn: {
-    flex: 1,
-    backgroundColor: "#E5E7EB", // 회색
-    paddingVertical: 12,
-    borderRadius: 10,
+    width: 139,
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: "#E5E7EB",
     alignItems: "center",
+    justifyContent: "center",
   },
 
   withdrawText: {

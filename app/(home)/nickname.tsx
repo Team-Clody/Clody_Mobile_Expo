@@ -13,10 +13,13 @@ import { useContext, useEffect, useState } from "react";
 import { HomeContext } from "./_layout";
 import { useRouter } from "expo-router";
 import { Modal } from "react-native";
+import LeftArrowIcon from "@/assets/icons/leftarrow.svg";
 import i18n from "../i18n/i18n";
 import { Ionicons } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
+
+const KEYBOARD_BUTTON_GAP = 12;
 
 export default function Profile() {
   const context = useContext(HomeContext);
@@ -52,9 +55,9 @@ export default function Profile() {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Text style={styles.backIcon}>‹</Text>
+            <LeftArrowIcon width={9} height={16} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{i18n.t("profileTitle")}</Text>
+          <Text style={styles.headerTitle}>{i18n.t("nicknameChange")}</Text>
 
           <View style={styles.headerRight} />
         </View>
@@ -103,17 +106,16 @@ export default function Profile() {
               {i18n.t("nicknameError")}
             </Text>
           }
-          <Text style={styles.counter}>{nickname.length}/10</Text>
+          <Text style={styles.counter}>
+            <Text style={styles.counterCurrent}>{nickname.length}</Text>
+            <Text style={styles.counterTotal}>/10</Text>
+          </Text>
         </View>
         <View
           style={[
             styles.bottomButtonWrap,
             {
-              bottom: keyboardShow
-                ? Platform.OS === "ios"
-                  ? keyboardHeight
-                  : keyboardHeight
-                : 0,
+              bottom: keyboardShow ? keyboardHeight + KEYBOARD_BUTTON_GAP : 0,
             },
           ]}
         >
@@ -152,7 +154,7 @@ export default function Profile() {
                 fontSize: 18,
               }}
             >
-              {i18n.t("next")}
+              {i18n.t("nicknameSubmit")}
             </Text>
           </Pressable>
         </View>
@@ -164,11 +166,11 @@ export default function Profile() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#F3F3F6",
+    backgroundColor: "#FFFFFF",
   },
   container: {
     flex: 1,
-    backgroundColor: "#F3F3F6",
+    backgroundColor: "#FFFFFF",
   },
 
   header: {
@@ -183,12 +185,6 @@ const styles = StyleSheet.create({
     height: 28,
     justifyContent: "center",
     alignItems: "flex-start",
-  },
-  backIcon: {
-    fontSize: 30,
-    lineHeight: 30,
-    color: "#111111",
-    fontWeight: "300",
   },
   headerTitle: {
     fontSize: 16,
@@ -369,8 +365,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginRight: 10,
     fontSize: 14,
-    color: "#9CA3AF",
     textAlign: "right",
+  },
+  counterCurrent: {
+    color: "#1B1C20",
+  },
+  counterTotal: {
+    color: "#9CA3AF",
   },
   errorText: {
     marginTop: 6,
