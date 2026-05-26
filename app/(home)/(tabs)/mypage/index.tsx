@@ -2,8 +2,9 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useContext } from "react";
 import { HomeContext } from "../../_layout";
 import { useRouter } from "expo-router";
-import { Image } from "react-native";
+import RightArrowIcon from "@/assets/icons/rightarrow.svg";
 import i18n from "@/app/i18n/i18n";
+import { typography } from "@/shared/theme/typography";
 
 export default function MyPage() {
   const context = useContext(HomeContext);
@@ -28,7 +29,7 @@ export default function MyPage() {
                 {form.nickname || i18n.t("noNickname")}
               </Text>
             </View>
-            <Text style={styles.arrow}>{">"}</Text>
+            <RightArrowIcon width={7} height={12} />
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -36,13 +37,9 @@ export default function MyPage() {
           <TouchableOpacity style={styles.row}>
             <Text style={styles.menuText}>{i18n.t("myCover")}</Text>
 
-            <View style={styles.right}>
-              <Image
-                source={require("@/assets/icons/btn_clover.png")}
-                style={{ width: 16, height: 16 }}
-              />
-              <Text style={styles.count}>{form.cloverCount ?? 0}</Text>
-            </View>
+            <Text style={styles.count}>
+              {i18n.t("cloverCountWithUnit", { count: form.cloverCount ?? 0 })}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -89,7 +86,7 @@ function Menu({
 
       <View style={styles.right}>
         {right && <Text style={styles.subText}>{right}</Text>}
-        <Text style={styles.arrow}>{">"}</Text>
+        <RightArrowIcon width={7} height={12} />
       </View>
     </TouchableOpacity>
   );
@@ -146,24 +143,20 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   menuText: {
-    fontSize: 15,
-    color: "#3C3C43",
+    ...typography.body9,
+    color: "#1B1C20",
   },
   subText: {
-    fontSize: 13,
-    color: "#8E8E93",
+    ...typography.body9,
+    color: "#8791A0",
   },
   right: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
-  arrow: {
-    fontSize: 16,
-    color: "#C7C7CC",
-  },
   count: {
-    fontSize: 14,
-    fontWeight: "500",
+    ...typography.body9,
+    color: "#1B1C20",
   },
 });
