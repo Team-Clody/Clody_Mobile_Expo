@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   wheelContainer: {
     flex: 1,
     flexDirection: "row",
-    paddingHorizontal: 30,
+    paddingHorizontal: 70,
   },
   wheelColumn: {
     flex: 1,

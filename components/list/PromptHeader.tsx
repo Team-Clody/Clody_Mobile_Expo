@@ -72,17 +72,14 @@ export function PromptHeader({ prompt }: PromptHeaderProps) {
           />
         </HStack>
 
-        <Pressable
-          onPress={() => alert("Button Pressed")}
-          style={{ alignSelf: "stretch" }}
-        >
+        <Pressable onPress={() => alert("Button Pressed")}>
           <LinearGradient
             colors={["#5EC091", "#1C9D5F"]}
             locations={[0.031, 0.9974]}
             start={{ x: 0, y: 0.5 }}
             end={{ x: 1, y: 0.5 }}
             style={{
-              height: 36,
+              paddingVertical: 9,
               borderRadius: 7,
               justifyContent: "center",
               alignItems: "center",
