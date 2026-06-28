@@ -1,4 +1,4 @@
-import { Dimensions, StyleSheet } from "react-native";
+import { Dimensions } from "react-native";
 import { typography } from "@/shared/theme/typography";
 import type { ReplyStatus } from "./types";
 
@@ -53,14 +53,6 @@ export const EN_MONTH_ITEMS = [
   "November",
   "December",
 ];
-
-export const fontPreset = StyleSheet.create({
-  regular: { fontFamily: "PretendardRegular" },
-  medium: { fontFamily: "PretendardMedium" },
-  semibold: { fontFamily: "PretendardSemiBold" },
-  bold: { fontFamily: "PretendardBold" },
-  headerAction: { color: HEADER_ACTION_COLOR },
-});
 
 export const gratitudePromptTextStyle = typography.display4;
 export const gratitudeDateRowTextStyle = typography.body2;

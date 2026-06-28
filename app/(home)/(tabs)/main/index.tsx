@@ -31,12 +31,13 @@ import {
   CHARACTER_TOP_RATIO,
   EN_MONTH_ITEMS,
   FORCE_REPLY_STATUS_PREVIEW,
+  HEADER_ACTION_COLOR,
   SCREEN_WIDTH,
   WEEK_DAYS_EN,
   WEEK_DAYS_KO,
   WEEK_STRIP_LENGTH,
-  fontPreset,
 } from "./constants";
+import { localeTextStyle } from "@/shared/theme/localeTypography";
 import { useJournalPrompt } from "./hooks/useJournalPrompt";
 import { useMainCalendarData } from "./hooks/useMainCalendarData";
 import { useReplyReadyTime } from "./hooks/useReplyReadyTime";
@@ -114,17 +115,11 @@ export default function Main() {
   const isKo = i18n.locale?.startsWith("ko");
   const TodayIcon = isKo ? TodayIconKo : TodayIconEn;
   const weekDays = isKo ? WEEK_DAYS_KO : WEEK_DAYS_EN;
-  const headerActionTextStyle = [
-    isKo ? fontPreset.medium : fontPreset.regular,
-    fontPreset.headerAction,
-    isKo ? { fontWeight: "500" as const } : { fontWeight: "400" as const },
-  ];
-  const levelChipTextStyle = isKo
-    ? [fontPreset.bold, { fontWeight: "700" as const }]
-    : [fontPreset.semibold, { fontWeight: "600" as const }];
-  const cloverCountTextStyle = isKo
-    ? [fontPreset.semibold, { fontWeight: "600" as const }]
-    : [fontPreset.medium, { fontWeight: "500" as const }];
+  const headerActionTextStyle = localeTextStyle("headerAction", !!isKo, {
+    color: HEADER_ACTION_COLOR,
+  });
+  const levelChipTextStyle = localeTextStyle("levelChip", !!isKo);
+  const cloverCountTextStyle = localeTextStyle("cloverCount", !!isKo);
 
   const todayStart = startOfLocalDay(new Date());
   const selectedStart = startOfLocalDay(gratitudeDate);

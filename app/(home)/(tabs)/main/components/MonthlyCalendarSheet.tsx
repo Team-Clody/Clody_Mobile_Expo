@@ -21,8 +21,8 @@ import {
   TODAY_WEEKDAY_LABEL_CIRCLE_SIZE,
   WEEKDAY_LABEL_CIRCLE_SIZE,
   cloverDateTextStyle,
-  fontPreset,
 } from "../constants";
+import { fontPreset } from "@/shared/theme/localeTypography";
 import type { ReplyStatus } from "../types";
 import { getMonthMatrix } from "../utils/calendarDataUtils";
 import {

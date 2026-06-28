@@ -1,7 +1,8 @@
 import { Animated, Pressable, Text, View } from "react-native";
 import WheelPicker from "@/components/WheelPicker";
 import i18n from "@/app/i18n/i18n";
-import { EN_MONTH_ITEMS, fontPreset } from "../constants";
+import { EN_MONTH_ITEMS } from "../constants";
+import { fontPreset } from "@/shared/theme/localeTypography";
 import { getDaysInMonth, getNumericValue } from "../utils/dateUtils";
 
 type DatePickerSheetProps = {

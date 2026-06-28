@@ -5,8 +5,8 @@ import {
   BG_CENTER_TRANSLATE_Y,
   BG_DEFAULT_ASPECT_RATIO,
   bgDefaultPng,
-  fontPreset,
 } from "../constants";
+import { fontPreset } from "@/shared/theme/localeTypography";
 
 type CharacterSceneProps = {
   characterTop: number;

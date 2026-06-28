@@ -11,12 +11,12 @@ import ReplyUnreadDotIcon from "@/assets/Ellipse2636.svg";
 import DotDotDotIcon from "@/assets/icons/dotdotdot.svg";
 import {
   cloverDateTextStyle,
-  fontPreset,
   SCREEN_WIDTH,
   TODAY_WEEKDAY_LABEL_CIRCLE_SIZE,
   WEEKDAY_LABEL_CIRCLE_SIZE,
   WEEK_STRIP_CENTER_INDEX,
 } from "../constants";
+import { fontPreset } from "@/shared/theme/localeTypography";
 import type { ReplyStatus } from "../types";
 import {
   formatDateKey,

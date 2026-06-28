@@ -15,10 +15,10 @@ import {
   GRATITUDE_SCROLL_PADDING_TOP,
   GRATITUDE_SLOT_HEIGHT,
   GRATITUDE_SLOT_MARGIN_TOP,
-  fontPreset,
   gratitudeDateRowTextStyle,
   gratitudePromptTextStyle,
 } from "../constants";
+import { fontPreset } from "@/shared/theme/localeTypography";
 import { isCalendarToday } from "../utils/dateUtils";
 
 type GratitudeCardProps = {
