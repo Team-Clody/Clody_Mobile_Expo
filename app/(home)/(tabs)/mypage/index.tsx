@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useContext } from "react";
 import { HomeContext } from "../../_layout";
 import { useRouter } from "expo-router";
-import RightArrowIcon from "@/assets/icons/rightarrow.svg";
+import { Icon } from "@/shared/components/Icon";
 import i18n from "@/app/i18n/i18n";
 import { typography } from "@/shared/theme/typography";
 
@@ -29,7 +29,7 @@ export default function MyPage() {
                 {form.nickname || i18n.t("noNickname")}
               </Text>
             </View>
-            <RightArrowIcon width={7} height={12} />
+            <Icon.IcRightArrow width={7} height={12} />
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -86,7 +86,7 @@ function Menu({
 
       <View style={styles.right}>
         {right && <Text style={styles.subText}>{right}</Text>}
-        <RightArrowIcon width={7} height={12} />
+        <Icon.IcRightArrow width={7} height={12} />
       </View>
     </TouchableOpacity>
   );

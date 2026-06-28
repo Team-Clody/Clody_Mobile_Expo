@@ -13,7 +13,7 @@ import { useContext, useEffect, useState } from "react";
 import { HomeContext } from "./_layout";
 import { useRouter } from "expo-router";
 import { Modal } from "react-native";
-import LeftArrowIcon from "@/assets/icons/leftarrow.svg";
+import { Icon } from "@/shared/components/Icon";
 import i18n from "../i18n/i18n";
 import { Ionicons } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
@@ -55,7 +55,7 @@ export default function Profile() {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <LeftArrowIcon width={9} height={16} />
+            <Icon.IcLeftArrow width={9} height={16} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{i18n.t("nicknameChange")}</Text>
 

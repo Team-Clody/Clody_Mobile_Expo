@@ -11,8 +11,7 @@ import { useCallback, useContext, useEffect, useState } from "react";
 import { HomeContext } from "./_layout";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import LeftArrowIcon from "@/assets/icons/leftarrow.svg";
-import RightArrowIcon from "@/assets/icons/rightarrow.svg";
+import { Icon } from "@/shared/components/Icon";
 import BottomToast from "@/components/BottomToast";
 import { AuthAPI } from "@/api/authAPI";
 import i18n from "@/app/i18n/i18n";
@@ -75,7 +74,7 @@ export default function Profile() {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <LeftArrowIcon width={9} height={16} />
+            <Icon.IcLeftArrow width={9} height={16} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{i18n.t("profileTitle")}</Text>
 
@@ -212,7 +211,7 @@ function InfoRow({
               {value}
             </Text>
             {arrow ? (
-              <RightArrowIcon width={7} height={12} style={styles.arrow} />
+              <Icon.IcRightArrow width={7} height={12} style={styles.arrow} />
             ) : null}
           </View>
         </View>
