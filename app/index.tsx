@@ -8,6 +8,10 @@ import type { GetAccountResponseDTO } from "@/api/dto/myPage/response/getAccount
 import { useApp } from "@/store/useAppStore";
 import { ApiResponse, BASE_URL } from "@/shared/http";
 import { tokenStorage } from "@/shared/storage/tokenStorage";
+import {
+  DEV_BYPASS_AUTH,
+  enterAppWithDevBypass,
+} from "@/shared/config/devAuth";
 
 const MAIN_HREF = "/(home)/(tabs)/main" as const;
 
@@ -33,6 +37,13 @@ export default function Index() {
     let cancelled = false;
 
     const run = async () => {
+      if (DEV_BYPASS_AUTH) {
+        await enterAppWithDevBypass();
+        if (cancelled) return;
+        router.replace(MAIN_HREF);
+        return;
+      }
+
       const accessToken = await tokenStorage.getAccessToken();
       if (!accessToken) {
         setIsLoggedIn(false);
