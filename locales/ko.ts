@@ -4,6 +4,7 @@ export default {
   noNickname: '닉네임 없음',
   noEmail: '이메일 없음',
   myCover: '내 클로버',
+  cloverCountWithUnit: '%{count}개',
   notification: '알림 설정',
   notice: '공지사항',
   support: '의견 남기기',
@@ -11,6 +12,7 @@ export default {
   terms: '이용약관',
   privacy: '개인정보처리방침',
   version: '버전 정보',
+  latestVersion: '최신 버전',
   profileTitle: '프로필 및 계정',
   teamClody: '클로디팀',
   nickname: '닉네임',
@@ -29,6 +31,7 @@ export default {
   cancel: '아니요',
   nicknameError: '닉네임은 한글, 영문, 숫자만 가능해요.',
   nicknameChange: '닉네임 변경',
+  nicknameSubmit: '변경',
   nicknameSuccess: '변경을 완료했어요.',
   next: '다음',
   instagram: '인스타그램',
@@ -40,7 +43,7 @@ export default {
     header: {
       today: '오늘',
       monthly: '월별',
-      weekly: '주별',
+      weekly: '주별보기',
     },
     datePicker: {
       title: '날짜 선택',
@@ -54,7 +57,7 @@ export default {
       pastBadgeYesterday: '어제',
       pastBadgePast: '지난 기록',
       pastBadgeFuture: '예정',
-      continueWriting: '이어 쓰기',
+      continueWriting: '이어쓰기',
     },
   },
 

@@ -1,3 +1,4 @@
+import { typography } from "@/shared/theme/typography";
 import { useFonts } from "expo-font";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -19,6 +20,14 @@ interface Props {
   containerStyle?: ViewStyle;
   fontFamily?: string;
 }
+
+const body7TextStyle = {
+  ...typography.body7,
+  textAlign: "center" as const,
+  includeFontPadding: false,
+  textAlignVertical: "center" as const,
+};
+
 const WheelPicker: React.FC<Props> = (props) => {
   const { items, onItemChange, itemHeight, initValue, fontFamily } = props;
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -69,15 +78,10 @@ const WheelPicker: React.FC<Props> = (props) => {
       >
         <Text
           style={[
-            //TYPOS.headline4,
+            body7TextStyle,
             {
-              color: selectedItem === item ? "#212124" : "#B7BFCC",
-              fontSize: 18,
-              lineHeight: 22,
-              fontFamily: fontFamily ?? "PretendardMedium",
-              textAlign: "center",
-              includeFontPadding: false,
-              textAlignVertical: "center",
+              color: selectedItem === item ? "#1B1C20" : "#ABAFBB",
+              ...(fontFamily ? { fontFamily } : null),
             },
           ]}
         >

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,6 +24,10 @@ import KakaoLoginButton from "@/components/KakaoLoginButton";
 import { useApp } from "@/store/useAppStore";
 import authService from "@/services/authService";
 import { tokenStorage } from "@/shared/storage/tokenStorage";
+import {
+  DEV_BYPASS_AUTH,
+  enterAppWithDevBypass,
+} from "@/shared/config/devAuth";
 import { getLanguageCode } from "@/shared/utils/locale";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -76,6 +80,14 @@ export default function Introduce() {
   const [pagerWrapHeight, setPagerWrapHeight] = useState(0);
   const kakaoBusyRef = useRef(false);
   const googleBusyRef = useRef(false);
+
+  useEffect(() => {
+    if (!DEV_BYPASS_AUTH) return;
+    void (async () => {
+      await enterAppWithDevBypass();
+      router.replace("/(home)/(tabs)/main");
+    })();
+  }, []);
 
   const handleKakaoLogin = useCallback(async () => {
     if (kakaoBusyRef.current) return;

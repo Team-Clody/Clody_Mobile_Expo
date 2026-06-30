@@ -4,6 +4,10 @@ import * as SecureStore from "expo-secure-store";
 
 import axios from "axios";
 
+import {
+  DEV_BYPASS_AUTH,
+} from "@/shared/config/devAuth";
+
 interface HomeForm {
   email: string;
   nickname: string;
@@ -34,6 +38,19 @@ export default function Home() {
 
   useEffect(() => {
     const loadUser = async () => {
+      if (DEV_BYPASS_AUTH) {
+        setForm({
+          email: "dev@clody.test",
+          nickname: "Dev",
+          birthDate: "2000-01-01",
+          fcmToken: "",
+          gender: "male",
+          alarm: "",
+          cloverCount: 0,
+        });
+        return;
+      }
+
       try {
         // 1. 토큰 가져오기
         const accessToken = await SecureStore.getItemAsync("accessToken");

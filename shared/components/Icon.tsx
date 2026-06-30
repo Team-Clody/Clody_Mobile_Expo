@@ -1,4 +1,6 @@
 import IcBack from "@/assets/icons/ic_back.svg";
+import IcLeftArrow from "@/assets/icons/leftarrow.svg";
+import IcRightArrow from "@/assets/icons/rightarrow.svg";
 import IcCalendarOff from "@/assets/icons/ic_calendar_off.svg";
 import IcCalendarOn from "@/assets/icons/ic_calendar_on.svg";
 import IcCheckGray from "@/assets/icons/ic_check_gray.svg";
@@ -29,6 +31,8 @@ export const Icon = {
   IcNext,
   IcProfile,
   IcBack,
+  IcLeftArrow,
+  IcRightArrow,
   IcInputDelete,
   IcDelete,
   IcDropdown,
