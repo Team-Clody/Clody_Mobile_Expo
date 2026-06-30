@@ -1,4 +1,4 @@
-import type { ReplyStatus } from "../types";
+import type { ReplyStatus } from "../_types";
 
 export const formatRemainingTime = (ms: number) => {
   const totalSec = Math.max(0, Math.floor(ms / 1000));
@@ -19,3 +19,6 @@ export const getDisplayCloverColor = (diaryCount: number, replyStatus: ReplyStat
   if (replyStatus !== "READY_READ") return "#D1D5DD";
   return getCloverColorByCount(diaryCount);
 };
+
+export const isDraftReplyStatus = (replyStatus: ReplyStatus) =>
+  replyStatus === "HAS_DRAFT" || replyStatus === "INVALID_DRAFT";

@@ -8,23 +8,22 @@ import {
 } from "react-native";
 import CloverIcon from "@/assets/icons/ic_clover.svg";
 import ReplyUnreadDotIcon from "@/assets/Ellipse2636.svg";
-import DotDotDotIcon from "@/assets/icons/dotdotdot.svg";
+import { CloverDayOverlay } from "./CloverDayOverlay";
 import {
-  cloverDateTextStyle,
   SCREEN_WIDTH,
   TODAY_WEEKDAY_LABEL_CIRCLE_SIZE,
   WEEKDAY_LABEL_CIRCLE_SIZE,
   WEEK_STRIP_CENTER_INDEX,
-} from "../constants";
+} from "../_constants";
 import { fontPreset } from "@/shared/theme/localeTypography";
-import type { ReplyStatus } from "../types";
+import type { ReplyStatus } from "../_types";
 import {
   formatDateKey,
   isCalendarToday,
   isFutureDate,
   isSameDate,
-} from "../utils/dateUtils";
-import { getDisplayCloverColor } from "../utils/cloverUtils";
+} from "../_utils/dateUtils";
+import { getDisplayCloverColor, isDraftReplyStatus } from "../_utils/cloverUtils";
 
 type WeeklyCalendarStripProps = {
   flatListRef: RefObject<FlatList<Date[]> | null>;
@@ -126,9 +125,7 @@ export function WeeklyCalendarStrip({
               const isFuture = isFutureDate(date);
               const dateReplyStatus = getDisplayReplyStatusForDate(date, diaryCount);
               const isDraftReply =
-                !isFuture &&
-                (dateReplyStatus === "HAS_DRAFT" ||
-                  dateReplyStatus === "INVALID_DRAFT");
+                !isFuture && isDraftReplyStatus(dateReplyStatus);
               const cloverColor = isFuture
                 ? "#D1D5DD"
                 : getDisplayCloverColor(diaryCount, dateReplyStatus);
@@ -161,11 +158,10 @@ export function WeeklyCalendarStrip({
                         style={{ position: "absolute", right: -2, bottom: 2 }}
                       />
                     )}
-                    {isDraftReply ? (
-                      <DotDotDotIcon width={12} height={3} style={{ position: "absolute" }} />
-                    ) : (
-                      <Text style={cloverDateTextStyle}>{date.getDate()}</Text>
-                    )}
+                    <CloverDayOverlay
+                      isDraft={isDraftReply}
+                      dayNumber={date.getDate()}
+                    />
                   </Pressable>
                 </View>
               );

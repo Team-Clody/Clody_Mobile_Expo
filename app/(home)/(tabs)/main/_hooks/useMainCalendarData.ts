@@ -4,11 +4,11 @@ import axios from "axios";
 import { logCalendarDiaryQuery } from "@/shared/utils/debugCalendarDiaries";
 import { getDeviceTimeZone } from "@/shared/utils/timezone";
 import authService from "@/services/authService";
-import type { CalendarDiary } from "../types";
+import type { CalendarDiary, ReplyStatus } from "../_types";
 import {
   buildDiaryCountMap,
   buildReplyMetaMaps,
-} from "../utils/calendarDataUtils";
+} from "../_utils/calendarDataUtils";
 
 export function useMainCalendarData(
   currentYear: number,
@@ -17,7 +17,7 @@ export function useMainCalendarData(
     React.SetStateAction<Record<string, number>>
   >,
   setReplyStatusByDate: React.Dispatch<
-    React.SetStateAction<Record<string, import("../types").ReplyStatus>>
+    React.SetStateAction<Record<string, ReplyStatus>>
   >,
   setReplyReadyAtByDate: React.Dispatch<
     React.SetStateAction<Record<string, number>>

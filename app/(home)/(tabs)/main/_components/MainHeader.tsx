@@ -2,10 +2,10 @@ import { RefObject } from "react";
 import { FlatList, Pressable, Text, TextStyle, View } from "react-native";
 import DownIcon from "@/assets/icons/ic_down.svg";
 import i18n from "@/app/i18n/i18n";
-import { HEADER_ACTION_DIVIDER_COLOR } from "../constants";
+import { HEADER_ACTION_DIVIDER_COLOR } from "../_constants";
 import { fontPreset } from "@/shared/theme/localeTypography";
-import { formatMonth } from "../utils/dateUtils";
-import type { ReplyStatus } from "../types";
+import { formatMonth } from "../_utils/dateUtils";
+import type { ReplyStatus } from "../_types";
 import { WeeklyCalendarStrip } from "./WeeklyCalendarStrip";
 
 type MainHeaderProps = {

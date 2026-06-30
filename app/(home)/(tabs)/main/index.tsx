@@ -22,11 +22,11 @@ import i18n from "@/app/i18n/i18n";
 import { useApp } from "@/store/useAppStore";
 import { useStorageStore } from "@/store/useStorageStore";
 import { HomeContext } from "../../_layout";
-import { CharacterScene } from "./components/CharacterScene";
-import { DatePickerSheet } from "./components/DatePickerSheet";
-import { GratitudeCard } from "./components/GratitudeCard";
-import { MainHeader } from "./components/MainHeader";
-import { MonthlyCalendarSheet } from "./components/MonthlyCalendarSheet";
+import { CharacterScene } from "./_components/CharacterScene";
+import { DatePickerSheet } from "./_components/DatePickerSheet";
+import { GratitudeCard } from "./_components/GratitudeCard";
+import { MainHeader } from "./_components/MainHeader";
+import { MonthlyCalendarSheet } from "./_components/MonthlyCalendarSheet";
 import {
   CHARACTER_TOP_RATIO,
   EN_MONTH_ITEMS,
@@ -36,14 +36,14 @@ import {
   WEEK_DAYS_EN,
   WEEK_DAYS_KO,
   WEEK_STRIP_LENGTH,
-} from "./constants";
+} from "./_constants";
 import { localeTextStyle } from "@/shared/theme/localeTypography";
-import { useJournalPrompt } from "./hooks/useJournalPrompt";
-import { useMainCalendarData } from "./hooks/useMainCalendarData";
-import { useReplyReadyTime } from "./hooks/useReplyReadyTime";
-import type { ReplyStatus } from "./types";
-import { getDaysInMonth } from "./utils/calendarDataUtils";
-import { formatRemainingTime } from "./utils/cloverUtils";
+import { useJournalPrompt } from "./_hooks/useJournalPrompt";
+import { useMainCalendarData } from "./_hooks/useMainCalendarData";
+import { useReplyReadyTime } from "./_hooks/useReplyReadyTime";
+import type { ReplyStatus } from "./_types";
+import { getDaysInMonth } from "./_utils/calendarDataUtils";
+import { formatRemainingTime } from "./_utils/cloverUtils";
 import {
   buildWeekStrip,
   formatDateKey,
@@ -51,7 +51,7 @@ import {
   isSameDate,
   startOfLocalDay,
   weekStripFlatIndexForDate,
-} from "./utils/dateUtils";
+} from "./_utils/dateUtils";
 
 export default function Main() {
   const homeContext = useContext(HomeContext);
@@ -197,18 +197,33 @@ export default function Main() {
     selectedReplyReadyAtMs != null
       ? Math.max(0, selectedReplyReadyAtMs - nowTickMs)
       : 0;
-  const isUnready = selectedReplyStatus === "UNREADY";
+  const isFutureSelected = isFutureDate(gratitudeDate);
+  const isDraft =
+    selectedReplyStatus === "HAS_DRAFT" ||
+    selectedReplyStatus === "INVALID_DRAFT";
+  const hasSelectedDiary = selectedDiaryCount > 0;
+  const isUnready = selectedReplyStatus === "UNREADY" && hasSelectedDiary;
   const isReadyNotRead = selectedReplyStatus === "READY_NOT_READ";
   const isReadyRead = selectedReplyStatus === "READY_READ";
-  const actionLabel =
-    isReadyNotRead || isReadyRead
+  const showReplyAction =
+    hasSelectedDiary && (isReadyNotRead || isReadyRead);
+  const showWriteEntry =
+    !isFutureSelected && !hasSelectedDiary && !isDraft && !isUnready;
+  const actionLabel = showWriteEntry
+    ? i18n.t("main.gratitude.writeEntry")
+    : showReplyAction
       ? isKo
         ? "답장확인"
         : "See My Reply"
       : isKo
         ? i18n.t("main.gratitude.continueWriting")
         : "Continue Writing";
-  const actionTextColor = isReadyNotRead ? "#00A34A" : "#374151";
+  const actionTextColor = showWriteEntry
+    ? "#13B567"
+    : isReadyNotRead
+      ? "#00A34A"
+      : "#374151";
+  const useGreenActionChevron = showWriteEntry || isReadyNotRead;
   const timerText = isKo
     ? `답장 ${formatRemainingTime(replyRemainingMs)} 남음`
     : `Reply available in ${formatRemainingTime(replyRemainingMs)}`;
@@ -510,6 +525,7 @@ export default function Main() {
           unreadyNoScheduleText={unreadyNoScheduleText}
           actionLabel={actionLabel}
           actionTextColor={actionTextColor}
+          useGreenActionChevron={useGreenActionChevron}
         />
       </View>
 

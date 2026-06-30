@@ -12,26 +12,25 @@ import { BlurView } from "expo-blur";
 import CloverIcon from "@/assets/icons/ic_clover.svg";
 import DownIcon from "@/assets/icons/ic_down.svg";
 import ReplyUnreadDotIcon from "@/assets/Ellipse2636.svg";
-import DotDotDotIcon from "@/assets/icons/dotdotdot.svg";
 import i18n from "@/app/i18n/i18n";
+import { CloverDayOverlay } from "./CloverDayOverlay";
 import {
   MONTHLY_SHEET_CLOVER_ROW_GAP,
   MONTHLY_TODAY_BADGE_BG,
   MONTHLY_TODAY_BADGE_SIZE,
   TODAY_WEEKDAY_LABEL_CIRCLE_SIZE,
   WEEKDAY_LABEL_CIRCLE_SIZE,
-  cloverDateTextStyle,
-} from "../constants";
+} from "../_constants";
 import { fontPreset } from "@/shared/theme/localeTypography";
-import type { ReplyStatus } from "../types";
-import { getMonthMatrix } from "../utils/calendarDataUtils";
+import type { ReplyStatus } from "../_types";
+import { getMonthMatrix } from "../_utils/calendarDataUtils";
 import {
   formatDateKey,
   formatMonth,
   isFutureDate,
   isSameDate,
-} from "../utils/dateUtils";
-import { getDisplayCloverColor } from "../utils/cloverUtils";
+} from "../_utils/dateUtils";
+import { getDisplayCloverColor, isDraftReplyStatus } from "../_utils/cloverUtils";
 
 type TodayIconProps = {
   width?: number;
@@ -211,9 +210,7 @@ export function MonthlyCalendarSheet({
                   const diaryCount = diaryCountByDate[dateKey] ?? 0;
                   const dateReplyStatus = getDisplayReplyStatusForDate(date, diaryCount);
                   const isDraftReply =
-                    !isFuture &&
-                    (dateReplyStatus === "HAS_DRAFT" ||
-                      dateReplyStatus === "INVALID_DRAFT");
+                    !isFuture && isDraftReplyStatus(dateReplyStatus);
                   const showReplyUnreadDot =
                     !isFuture && dateReplyStatus === "READY_NOT_READ";
                   const cloverColor = isFuture
@@ -292,11 +289,10 @@ export function MonthlyCalendarSheet({
                               }}
                             />
                           )}
-                          {isDraftReply ? (
-                            <DotDotDotIcon width={12} height={3} style={{ position: "absolute" }} />
-                          ) : (
-                            <Text style={cloverDateTextStyle}>{date.getDate()}</Text>
-                          )}
+                          <CloverDayOverlay
+                            isDraft={isDraftReply}
+                            dayNumber={date.getDate()}
+                          />
                         </Pressable>
                       )}
                     </View>

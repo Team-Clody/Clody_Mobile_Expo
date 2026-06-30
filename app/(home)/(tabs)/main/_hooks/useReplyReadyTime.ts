@@ -4,7 +4,7 @@ import axios from "axios";
 import { DiaryAPI } from "@/api/diaryAPI";
 import authService from "@/services/authService";
 import { diaryCreatedToReplyReadyMs } from "@/shared/utils/diaryReplyTimer";
-import type { ReplyStatus } from "../types";
+import type { ReplyStatus } from "../_types";
 
 export function useReplyReadyTime(
   selectedReplyStatus: ReplyStatus,

@@ -1,4 +1,4 @@
-import type { CalendarDiary } from "../types";
+import type { CalendarDiary, ReplyStatus } from "../_types";
 import { formatDateKey, getDaysInMonth, startOfLocalDay } from "./dateUtils";
 
 export const zeroDiaryCountsAfterToday = (map: Record<string, number>) => {
@@ -28,7 +28,7 @@ export const buildDiaryCountMap = (diaries: CalendarDiary[]) => {
 };
 
 export const buildReplyMetaMaps = (diaries: CalendarDiary[]) => {
-  const replyStatusByDate: Record<string, import("../types").ReplyStatus> = {};
+  const replyStatusByDate: Record<string, ReplyStatus> = {};
   const replyReadyAtByDate: Record<string, number> = {};
   for (const diaryItem of diaries) {
     if (diaryItem.replyStatus) {

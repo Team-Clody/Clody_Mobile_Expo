@@ -1,6 +1,6 @@
 import { Dimensions } from "react-native";
 import { typography } from "@/shared/theme/typography";
-import type { ReplyStatus } from "./types";
+import type { ReplyStatus } from "./_types";
 
 export const bgDefaultPng = require("../../../../assets/images/bg_default.png");
 export const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -64,4 +64,12 @@ export const cloverDateTextStyle = {
   color: "#fff",
   includeFontPadding: false,
   textAlignVertical: "center" as const,
+};
+
+export const cloverCenterOverlayStyle = {
+  position: "absolute" as const,
+  width: 32,
+  height: 32,
+  justifyContent: "center" as const,
+  alignItems: "center" as const,
 };

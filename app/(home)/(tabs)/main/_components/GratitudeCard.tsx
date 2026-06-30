@@ -17,9 +17,9 @@ import {
   GRATITUDE_SLOT_MARGIN_TOP,
   gratitudeDateRowTextStyle,
   gratitudePromptTextStyle,
-} from "../constants";
+} from "../_constants";
 import { fontPreset } from "@/shared/theme/localeTypography";
-import { isCalendarToday } from "../utils/dateUtils";
+import { isCalendarToday } from "../_utils/dateUtils";
 
 type GratitudeCardProps = {
   gratitudeDate: Date;
@@ -34,6 +34,7 @@ type GratitudeCardProps = {
   unreadyNoScheduleText: string;
   actionLabel: string;
   actionTextColor: string;
+  useGreenActionChevron: boolean;
 };
 
 export function GratitudeCard({
@@ -49,6 +50,7 @@ export function GratitudeCard({
   unreadyNoScheduleText,
   actionLabel,
   actionTextColor,
+  useGreenActionChevron,
 }: GratitudeCardProps) {
   const AdToReplyIcon = isKo ? AdToReplyKoIcon : AdToReplyEnIcon;
   const isToday = isCalendarToday(gratitudeDate);
@@ -224,7 +226,7 @@ export function GratitudeCard({
                     >
                       {actionLabel}
                     </Text>
-                    {isReadyNotRead ? (
+                    {useGreenActionChevron ? (
                       <ChevronGreenIcon
                         width={8}
                         height={12}

@@ -7,8 +7,8 @@ import i18n from "@/app/i18n/i18n";
 import {
   DUMMY_JOURNAL_PROMPT_EN,
   DUMMY_JOURNAL_PROMPT_KO,
-} from "../constants";
-import { formatDateKey, isCalendarToday } from "../utils/dateUtils";
+} from "../_constants";
+import { formatDateKey, isCalendarToday } from "../_utils/dateUtils";
 
 export function useJournalPrompt(
   gratitudeDate: Date,

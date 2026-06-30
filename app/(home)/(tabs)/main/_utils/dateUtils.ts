@@ -2,7 +2,7 @@ import i18n from "@/app/i18n/i18n";
 import {
   WEEK_STRIP_CENTER_INDEX,
   WEEK_STRIP_HALF_SPAN,
-} from "../constants";
+} from "../_constants";
 
 export const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
