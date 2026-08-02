@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import i18n from "@/app/i18n/i18n";
 import IcHomeOn from "@/assets/icons/ic_home_on.svg";
 import IcHomeOff from "@/assets/icons/ic_home_off.svg";
@@ -68,10 +68,20 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    borderTopWidth: 1,
-    borderColor: "#E5E5EA",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: "#F0F2F5",
     backgroundColor: "#fff",
     paddingTop: 8,
+    // 연한 회색 톤 그림자 (기본 elevation 8 대체)
+    elevation: 1,
+    ...(Platform.OS === "ios"
+      ? {
+          shadowColor: "#B8BEC8",
+          shadowOpacity: 0.06,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: -3 },
+        }
+      : null),
   },
   tabBarLabel: {
     fontSize: 11,

@@ -3,8 +3,8 @@ import axios, {
   AxiosError,
   InternalAxiosRequestConfig,
 } from 'axios';
+import { ReissueTokenResponseDTO } from '@/api/dto/response/reissueTokenResponseDTO';
 import { tokenStorage } from '@/shared/storage/tokenStorage';
-import { AuthAPI } from '@/api/authAPI';
 import { getDeviceTimeZone } from '@/shared/utils/timezone';
 import { getDeviceLocale } from '@/shared/utils/locale';
 
@@ -165,17 +165,19 @@ const refreshAccessToken = async (): Promise<string> => {
   isRefreshing = true;
   refreshPromise = (async () => {
     try {
-      const response = await AuthAPI.reissueToken();
-
-      await tokenStorage.saveTokens(
-        response.accessToken,
-        response.refreshToken,
+      const headers = await getHeaders(HeaderType.REFRESH_TOKEN);
+      const resp = await APIKit.get<ApiResponse<ReissueTokenResponseDTO>>(
+        '/api/v1/auth/reissue',
+        { headers },
       );
+      const { accessToken, refreshToken } = resp.data.data;
+
+      await tokenStorage.saveTokens(accessToken, refreshToken);
 
       isRefreshing = false;
       refreshPromise = null;
 
-      return response.accessToken;
+      return accessToken;
     } catch (error) {
       isRefreshing = false;
       refreshPromise = null;
