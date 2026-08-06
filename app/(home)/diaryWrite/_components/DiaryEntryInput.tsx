@@ -59,7 +59,13 @@ export function DiaryEntryInput({
           multiline
           style={styles.input}
         />
-        <Pressable onPress={onPressMore} hitSlop={8} style={styles.moreButton}>
+        <Pressable
+          onPress={onPressMore}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={isKo ? "더보기" : "More options"}
+          style={styles.moreButton}
+        >
           <Icon.IcKebob width={16} height={16} />
         </Pressable>
       </View>

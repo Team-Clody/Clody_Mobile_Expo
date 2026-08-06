@@ -111,11 +111,18 @@ export default function DiaryWrite() {
     SecureStore.setItemAsync(NOTICE_BANNER_DISMISSED_KEY, "true");
   };
 
+  // 딥링크 등으로 히스토리 없이 진입한 경우 홈으로 폴백
+  const goHome = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/main");
+    }
+  };
+
   const showToastThenGoHome = (message: string) => {
     setToastMessage(message);
-    navigateTimerRef.current = setTimeout(() => {
-      router.back();
-    }, TOAST_NAVIGATE_DELAY);
+    navigateTimerRef.current = setTimeout(goHome, TOAST_NAVIGATE_DELAY);
   };
 
   // 임시저장: 빈 리스트 포함 그대로 저장
@@ -133,7 +140,7 @@ export default function DiaryWrite() {
 
   const handleExitWithoutSaving = () => {
     setIsDraftModalOpen(false);
-    router.back();
+    goHome();
   };
 
   const handlePressSend = () => {
@@ -165,7 +172,7 @@ export default function DiaryWrite() {
       date: dateParam,
       contents: filledEntries.map((entry) => entry.text),
     });
-    router.back();
+    goHome();
   };
 
   const handleDeleteEntry = () => {
@@ -173,12 +180,15 @@ export default function DiaryWrite() {
     setDeleteTargetId(null);
   };
 
+  // 루트 SafeAreaView가 bottom 인셋을 이미 적용하므로 키보드 높이에서 제외
   const addButtonBottom = keyboardVisible
-    ? (Platform.OS === "ios" ? keyboardHeight : 0) + 12
-    : insets.bottom + 20;
+    ? (Platform.OS === "ios" ? Math.max(keyboardHeight - insets.bottom, 0) : 0) +
+      12
+    : 20;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    // 상단 인셋은 루트 _layout의 SafeAreaView가 처리하므로 여기서 더하지 않음
+    <View style={styles.container}>
       <DiaryWriteHeader
         isKo={isKo}
         onPressBack={() => setIsDraftModalOpen(true)}

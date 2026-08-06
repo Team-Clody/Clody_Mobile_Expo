@@ -1,6 +1,6 @@
 import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Icon } from "@/shared/components/Icon";
 import { Typo } from "@/shared/components/typo/Typo";
 import { palette } from "@/shared/theme/palette";
 
@@ -25,8 +25,13 @@ export function DeleteEntrySheet({
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}>
           <View style={styles.handle} />
-          <Pressable onPress={onDelete} style={styles.deleteRow}>
-            <Icon.IcDelete width={20} height={20} />
+          <Pressable
+            onPress={onDelete}
+            accessibilityRole="button"
+            accessibilityLabel={isKo ? "삭제하기" : "Delete"}
+            style={styles.deleteRow}
+          >
+            <Ionicons name="trash-outline" size={20} color={palette.gray800} />
             <Typo.Body variant="body8" color="gray800">
               {isKo ? "삭제하기" : "Delete"}
             </Typo.Body>

@@ -18,7 +18,13 @@ export function DiaryWriteHeader({
 }: DiaryWriteHeaderProps) {
   return (
     <View style={styles.container}>
-      <Pressable onPress={onPressBack} hitSlop={8} style={styles.backButton}>
+      <Pressable
+        onPress={onPressBack}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={isKo ? "뒤로가기" : "Go back"}
+        style={styles.backButton}
+      >
         <Icon.IcBack width={28} height={28} />
       </Pressable>
 
