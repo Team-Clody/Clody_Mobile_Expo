@@ -10,7 +10,6 @@ import { HStack } from "@/shared/components/stack/HStack";
 import { Typo } from "@/shared/components/typo/Typo";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ListScreen() {
   const now = new Date();
@@ -54,7 +53,7 @@ export default function ListScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+    <View style={{ flex: 1, backgroundColor: "#fff" }}>
       <View style={{ paddingHorizontal: 20, paddingVertical: 12 }}>
         <Pressable onPress={() => setBottomSheetVisible(true)}>
           <HStack
@@ -77,6 +76,6 @@ export default function ListScreen() {
         onConfirm={handleMonthConfirm}
         onClose={() => setBottomSheetVisible(false)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
