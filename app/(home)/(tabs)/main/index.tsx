@@ -1,4 +1,4 @@
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import {
   useCallback,
   useContext,
@@ -442,6 +442,19 @@ export default function Main() {
     }
   };
 
+  const handleGratitudeAction = () => {
+    if (showReplyAction) {
+      // TODO: 답장 확인 화면 연결
+      console.log("[main] 답장확인 - 미구현");
+      return;
+    }
+    // 일기쓰기 / 이어쓰기 → 일기 작성 화면
+    router.push({
+      pathname: "/diaryWrite",
+      params: { date: selectedDateKey },
+    });
+  };
+
   const datePickerLayer = (
     <DatePickerSheet
       translateY={datePickerTranslateY}
@@ -526,6 +539,7 @@ export default function Main() {
           actionLabel={actionLabel}
           actionTextColor={actionTextColor}
           useGreenActionChevron={useGreenActionChevron}
+          onPressAction={handleGratitudeAction}
         />
       </View>
 
