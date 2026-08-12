@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Icon } from "@/shared/components/Icon";
 import { Typo } from "@/shared/components/typo/Typo";
 import { palette } from "@/shared/theme/palette";
-import { MAX_ENTRY_LENGTH, MIN_ENTRY_LENGTH } from "../_constants";
+import { MIN_ENTRY_LENGTH } from "../_constants";
 
 type DiaryEntryInputProps = {
   index: number;
@@ -25,7 +25,9 @@ export function DiaryEntryInput({
 }: DiaryEntryInputProps) {
   const [isFocused, setIsFocused] = useState(false);
 
-  const isMaxReached = value.length >= MAX_ENTRY_LENGTH;
+  // v1 정책: 한글 50자 / 영문 100자 (공백·개행 포함)
+  const maxLength = isKo ? 50 : 100;
+  const isMaxReached = value.length >= maxLength;
   const hasError = isMaxReached || invalid;
 
   const borderColor = hasError
@@ -55,8 +57,10 @@ export function DiaryEntryInput({
               : "Write a small gratitude from your day."
           }
           placeholderTextColor={palette.gray300}
-          maxLength={MAX_ENTRY_LENGTH}
+          maxLength={maxLength}
           multiline
+          autoCapitalize="none"
+          spellCheck={false}
           style={styles.input}
         />
         <Pressable
@@ -77,22 +81,15 @@ export function DiaryEntryInput({
           style={!hasError && styles.hidden}
         >
           {isKo
-            ? `${MIN_ENTRY_LENGTH}~${MAX_ENTRY_LENGTH}자까지 입력할 수 있어요.`
-            : `You can enter ${MIN_ENTRY_LENGTH}–${MAX_ENTRY_LENGTH} characters.`}
+            ? `${MIN_ENTRY_LENGTH}~${maxLength}자까지 입력할 수 있어요.`
+            : `Please enter between ${MIN_ENTRY_LENGTH} and ${maxLength} characters.`}
         </Typo.Caption>
         <View style={styles.counterRow}>
-          <Typo.Caption
-            variant="caption3"
-            color={hasError ? "red500" : "gray600"}
-          >
+          <Typo.Caption variant="caption3" color="gray600">
             {value.length}
           </Typo.Caption>
-          <Typo.Caption
-            variant="caption3"
-            color={hasError ? "red500" : "gray300"}
-            style={hasError && styles.counterMaxError}
-          >
-            {` / ${MAX_ENTRY_LENGTH}`}
+          <Typo.Caption variant="caption3" color="gray300">
+            {` / ${maxLength}`}
           </Typo.Caption>
         </View>
       </View>
@@ -141,9 +138,6 @@ const styles = StyleSheet.create({
   counterRow: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  counterMaxError: {
-    opacity: 0.4,
   },
   hidden: {
     opacity: 0,
