@@ -24,6 +24,7 @@ import { ConfirmModal } from "./_components/ConfirmModal";
 import { DeleteEntrySheet } from "./_components/DeleteEntrySheet";
 import { DiaryEntryInput } from "./_components/DiaryEntryInput";
 import { DiaryWriteHeader } from "./_components/DiaryWriteHeader";
+import { DraggableEntryList } from "./_components/DraggableEntryList";
 import { NoticeBanner } from "./_components/NoticeBanner";
 import { MIN_ENTRY_LENGTH } from "./_constants";
 import { useDiaryEntries } from "./_hooks/useDiaryEntries";
@@ -54,6 +55,7 @@ export default function DiaryWrite() {
     canAddEntry,
     addEntry,
     removeEntry,
+    moveEntry,
     updateEntry,
     loadEntries,
     filledEntries,
@@ -69,6 +71,7 @@ export default function DiaryWrite() {
   const [invalidEntryIds, setInvalidEntryIds] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
   const navigateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 진입 시점 스냅샷 — 변경이 없으면 뒤로가기 시 팝업 없이 나감 (v1 정책)
   const initialTextsRef = useRef(JSON.stringify(["", "", ""]));
@@ -292,6 +295,7 @@ export default function DiaryWrite() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          scrollEnabled={!isReordering}
         >
           <Typo.Display
             variant="display2"
@@ -308,24 +312,31 @@ export default function DiaryWrite() {
           )}
 
           <View style={styles.entryList}>
-            {entries.map((entry, index) => (
-              <DiaryEntryInput
-                key={entry.id}
-                index={index}
-                value={entry.text}
-                isKo={isKo}
-                invalid={invalidEntryIds.includes(entry.id)}
-                onChangeText={(text) => {
-                  updateEntry(entry.id, text);
-                  if (invalidEntryIds.includes(entry.id)) {
-                    setInvalidEntryIds((prev) =>
-                      prev.filter((id) => id !== entry.id),
-                    );
-                  }
-                }}
-                onPressMore={() => setDeleteTargetId(entry.id)}
-              />
-            ))}
+            <DraggableEntryList
+              ids={entries.map((entry) => entry.id)}
+              onMove={moveEntry}
+              onDragStateChange={setIsReordering}
+              renderEntry={(index) => {
+                const entry = entries[index];
+                return (
+                  <DiaryEntryInput
+                    index={index}
+                    value={entry.text}
+                    isKo={isKo}
+                    invalid={invalidEntryIds.includes(entry.id)}
+                    onChangeText={(text) => {
+                      updateEntry(entry.id, text);
+                      if (invalidEntryIds.includes(entry.id)) {
+                        setInvalidEntryIds((prev) =>
+                          prev.filter((id) => id !== entry.id),
+                        );
+                      }
+                    }}
+                    onPressMore={() => setDeleteTargetId(entry.id)}
+                  />
+                );
+              }}
+            />
           </View>
         </ScrollView>
 

@@ -38,6 +38,24 @@ export function useDiaryEntries() {
     );
   }, []);
 
+  const moveEntry = useCallback((from: number, to: number) => {
+    setEntries((prev) => {
+      if (
+        from === to ||
+        from < 0 ||
+        to < 0 ||
+        from >= prev.length ||
+        to >= prev.length
+      ) {
+        return prev;
+      }
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  }, []);
+
   const updateEntry = useCallback((id: string, text: string) => {
     setEntries((prev) =>
       prev.map((entry) => (entry.id === id ? { ...entry, text } : entry)),
@@ -65,6 +83,7 @@ export function useDiaryEntries() {
     canAddEntry,
     addEntry,
     removeEntry,
+    moveEntry,
     updateEntry,
     loadEntries,
     filledEntries,
