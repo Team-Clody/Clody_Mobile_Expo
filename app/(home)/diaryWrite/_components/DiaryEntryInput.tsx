@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import i18n from "@/app/i18n/i18n";
 import { Icon } from "@/shared/components/Icon";
 import { Typo } from "@/shared/components/typo/Typo";
 import { palette } from "@/shared/theme/palette";
@@ -8,7 +9,6 @@ import { MIN_ENTRY_LENGTH } from "../_constants";
 type DiaryEntryInputProps = {
   index: number;
   value: string;
-  isKo: boolean;
   // 보내기 시도 시 2자 미만으로 걸러진 항목 표시용
   invalid: boolean;
   onChangeText: (text: string) => void;
@@ -18,17 +18,24 @@ type DiaryEntryInputProps = {
 export function DiaryEntryInput({
   index,
   value,
-  isKo,
   invalid,
   onChangeText,
   onPressMore,
 }: DiaryEntryInputProps) {
+  const isKo = !!i18n.locale?.startsWith("ko");
   const [isFocused, setIsFocused] = useState(false);
+  // 2자 미만 에러는 endEditing(blur) 시점에 검사해서 노출
+  const [isUnderMin, setIsUnderMin] = useState(false);
 
   // v1 정책: 한글 50자 / 영문 100자 (공백·개행 포함)
   const maxLength = isKo ? 50 : 100;
   const isMaxReached = value.length >= maxLength;
-  const hasError = isMaxReached || invalid;
+  const hasError = isMaxReached || invalid || isUnderMin;
+
+  const checkUnderMin = (text: string) => {
+    const length = text.trim().length;
+    return length > 0 && length < MIN_ENTRY_LENGTH;
+  };
 
   const borderColor = hasError
     ? palette.red500
@@ -48,14 +55,17 @@ export function DiaryEntryInput({
         </Typo.Body>
         <TextInput
           value={value}
-          onChangeText={onChangeText}
+          onChangeText={(text) => {
+            onChangeText(text);
+            // 에러 노출 중에는 2자 이상 입력 시 즉시 해제
+            if (isUnderMin && !checkUnderMin(text)) setIsUnderMin(false);
+          }}
           onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholder={
-            isKo
-              ? "일상 속 작은 감사함을 적어보세요."
-              : "Write a small gratitude from your day."
-          }
+          onBlur={() => {
+            setIsFocused(false);
+            setIsUnderMin(checkUnderMin(value));
+          }}
+          placeholder={i18n.t("diaryWrite.entryPlaceholder")}
           placeholderTextColor={palette.gray300}
           maxLength={maxLength}
           multiline
@@ -67,7 +77,7 @@ export function DiaryEntryInput({
           onPress={onPressMore}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel={isKo ? "더보기" : "More options"}
+          accessibilityLabel={i18n.t("diaryWrite.more")}
           style={styles.moreButton}
         >
           <Icon.IcKebob width={16} height={16} />
@@ -80,9 +90,10 @@ export function DiaryEntryInput({
           color="red500"
           style={!hasError && styles.hidden}
         >
-          {isKo
-            ? `${MIN_ENTRY_LENGTH}~${maxLength}자까지 입력할 수 있어요.`
-            : `Please enter between ${MIN_ENTRY_LENGTH} and ${maxLength} characters.`}
+          {i18n.t("diaryWrite.entryLengthError", {
+            min: MIN_ENTRY_LENGTH,
+            max: maxLength,
+          })}
         </Typo.Caption>
         <View style={styles.counterRow}>
           <Typo.Caption variant="caption3" color="gray600">

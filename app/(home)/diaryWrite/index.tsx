@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddEntryButton } from "./_components/AddEntryButton";
+import { AdTooltip } from "./_components/AdTooltip";
 import { ConfirmModal } from "./_components/ConfirmModal";
 import { DeleteEntrySheet } from "./_components/DeleteEntrySheet";
 import { DiaryEntryInput } from "./_components/DiaryEntryInput";
@@ -43,10 +44,7 @@ function parseDateParam(dateParam?: string): Date {
 }
 
 export default function DiaryWrite() {
-  const { date: dateParam, draft } = useLocalSearchParams<{
-    date?: string;
-    draft?: string;
-  }>();
+  const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
   const insets = useSafeAreaInsets();
   const isKo = !!i18n.locale?.startsWith("ko");
 
@@ -69,8 +67,12 @@ export default function DiaryWrite() {
   const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [invalidEntryIds, setInvalidEntryIds] = useState<string[]>([]);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    variant: "success" | "warning";
+  } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(true);
   const [isReordering, setIsReordering] = useState(false);
   const navigateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 진입 시점 스냅샷 — 변경이 없으면 뒤로가기 시 팝업 없이 나감 (v1 정책)
@@ -95,23 +97,22 @@ export default function DiaryWrite() {
     });
   }, []);
 
-  // 이어쓰기: 임시저장된 일기 프리필
+  // 진입 시 임시저장 조회 — 내용이 있으면 프리필 (없거나 실패하면 빈 칸 유지)
   useEffect(() => {
-    if (draft !== "1") return;
     DiaryAPI.getDraft(
       diaryDate.getFullYear(),
       diaryDate.getMonth() + 1,
       diaryDate.getDate(),
     )
       .then(({ draftDiaries }) => {
+        if (draftDiaries.length === 0) return;
         loadEntries(draftDiaries);
-        initialTextsRef.current = JSON.stringify(
-          draftDiaries.length > 0 ? draftDiaries : [""],
-        );
+        initialTextsRef.current = JSON.stringify(draftDiaries);
       })
-      .catch((error) => console.warn("[diaryWrite] 임시저장 불러오기 실패", error));
+      .catch((error) => console.warn("[diaryWrite] 임시저장 불러오기 실패", error))
+      .finally(() => setIsLoadingDraft(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft]);
+  }, [dateKey]);
 
   useEffect(() => {
     const showEvent =
@@ -148,15 +149,12 @@ export default function DiaryWrite() {
 
   const showRequestError = (error: unknown) => {
     const isNetworkError = isAxiosError(error) && !error.response;
-    setToastMessage(
-      isNetworkError
-        ? isKo
-          ? "서비스 접속이 원활하지 않아요."
-          : "Couldn't connect to the service."
-        : isKo
-          ? "일시적인 오류가 발생했어요."
-          : "Something went wrong.",
-    );
+    setToast({
+      message: isNetworkError
+        ? i18n.t("diaryWrite.toast.networkError")
+        : i18n.t("diaryWrite.toast.genericError"),
+      variant: "warning",
+    });
   };
 
   // 딥링크 등으로 히스토리 없이 진입한 경우 홈으로 폴백
@@ -169,7 +167,7 @@ export default function DiaryWrite() {
   };
 
   const showToastThenGoHome = (message: string) => {
-    setToastMessage(message);
+    setToast({ message, variant: "success" });
     navigateTimerRef.current = setTimeout(goHome, TOAST_NAVIGATE_DELAY);
   };
 
@@ -202,9 +200,7 @@ export default function DiaryWrite() {
         dateKey,
         entries.map((entry) => entry.text),
       );
-      showToastThenGoHome(
-        isKo ? "임시저장이 완료됐어요." : "Your draft has been saved.",
-      );
+      showToastThenGoHome(i18n.t("diaryWrite.toast.draftSaved"));
     } catch (error) {
       console.warn("[diaryWrite] 임시저장 실패", error);
       showRequestError(error);
@@ -220,11 +216,10 @@ export default function DiaryWrite() {
 
   const handlePressSend = () => {
     if (isAllEmpty) {
-      setToastMessage(
-        isKo
-          ? "빈 칸을 채워야 보낼 수 있어요."
-          : "Fill in the blanks before sending.",
-      );
+      setToast({
+        message: i18n.t("diaryWrite.toast.emptyEntry"),
+        variant: "warning",
+      });
       return;
     }
     const underMinIds = entries
@@ -280,7 +275,6 @@ export default function DiaryWrite() {
       {/* iOS 스와이프 백이 임시저장 팝업을 우회하지 않도록 차단 */}
       <Stack.Screen options={{ gestureEnabled: false }} />
       <DiaryWriteHeader
-        isKo={isKo}
         onPressBack={handlePressBack}
         onPressSaveDraft={handleSaveDraft}
         onPressSend={handlePressSend}
@@ -307,7 +301,7 @@ export default function DiaryWrite() {
 
           {isNoticeVisible && (
             <View style={styles.bannerWrap}>
-              <NoticeBanner isKo={isKo} onDismiss={dismissNotice} />
+              <NoticeBanner onDismiss={dismissNotice} />
             </View>
           )}
 
@@ -322,7 +316,6 @@ export default function DiaryWrite() {
                   <DiaryEntryInput
                     index={index}
                     value={entry.text}
-                    isKo={isKo}
                     invalid={invalidEntryIds.includes(entry.id)}
                     onChangeText={(text) => {
                       updateEntry(entry.id, text);
@@ -340,29 +333,25 @@ export default function DiaryWrite() {
           </View>
         </ScrollView>
 
-        <AddEntryButton
-          isKo={isKo}
-          compact={keyboardVisible}
-          disabled={!canAddEntry}
-          onPress={addEntry}
-          style={{
-            position: "absolute",
-            right: 20,
-            bottom: addButtonBottom,
-          }}
-        />
+        <View
+          style={[styles.addButtonWrap, { bottom: addButtonBottom }]}
+          pointerEvents="box-none"
+        >
+          {!canAddEntry && <AdTooltip style={styles.adTooltip} />}
+          <AddEntryButton
+            compact={keyboardVisible}
+            disabled={!canAddEntry}
+            onPress={addEntry}
+          />
+        </View>
       </KeyboardAvoidingView>
 
       <ConfirmModal
         visible={isSendModalOpen}
-        title={isKo ? "일기를 로디에게 보낼까요?" : "Send your diary to Rody?"}
-        description={
-          isKo
-            ? "보낸 일기는 수정이 어려워요."
-            : "Sent diaries can't be edited."
-        }
-        cancelLabel={isKo ? "취소" : "Cancel"}
-        confirmLabel={isKo ? "보내기" : "Send"}
+        title={i18n.t("diaryWrite.sendPopup.title")}
+        description={i18n.t("diaryWrite.sendPopup.description")}
+        cancelLabel={i18n.t("diaryWrite.sendPopup.cancel")}
+        confirmLabel={i18n.t("diaryWrite.sendPopup.confirm")}
         confirmVariant="green"
         onCancel={() => setIsSendModalOpen(false)}
         onConfirm={handleConfirmSend}
@@ -370,18 +359,10 @@ export default function DiaryWrite() {
 
       <ConfirmModal
         visible={isDraftModalOpen}
-        title={
-          isKo
-            ? "지금까지 쓴 일기를 임시저장할까요?"
-            : "Save your diary as a draft?"
-        }
-        description={
-          isKo
-            ? "나가기를 누르면 작성 중인 내용이 모두 사라져요."
-            : "If you leave, everything you wrote will be lost."
-        }
-        cancelLabel={isKo ? "나가기" : "Leave"}
-        confirmLabel={isKo ? "임시저장" : "Save draft"}
+        title={i18n.t("diaryWrite.draftPopup.title")}
+        description={i18n.t("diaryWrite.draftPopup.description")}
+        cancelLabel={i18n.t("diaryWrite.draftPopup.cancel")}
+        confirmLabel={i18n.t("diaryWrite.draftPopup.confirm")}
         confirmVariant="dark"
         onCancel={handleExitWithoutSaving}
         onConfirm={handleSaveDraft}
@@ -389,21 +370,21 @@ export default function DiaryWrite() {
 
       <DeleteEntrySheet
         visible={deleteTargetId !== null}
-        isKo={isKo}
         onDelete={handleDeleteEntry}
         onClose={() => setDeleteTargetId(null)}
       />
 
-      {isSubmitting && (
+      {(isSubmitting || isLoadingDraft) && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={palette.gray400} />
         </View>
       )}
 
       <Toast
-        message={toastMessage ?? ""}
-        visible={toastMessage !== null}
-        onHide={() => setToastMessage(null)}
+        message={toast?.message ?? ""}
+        visible={toast !== null}
+        variant={toast?.variant}
+        onHide={() => setToast(null)}
       />
     </View>
   );
@@ -429,6 +410,14 @@ const styles = StyleSheet.create({
   },
   entryList: {
     marginTop: 16,
+  },
+  addButtonWrap: {
+    position: "absolute",
+    right: 20,
+    alignItems: "center",
+  },
+  adTooltip: {
+    marginBottom: 8,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

@@ -1,17 +1,16 @@
 import { Pressable, StyleSheet, View } from "react-native";
+import i18n from "@/app/i18n/i18n";
 import { Icon } from "@/shared/components/Icon";
 import { Typo } from "@/shared/components/typo/Typo";
 import { palette } from "@/shared/theme/palette";
 
 type DiaryWriteHeaderProps = {
-  isKo: boolean;
   onPressBack: () => void;
   onPressSaveDraft: () => void;
   onPressSend: () => void;
 };
 
 export function DiaryWriteHeader({
-  isKo,
   onPressBack,
   onPressSaveDraft,
   onPressSend,
@@ -22,7 +21,7 @@ export function DiaryWriteHeader({
         onPress={onPressBack}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel={isKo ? "뒤로가기" : "Go back"}
+        accessibilityLabel={i18n.t("diaryWrite.back")}
         style={styles.backButton}
       >
         <Icon.IcBack width={28} height={28} />
@@ -31,13 +30,13 @@ export function DiaryWriteHeader({
       <View style={styles.actions}>
         <Pressable onPress={onPressSaveDraft} hitSlop={8}>
           <Typo.Body variant="body3" color="gray400">
-            {isKo ? "임시저장" : "Save draft"}
+            {i18n.t("diaryWrite.saveDraft")}
           </Typo.Body>
         </Pressable>
         <View style={styles.divider} />
         <Pressable onPress={onPressSend} hitSlop={8}>
           <Typo.Body variant="body3" color="accentPrimary500">
-            {isKo ? "보내기" : "Send"}
+            {i18n.t("diaryWrite.send")}
           </Typo.Body>
         </Pressable>
       </View>

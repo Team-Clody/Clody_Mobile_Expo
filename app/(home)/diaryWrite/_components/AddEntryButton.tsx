@@ -1,9 +1,10 @@
 import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
+import i18n from "@/app/i18n/i18n";
+import { Icon } from "@/shared/components/Icon";
 import { Typo } from "@/shared/components/typo/Typo";
 import { palette } from "@/shared/theme/palette";
 
 type AddEntryButtonProps = {
-  isKo: boolean;
   // 키보드 노출 중에는 원형 + 버튼으로 전환
   compact: boolean;
   disabled: boolean;
@@ -12,14 +13,12 @@ type AddEntryButtonProps = {
 };
 
 export function AddEntryButton({
-  isKo,
   compact,
   disabled,
   onPress,
   style,
 }: AddEntryButtonProps) {
   const backgroundColor = disabled ? palette.gray300 : palette.accentPrimary500;
-  const textColor = "gray0";
 
   if (compact) {
     return (
@@ -28,9 +27,7 @@ export function AddEntryButton({
         disabled={disabled}
         style={[styles.fab, { backgroundColor }, style]}
       >
-        <Typo.Head variant="head1" color={textColor} style={styles.fabPlus}>
-          +
-        </Typo.Head>
+        <Icon.IcPlus width={14} height={14} />
       </Pressable>
     );
   }
@@ -42,11 +39,9 @@ export function AddEntryButton({
       style={[styles.pill, { backgroundColor }, style]}
     >
       <View style={styles.pillContent}>
-        <Typo.Body variant="body1" color={textColor}>
-          +
-        </Typo.Body>
-        <Typo.Body variant="body3" color={textColor}>
-          {isKo ? "추가하기" : "Add"}
+        <Icon.IcPlus width={12} height={12} />
+        <Typo.Body variant="body3" color="gray0">
+          {i18n.t("diaryWrite.add")}
         </Typo.Body>
       </View>
     </Pressable>
@@ -87,8 +82,5 @@ const styles = StyleSheet.create({
         color: "rgba(0, 0, 0, 0.12)",
       },
     ],
-  },
-  fabPlus: {
-    marginTop: -2,
   },
 });

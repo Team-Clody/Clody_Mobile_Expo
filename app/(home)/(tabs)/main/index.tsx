@@ -455,12 +455,10 @@ export default function Main() {
       return;
     }
     if (showWriteEntry && !isWritableSelected) return;
-    // 일기쓰기 / 이어쓰기 → 일기 작성 화면 (임시저장이 있으면 draft로 프리필)
+    // 일기쓰기 / 이어쓰기 → 일기 작성 화면 (임시저장 프리필은 작성 화면이 직접 조회)
     router.push({
       pathname: "/diaryWrite",
-      params: isDraft
-        ? { date: selectedDateKey, draft: "1" }
-        : { date: selectedDateKey },
+      params: { date: selectedDateKey },
     });
   };
 

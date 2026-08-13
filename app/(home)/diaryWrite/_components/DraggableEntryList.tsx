@@ -68,8 +68,12 @@ function DraggableRow({
   onLayoutHeight,
   children,
 }: RowProps) {
+  // 동시에 하나의 드래그만 허용 — 정착 애니메이션 중 다른 칸을 잡는 경우 포함
+  const isOwner = useSharedValue(false);
+
   const beginDrag = () => {
-    Keyboard.dismiss();
+    // 제스처 활성화 프레임에서 동기 dismiss하면 키보드 큐가 밀릴 수 있어 한 틱 미룸
+    setTimeout(() => Keyboard.dismiss(), 0);
     onDragChange(id);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
@@ -80,12 +84,18 @@ function DraggableRow({
     .activateAfterLongPress(LONG_PRESS_MS)
     .maxPointers(1)
     .onStart(() => {
+      if (activeIndex.value !== -1) {
+        isOwner.value = false;
+        return;
+      }
+      isOwner.value = true;
       activeIndex.value = index;
       translationY.value = 0;
       anchorAdjust.value = 0;
       runOnJS(beginDrag)();
     })
     .onUpdate((e) => {
+      if (!isOwner.value || activeIndex.value === -1) return;
       const y = e.translationY + anchorAdjust.value;
       const from = activeIndex.value;
       const h = heights.value;
@@ -112,35 +122,45 @@ function DraggableRow({
       runOnJS(tickHaptic)();
     })
     .onEnd(() => {
-      translationY.value = withSpring(0, SPRING, () => {
-        activeIndex.value = -1;
-        runOnJS(endDrag)();
+      if (!isOwner.value) return;
+      translationY.value = withSpring(0, SPRING, (finished) => {
+        // 취소된 스프링의 콜백이 다음 드래그 상태를 초기화하지 않도록 finished 확인
+        if (finished) {
+          isOwner.value = false;
+          activeIndex.value = -1;
+          runOnJS(endDrag)();
+        }
       });
     })
     .onFinalize((_e, success) => {
-      if (!success && activeIndex.value === index) {
-        translationY.value = withSpring(0, SPRING, () => {
+      if (success || !isOwner.value) return;
+      translationY.value = withSpring(0, SPRING, (finished) => {
+        if (finished) {
+          isOwner.value = false;
           activeIndex.value = -1;
-        });
-        runOnJS(endDrag)();
-      }
+        }
+      });
+      runOnJS(endDrag)();
     });
 
   const animatedStyle = useAnimatedStyle(() => {
     if (isDragging) {
       return {
         zIndex: 10,
-        shadowOpacity: withTiming(0.14, { duration: 120 }),
         transform: [
           { translateY: translationY.value },
           { scale: withTiming(1.03, { duration: 120 }) },
         ],
+        // Android 뷰에는 없는 프롭이라 iOS에서만 전달
+        ...(Platform.OS === "ios" && {
+          shadowOpacity: withTiming(0.14, { duration: 120 }),
+        }),
       };
     }
     return {
       zIndex: 0,
-      shadowOpacity: withTiming(0),
       transform: [{ translateY: 0 }, { scale: withTiming(1) }],
+      ...(Platform.OS === "ios" && { shadowOpacity: withTiming(0) }),
     };
   }, [isDragging, index]);
 

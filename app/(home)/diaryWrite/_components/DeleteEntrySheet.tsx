@@ -1,19 +1,18 @@
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import i18n from "@/app/i18n/i18n";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Typo } from "@/shared/components/typo/Typo";
 import { palette } from "@/shared/theme/palette";
 
 type DeleteEntrySheetProps = {
   visible: boolean;
-  isKo: boolean;
   onDelete: () => void;
   onClose: () => void;
 };
 
 export function DeleteEntrySheet({
   visible,
-  isKo,
   onDelete,
   onClose,
 }: DeleteEntrySheetProps) {
@@ -28,12 +27,12 @@ export function DeleteEntrySheet({
           <Pressable
             onPress={onDelete}
             accessibilityRole="button"
-            accessibilityLabel={isKo ? "삭제하기" : "Delete"}
+            accessibilityLabel={i18n.t("diaryWrite.delete")}
             style={styles.deleteRow}
           >
             <Ionicons name="trash-outline" size={20} color={palette.gray800} />
             <Typo.Body variant="body8" color="gray800">
-              {isKo ? "삭제하기" : "Delete"}
+              {i18n.t("diaryWrite.delete")}
             </Typo.Body>
           </Pressable>
         </View>
