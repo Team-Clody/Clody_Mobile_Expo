@@ -7,6 +7,7 @@ interface ToastProps {
   message: string;
   visible: boolean;
   duration?: number;
+  variant?: 'success' | 'warning';
   onHide: () => void;
 }
 
@@ -14,6 +15,7 @@ export const Toast: React.FC<ToastProps> = ({
   message,
   visible,
   duration = 2000,
+  variant = 'success',
   onHide,
 }) => {
   const translateY = useRef(new Animated.Value(20)).current;
@@ -58,7 +60,11 @@ export const Toast: React.FC<ToastProps> = ({
           },
         ]}
       >
-        <Icon.IcSuccess width={18} height={18} />
+        {variant === 'warning' ? (
+          <Icon.IcWarning width={18} height={18} />
+        ) : (
+          <Icon.IcSuccess width={18} height={18} />
+        )}
         <Typo.Body variant="body4" color="white">
           {message}
         </Typo.Body>
