@@ -344,18 +344,18 @@ const styles = StyleSheet.create({
   letterGlow: {
     position: "absolute",
     top: -67,
-    left: 198,
+    right: -41,
     width: 178,
     height: 178,
     borderRadius: 89,
-    backgroundColor: "rgba(71, 210, 125, 0.055)",
+    backgroundColor: "rgba(71, 210, 125, 0.07)",
     boxShadow: [
       {
         offsetX: 0,
         offsetY: 0,
         blurRadius: 173.9,
         spreadDistance: 0,
-        color: "rgba(71, 210, 125, 0.15)",
+        color: "rgba(71, 210, 125, 0.18)",
       },
     ],
   },
