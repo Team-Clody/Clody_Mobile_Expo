@@ -1,4 +1,4 @@
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import {
   useCallback,
   useContext,
@@ -38,6 +38,7 @@ import {
   WEEK_STRIP_LENGTH,
 } from "./_constants";
 import { localeTextStyle } from "@/shared/theme/localeTypography";
+import { isDiaryWritableDate } from "@/shared/utils/diaryDate";
 import { useJournalPrompt } from "./_hooks/useJournalPrompt";
 import { useMainCalendarData } from "./_hooks/useMainCalendarData";
 import { useReplyReadyTime } from "./_hooks/useReplyReadyTime";
@@ -209,6 +210,8 @@ export default function Main() {
     hasSelectedDiary && (isReadyNotRead || isReadyRead);
   const showWriteEntry =
     !isFutureSelected && !hasSelectedDiary && !isDraft && !isUnready;
+  // 작성 가능일: KST 오늘+어제, 그 외 타임존은 오늘만 (v1 정책)
+  const isWritableSelected = isDiaryWritableDate(gratitudeDate);
   const actionLabel = showWriteEntry
     ? i18n.t("main.gratitude.writeEntry")
     : showReplyAction
@@ -219,11 +222,14 @@ export default function Main() {
         ? i18n.t("main.gratitude.continueWriting")
         : "Continue Writing";
   const actionTextColor = showWriteEntry
-    ? "#13B567"
+    ? isWritableSelected
+      ? "#13B567"
+      : "#ABAFBB"
     : isReadyNotRead
       ? "#00A34A"
       : "#374151";
-  const useGreenActionChevron = showWriteEntry || isReadyNotRead;
+  const useGreenActionChevron =
+    (showWriteEntry && isWritableSelected) || isReadyNotRead;
   const timerText = isKo
     ? `답장 ${formatRemainingTime(replyRemainingMs)} 남음`
     : `Reply available in ${formatRemainingTime(replyRemainingMs)}`;
@@ -442,6 +448,20 @@ export default function Main() {
     }
   };
 
+  const handleGratitudeAction = () => {
+    if (showReplyAction) {
+      // TODO: 답장 확인 화면 연결
+      console.log("[main] 답장확인 - 미구현");
+      return;
+    }
+    if (showWriteEntry && !isWritableSelected) return;
+    // 일기쓰기 / 이어쓰기 → 일기 작성 화면 (임시저장 프리필은 작성 화면이 직접 조회)
+    router.push({
+      pathname: "/diaryWrite",
+      params: { date: selectedDateKey },
+    });
+  };
+
   const datePickerLayer = (
     <DatePickerSheet
       translateY={datePickerTranslateY}
@@ -526,6 +546,7 @@ export default function Main() {
           actionLabel={actionLabel}
           actionTextColor={actionTextColor}
           useGreenActionChevron={useGreenActionChevron}
+          onPressAction={handleGratitudeAction}
         />
       </View>
 

@@ -35,6 +35,7 @@ type GratitudeCardProps = {
   actionLabel: string;
   actionTextColor: string;
   useGreenActionChevron: boolean;
+  onPressAction: () => void;
 };
 
 export function GratitudeCard({
@@ -51,6 +52,7 @@ export function GratitudeCard({
   actionLabel,
   actionTextColor,
   useGreenActionChevron,
+  onPressAction,
 }: GratitudeCardProps) {
   const AdToReplyIcon = isKo ? AdToReplyKoIcon : AdToReplyEnIcon;
   const isToday = isCalendarToday(gratitudeDate);
@@ -205,7 +207,7 @@ export function GratitudeCard({
                 </Text>
               ) : (
                 <Pressable
-                  onPress={() => {}}
+                  onPress={onPressAction}
                   hitSlop={8}
                   style={{ width: isKo ? 106 : 132, alignItems: "flex-end" }}
                 >

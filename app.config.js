@@ -2,7 +2,7 @@ export default {
   expo: {
     name: "Clody_Mobile_Expo",
     slug: "clodymobileexpo",
-    version: "1.0.0",
+    version: "2.0.1",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "clodymobileexpo",
@@ -10,7 +10,8 @@ export default {
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.Clody.Clody",
+      bundleIdentifier: "com.clody.corp",
+      buildNumber: "7",
     },
     android: {
       googleServicesFile:
@@ -65,12 +66,12 @@ export default {
       [
         "@react-native-kakao/core",
         {
-          nativeAppKey: "eb5b3511f81201dba4850861989793f6",
+          nativeAppKey: "b520fc6d759caf1cb41ec2a7be31fb75",
           android: {
             authCodeHandlerActivity: true,
           },
           ios: {
-            authCodeHandlerActivity: true,
+            handleKakaoOpenUrl: true,
           },
         },
       ],
@@ -82,7 +83,7 @@ export default {
     extra: {
       router: {},
       /** JS에서 `initializeKakaoSDK` 호출 시 사용 (네이티브 플러그인 nativeAppKey와 동일해야 함) */
-      kakaoNativeAppKey: "eb5b3511f81201dba4850861989793f6",
+      kakaoNativeAppKey: "b520fc6d759caf1cb41ec2a7be31fb75",
       /** iOS Google Sign-In configure용 Client ID */
       googleIosClientId:
         "430648671385-2l5bjp3apfjp0bed20646vk3orvj04e3.apps.googleusercontent.com",

@@ -1,13 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  FlatList,
-  Modal,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Typo } from './typo/Typo';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { FlatList, Modal, Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Typo } from "./typo/Typo";
 
 const ITEM_HEIGHT = 44;
 const VISIBLE_ROWS = 5;
@@ -77,7 +71,7 @@ const WheelColumn = <T extends string | number>({
         showsVerticalScrollIndicator={false}
         snapToInterval={ITEM_HEIGHT}
         decelerationRate="fast"
-        onMomentumScrollEnd={event =>
+        onMomentumScrollEnd={(event) =>
           handleMomentumEnd(event.nativeEvent.contentOffset.y)
         }
         getItemLayout={(_, index) => ({
@@ -92,7 +86,7 @@ const WheelColumn = <T extends string | number>({
               {item === null ? null : (
                 <Typo.Body
                   variant="body7"
-                  style={{ color: isSelected ? '#1B1C20' : '#ABAFBB' }}
+                  style={{ color: isSelected ? "#1B1C20" : "#ABAFBB" }}
                 >
                   {formatItem ? formatItem(item) : item}
                 </Typo.Body>
@@ -125,7 +119,7 @@ export const MonthPickerBottomSheet = ({
     if (visible && initialValue) {
       setYear(initialValue.year);
       setMonth(initialValue.month);
-      setScrollKey(prev => prev + 1);
+      setScrollKey((prev) => prev + 1);
     }
   }, [visible, initialValue]);
 
@@ -137,7 +131,7 @@ export const MonthPickerBottomSheet = ({
     const today = new Date();
     setYear(today.getFullYear());
     setMonth(today.getMonth() + 1);
-    setScrollKey(prev => prev + 1);
+    setScrollKey((prev) => prev + 1);
   };
 
   return (
@@ -146,7 +140,10 @@ export const MonthPickerBottomSheet = ({
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View>
           <View style={styles.sheet}>
-            <Typo.Display variant="display4" style={{ color: '#212124' }}>
+            <Typo.Display
+              variant="display4"
+              style={{ color: "#212124", fontWeight: "bold" }}
+            >
               날짜 선택
             </Typo.Display>
             <View style={styles.wheelRow}>
@@ -156,26 +153,26 @@ export const MonthPickerBottomSheet = ({
                   items={yearOptions}
                   value={year}
                   onChange={setYear}
-                  formatItem={item => `${item}년`}
+                  formatItem={(item) => `${item}년`}
                   scrollKey={scrollKey}
                 />
                 <WheelColumn
                   items={monthOptions}
                   value={month}
                   onChange={setMonth}
-                  formatItem={item => `${item}월`}
+                  formatItem={(item) => `${item}월`}
                   scrollKey={scrollKey}
                 />
               </View>
             </View>
             <View style={styles.buttonRow}>
               <Pressable style={styles.todayButton} onPress={handleToday}>
-                <Typo.Body variant="body1" style={{ color: '#6B7684' }}>
+                <Typo.Body variant="body1" style={{ color: "#6B7684" }}>
                   오늘
                 </Typo.Body>
               </Pressable>
               <Pressable style={styles.confirmButton} onPress={handleConfirm}>
-                <Typo.Body variant="body1" style={{ color: '#FFFFFF' }}>
+                <Typo.Body variant="body1" style={{ color: "#FFFFFF" }}>
                   확인
                 </Typo.Body>
               </Pressable>
@@ -191,11 +188,11 @@ export const MonthPickerBottomSheet = ({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "flex-end",
   },
   sheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingHorizontal: 20,
@@ -204,56 +201,56 @@ const styles = StyleSheet.create({
   wheelRow: {
     marginTop: 8,
     height: ITEM_HEIGHT * VISIBLE_ROWS,
-    position: 'relative',
+    position: "relative",
   },
   wheelContainer: {
     flex: 1,
-    flexDirection: 'row',
-    paddingHorizontal: 30,
+    flexDirection: "row",
+    paddingHorizontal: 70,
   },
   wheelColumn: {
     flex: 1,
     height: ITEM_HEIGHT * VISIBLE_ROWS,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   item: {
     height: ITEM_HEIGHT,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   selectionOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: ITEM_HEIGHT * PADDING_ITEMS,
     left: 0,
     right: 0,
     height: ITEM_HEIGHT,
     borderRadius: 4,
-    backgroundColor: '#F2F3F6',
+    backgroundColor: "#F2F3F6",
   },
   buttonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 14,
     paddingVertical: 14,
   },
   todayButton: {
     width: 80,
     height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F2F3F6',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F2F3F6",
     borderRadius: 6,
   },
   confirmButton: {
     flex: 1,
     height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#293038',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#293038",
     borderRadius: 6,
   },
   bottomFill: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
 });
