@@ -1,5 +1,5 @@
-import { initializeKakaoSDK } from "@react-native-kakao/core";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { initializeKakaoSDK } from "@react-native-kakao/core";
 import Constants from "expo-constants";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -9,11 +9,7 @@ import * as SystemUI from "expo-system-ui";
 import { useEffect } from "react";
 import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import {
-  SafeAreaProvider,
-  SafeAreaView,
-} from "react-native-safe-area-context";
-import { useAppStore } from "@/store/useAppStore";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 const APP_BACKGROUND = "#FFFFFF";
 void SplashScreen.preventAutoHideAsync();
@@ -59,11 +55,6 @@ export default function RootLayout() {
       forceCodeForRefreshToken: true,
     });
   }, []);
-
-  useEffect(() => {
-    if (!fontsLoaded) return;
-    void useAppStore.getState().hydrateAuthFromStorage();
-  }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;
 
