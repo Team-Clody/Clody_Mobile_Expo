@@ -35,6 +35,7 @@ type GratitudeCardProps = {
   actionLabel: string;
   actionTextColor: string;
   useGreenActionChevron: boolean;
+  onPressFastReplyAd: () => void;
   onPressAction: () => void;
 };
 
@@ -52,6 +53,7 @@ export function GratitudeCard({
   actionLabel,
   actionTextColor,
   useGreenActionChevron,
+  onPressFastReplyAd,
   onPressAction,
 }: GratitudeCardProps) {
   const AdToReplyIcon = isKo ? AdToReplyKoIcon : AdToReplyEnIcon;
@@ -137,7 +139,8 @@ export function GratitudeCard({
                   />
                   {isUnready && (
                     <Pressable
-                      onPress={() => {}}
+                      onPress={onPressFastReplyAd}
+                      accessibilityRole="button"
                       hitSlop={8}
                       style={{
                         position: "absolute",
@@ -146,7 +149,7 @@ export function GratitudeCard({
                         overflow: "visible",
                       }}
                     >
-                      <AdToReplyIcon width={isKo ? 168 : 160} height={42} />
+                      <AdToReplyIcon width={isKo ? 143 : 132} height={35} />
                     </Pressable>
                   )}
                 </View>
