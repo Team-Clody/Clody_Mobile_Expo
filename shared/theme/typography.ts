@@ -45,8 +45,6 @@ export const typography = {
     fontWeight: "700",
     fontFamily: commonTheme.typography.fontFamily.bold,
   },
-
-  // Head
   head1: {
     fontSize: 20,
     lineHeight: 20 * 1.4,
@@ -61,8 +59,6 @@ export const typography = {
     fontWeight: "600",
     fontFamily: commonTheme.typography.fontFamily.semibold,
   },
-
-  // Body
   body1: {
     fontSize: 16,
     lineHeight: 16 * 1.4,

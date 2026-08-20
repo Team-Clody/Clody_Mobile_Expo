@@ -1,5 +1,4 @@
 export default {
-  // 기존 인라인 번역
   mypage: '마이페이지',
   noNickname: '닉네임 없음',
   noEmail: '이메일 없음',
@@ -108,8 +107,6 @@ export default {
       20: '우주복',
     },
   },
-
-  // 소스 프로젝트 번역 (구조화)
   login: {
     pager: {
       page1: {

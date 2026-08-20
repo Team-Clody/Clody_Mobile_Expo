@@ -84,7 +84,6 @@ export function useDiaryEntries() {
     );
   }, []);
 
-  // 임시저장 불러오기 — 빈 문자열 항목도 칸으로 복원, 없으면 빈 1칸
   const loadEntries = useCallback((texts: string[]) => {
     const source = texts.length > 0 ? texts.slice(0, AD_MAX_ENTRY_COUNT) : [""];
     setIsAdEntryBonusApplied(source.length > FREE_MAX_ENTRY_COUNT);

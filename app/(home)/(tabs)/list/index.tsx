@@ -36,7 +36,7 @@ export default function ListScreen() {
       );
       setPrompt(data.prompt);
     } catch {
-      // fallback text in PromptHeader
+      setPrompt("");
     }
   };
 

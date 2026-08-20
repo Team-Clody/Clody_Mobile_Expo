@@ -1,5 +1,4 @@
 export default {
-  // 기존 인라인 번역
   mypage: 'My Page',
   noNickname: 'No nickname',
   noEmail: 'No email',
@@ -110,8 +109,6 @@ export default {
       20: 'Spacesuit',
     },
   },
-
-  // 소스 프로젝트 번역 (구조화)
   login: {
     pager: {
       page1: {

@@ -102,7 +102,6 @@ export default function DiaryWrite() {
     });
   }, []);
 
-  // 진입 시 임시저장 조회 — 내용이 있으면 프리필 (없거나 실패하면 빈 칸 유지)
   useEffect(() => {
     DiaryAPI.getDraft(
       diaryDate.getFullYear(),
@@ -197,7 +196,6 @@ export default function DiaryWrite() {
     navigateTimerRef.current = setTimeout(goHome, TOAST_NAVIGATE_DELAY);
   };
 
-  // 변경사항이 없으면 팝업 없이 바로 나감 (v1 정책)
   const handlePressBack = () => {
     const current = JSON.stringify(entries.map((entry) => entry.text));
     if (current === initialTextsRef.current) {
@@ -216,7 +214,6 @@ export default function DiaryWrite() {
     return () => sub.remove();
   });
 
-  // 임시저장: 빈 리스트 포함 그대로 저장
   const handleSaveDraft = async () => {
     if (isSubmitting) return;
     setIsDraftModalOpen(false);
@@ -260,7 +257,6 @@ export default function DiaryWrite() {
     setIsSendModalOpen(true);
   };
 
-  // 보내기: 빈 리스트는 삭제하고 작성된 리스트 순서를 당겨서 전송
   const handleConfirmSend = async () => {
     if (isSubmitting) return;
     setIsSendModalOpen(false);
@@ -274,7 +270,6 @@ export default function DiaryWrite() {
         goHome();
         return;
       }
-      // TODO: 답장 대기 화면으로 이동 (미구현 — 우선 홈으로)
       goHome();
     } catch (error) {
       console.warn("[diaryWrite] 보내기 실패", error);
@@ -316,7 +311,6 @@ export default function DiaryWrite() {
     : 20;
 
   return (
-    // 상단 인셋은 루트 _layout의 SafeAreaView가 처리하므로 여기서 더하지 않음
     <View style={styles.container}>
       {/* iOS 스와이프 백이 임시저장 팝업을 우회하지 않도록 차단 */}
       <Stack.Screen options={{ gestureEnabled: false }} />

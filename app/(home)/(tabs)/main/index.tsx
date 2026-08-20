@@ -525,12 +525,10 @@ export default function Main() {
 
   const handleGratitudeAction = () => {
     if (showReplyAction) {
-      // TODO: 답장 확인 화면 연결
       console.log("[main] 답장확인 - 미구현");
       return;
     }
     if (showWriteEntry && !isWritableSelected) return;
-    // 일기쓰기 / 이어쓰기 → 일기 작성 화면 (임시저장 프리필은 작성 화면이 직접 조회)
     router.push({
       pathname: "/(home)/diaryWrite" as never,
       params: { date: selectedDateKey },
