@@ -2,6 +2,7 @@ import type { GetDiaryCreatedTimeResponseDTO } from "@/api/dto/diary/response/ge
 
 /** 일기 작성 후 답장 오픈까지 대기 시간 (백엔드 규칙과 동일) */
 export const DIARY_REPLY_READY_AFTER_MS = 12 * 60 * 60 * 1000;
+export const FIRST_DIARY_REPLY_READY_AFTER_MS = 60 * 1000;
 
 /**
  * diary/time 응답(로컬 날짜 + 시분초)을 기기 로컬 타임존 기준 타임스탬프로 해석한 뒤,
@@ -20,5 +21,5 @@ export function diaryCreatedToReplyReadyMs(
   if (Number.isNaN(t)) {
     return null;
   }
-  return t + DIARY_REPLY_READY_AFTER_MS;
+  return t + (data.isFirst ? FIRST_DIARY_REPLY_READY_AFTER_MS : DIARY_REPLY_READY_AFTER_MS);
 }

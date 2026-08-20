@@ -162,7 +162,7 @@ export default function DiaryWrite() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/main");
+      router.replace("/(home)/(tabs)/main");
     }
   };
 
@@ -248,8 +248,10 @@ export default function DiaryWrite() {
         goHome();
         return;
       }
-      // TODO: 답장 대기 화면으로 이동 (미구현 — 우선 홈으로)
-      goHome();
+      router.replace({
+        pathname: "/(home)/reply/[date]",
+        params: { date: dateKey, status: "UNREADY", source: "diaryWrite" },
+      });
     } catch (error) {
       console.warn("[diaryWrite] 보내기 실패", error);
       showRequestError(error);

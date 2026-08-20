@@ -5,6 +5,7 @@ import { DiaryAPI } from "@/api/diaryAPI";
 import authService from "@/services/authService";
 import { diaryCreatedToReplyReadyMs } from "@/shared/utils/diaryReplyTimer";
 import type { ReplyStatus } from "../_types";
+import { DEV_BYPASS_AUTH } from "@/shared/config/devAuth";
 
 export function useReplyReadyTime(
   selectedReplyStatus: ReplyStatus,
@@ -22,6 +23,7 @@ export function useReplyReadyTime(
     if (replyReadyDeadlineMs != null && replyReadyDeadlineMs > 0) {
       return;
     }
+    if (DEV_BYPASS_AUTH) return;
 
     let cancelled = false;
     const dateKey = selectedDateKey;

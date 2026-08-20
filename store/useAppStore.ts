@@ -36,6 +36,9 @@ export const useAppStore = create<AppState & AppActions>((set) => ({
         typeof value === "function"
           ? (value as (prev: boolean) => boolean)(s.isLoggedIn)
           : value,
+      // 로그인 결과를 반영했다는 것은 저장소 조회/재발급 등 인증 판별이 끝났다는 뜻이다.
+      // 이 값이 갱신되지 않으면 메인 화면이 인증 준비 중으로 판단해 빈 화면을 반환한다.
+      authReady: true,
     })),
   hydrateAuthFromStorage: async () => {
     try {
