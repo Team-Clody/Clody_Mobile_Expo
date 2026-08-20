@@ -12,7 +12,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -139,7 +138,7 @@ function ReadyReply({ onOpen }: { onOpen: () => void }) {
 function ReplyLetter({ reply }: { reply: GetReplyResponseDTO }) {
   return (
     <View style={styles.letterWrap}>
-      <Image source={require("@/assets/images/reply_glow.png")} style={styles.letterGlow} />
+      <View pointerEvents="none" style={styles.letterGlow} />
       <ScrollView contentContainerStyle={styles.letter} showsVerticalScrollIndicator={false}>
         <LodyHead style={styles.letterLody} />
         <Text style={styles.to}>{i18n.t("reply.letter.to", { nickname: reply.nickname })}</Text>
@@ -321,7 +320,24 @@ const styles = StyleSheet.create({
   openButton: { height: 40, marginTop: 22, paddingLeft: 16, paddingRight: 10, borderRadius: 39, backgroundColor: palette.accentPrimary400, flexDirection: "row", alignItems: "center", gap: 3 },
   openButtonText: { ...typography.body2, color: palette.gray0 },
   letterWrap: { flex: 1, marginTop: 20, marginHorizontal: 20, marginBottom: 20, borderRadius: 20, overflow: "hidden", backgroundColor: palette.gray30 },
-  letterGlow: { position: "absolute", top: -241, left: 24, width: 526, height: 526 },
+  letterGlow: {
+    position: "absolute",
+    top: -67,
+    left: 198,
+    width: 178,
+    height: 178,
+    borderRadius: 89,
+    backgroundColor: "rgba(71, 210, 125, 0.055)",
+    boxShadow: [
+      {
+        offsetX: 0,
+        offsetY: 0,
+        blurRadius: 173.9,
+        spreadDistance: 0,
+        color: "rgba(71, 210, 125, 0.15)",
+      },
+    ],
+  },
   letter: { minHeight: "100%", paddingTop: 48, paddingHorizontal: 20, paddingBottom: 20 },
   letterLody: { position: "absolute", top: 20, right: 20.39, width: 43.61, height: 39.91 },
   to: { ...typography.body2, color: palette.gray800 },
