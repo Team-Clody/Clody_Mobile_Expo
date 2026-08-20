@@ -3,6 +3,7 @@ import type { GetReplyResponseDTO } from "@/api/dto/reply/response/getReplyRespo
 import { ReplyAPI } from "@/api/replyAPI";
 import i18n from "@/app/i18n/i18n";
 import BackIcon from "@/assets/icons/ic_back.svg";
+import ChevronIcon from "@/assets/icons/ic_chevron_green.svg";
 import { palette } from "@/shared/theme/palette";
 import { typography } from "@/shared/theme/typography";
 import { diaryCreatedToReplyReadyMs } from "@/shared/utils/diaryReplyTimer";
@@ -114,7 +115,7 @@ function WaitingReply({ remaining }: { remaining: number }) {
       <Text style={styles.timer}>{`${pad(hours)}:${pad(minutes)}:${pad(seconds)}`}</Text>
       <Pressable accessibilityRole="button" onPress={() => {}} style={styles.adButton}>
         <Text style={styles.adButtonText}>{i18n.t("reply.waiting.ad")}</Text>
-        <BackIcon width={16} height={16} style={styles.rightChevron} />
+        <ChevronIcon width={16} height={16} color={palette.gray0} />
       </Pressable>
     </View>
   );
@@ -128,7 +129,7 @@ function ReadyReply({ onOpen }: { onOpen: () => void }) {
       <Text style={styles.readyTimer}>00:00:00</Text>
       <Pressable accessibilityRole="button" onPress={onOpen} style={styles.openButton}>
         <Text style={styles.openButtonText}>{i18n.t("reply.ready.open")}</Text>
-        <BackIcon width={16} height={16} style={styles.rightChevron} />
+        <ChevronIcon width={16} height={16} color={palette.gray0} />
       </Pressable>
     </View>
   );
@@ -139,7 +140,11 @@ function ReplyLetter({ reply }: { reply: GetReplyResponseDTO }) {
     <View style={styles.letterWrap}>
       <Image source={require("@/assets/images/reply_glow.png")} style={styles.letterGlow} />
       <ScrollView contentContainerStyle={styles.letter} showsVerticalScrollIndicator={false}>
-        <View style={[styles.imagePlaceholder, styles.letterLody]} />
+        <Image
+          source={require("@/assets/images/img_lody_prompt.png")}
+          resizeMode="contain"
+          style={styles.letterLody}
+        />
         <Text style={styles.to}>{i18n.t("reply.letter.to", { nickname: reply.nickname })}</Text>
         <Text style={styles.letterContent}>{reply.content}</Text>
         <Text style={styles.from}>{i18n.t("reply.letter.from")}</Text>
@@ -313,7 +318,6 @@ const styles = StyleSheet.create({
   timer: { ...typography.head1, color: "#282A31", marginTop: 4 },
   adButton: { height: 40, marginTop: 22, paddingLeft: 16, paddingRight: 10, borderRadius: 39, backgroundColor: palette.gray700, flexDirection: "row", alignItems: "center", gap: 3 },
   adButtonText: { ...typography.body2, color: palette.gray0 },
-  rightChevron: { transform: [{ rotate: "180deg" }] },
   readyContent: { flex: 1, alignItems: "center", paddingTop: 158 },
   readyLody: { width: 100, height: 100, marginBottom: 28 },
   readyCaption: { ...typography.body9, color: palette.gray500 },
