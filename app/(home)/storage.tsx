@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useStorageStore } from "@/store/useStorageStore";
+import i18n from "@/app/i18n/i18n";
 import IcBack from "@/assets/icons/ic_back.svg";
 import IcFarmer from "@/assets/icons/ic_farmer.svg";
 import IcPrincess from "@/assets/icons/ic_princess.svg";
@@ -36,28 +37,12 @@ const COSTUME_LODY: Record<number, any> = {
   3: require("@/assets/images/devil.png"),
 };
 
-const COSTUME_NAMES: Record<number, string> = {
-  1: "멜빵 바지",
-  2: "핑크 드레스",
-  3: "악마 코스튬",
-  4: "마녀 원피스",
-  5: "산타 유니폼",
-  6: "탐정 코트",
-  7: "해적 의상",
-  8: "우비",
-  9: "기모노",
-  10: "턱시도",
-  11: "파자마",
-  12: "운동복",
-  13: "요리사 복",
-  14: "경찰 제복",
-  15: "소방관 복",
-  16: "왕자 의상",
-  17: "메이드복",
-  18: "락스타 자켓",
-  19: "한복",
-  20: "우주복",
-};
+function getCostumeName(stage: number): string {
+  const key = `skin.costumeName.${stage}` as const;
+  const translated = i18n.t(key);
+  if (translated !== key) return translated;
+  return i18n.t("skin.level", { stage });
+}
 
 interface OwnedSkin {
   inventoryItemId: number;
@@ -113,7 +98,7 @@ export default function StorageScreen() {
           skinId: skin.skinId,
           stage,
           url: skin.url,
-          name: COSTUME_NAMES[stage] ?? `${stage}단계`,
+          name: getCostumeName(stage),
           isEquipped: inv?.isEquipped ?? false,
         };
       });
@@ -188,7 +173,7 @@ export default function StorageScreen() {
       <View style={styles.itemsArea}>
         {isEmpty ? (
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyText}>아직 받은 옷이 없어요.</Text>
+            <Text style={styles.emptyText}>{i18n.t("storage.empty")}</Text>
           </View>
         ) : (
           <FlatList
@@ -256,7 +241,7 @@ export default function StorageScreen() {
               !canSave && styles.saveButtonTextDisabled,
             ]}
           >
-            저장하기
+            {i18n.t("storage.save")}
           </Text>
         </Pressable>
       </View>
