@@ -255,18 +255,25 @@ export default function ReplyScreen() {
 
   const remaining = Math.max(0, (replyReadyAt ?? now) - now);
   const hasReplyContent = Boolean(reply?.content?.trim());
-  const phase: ReplyPhase = !hasReplyContent
-    ? "waiting"
-    : opened || reply?.isRead
-      ? "opened"
-      : "ready";
+  const isReplyReadyByTime = replyReadyAt != null && remaining === 0;
+
+  useEffect(() => {
+    if (!isReplyReadyByTime || hasReplyContent) return;
+    void loadReply();
+  }, [hasReplyContent, isReplyReadyByTime, loadReply]);
+
+  const phase: ReplyPhase = opened || (hasReplyContent && reply?.isRead)
+    ? "opened"
+    : hasReplyContent || isReplyReadyByTime
+      ? "ready"
+      : "waiting";
   const changeTab = (tab: "diary" | "reply") => {
     setActiveTab(tab);
     pagerRef.current?.setPage(tab === "diary" ? 0 : 1);
   };
 
   const openReply = async () => {
-    const loadedReply = reply ?? (await loadReply());
+    const loadedReply = hasReplyContent ? reply : await loadReply();
     if (!loadedReply?.content?.trim()) return;
     setOpened(true);
     if (!loadedReply.isRead) setShowReward(true);
