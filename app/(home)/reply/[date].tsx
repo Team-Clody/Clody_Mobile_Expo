@@ -1,0 +1,312 @@
+import { DiaryAPI, type GetDiaryResponseDTO } from "@/api/diaryAPI";
+import type { GetReplyResponseDTO } from "@/api/dto/reply/response/getReplyResponseDTO";
+import { ReplyAPI } from "@/api/replyAPI";
+import i18n from "@/app/i18n/i18n";
+import BackIcon from "@/assets/icons/ic_back.svg";
+import { palette } from "@/shared/theme/palette";
+import { typography } from "@/shared/theme/typography";
+import { diaryCreatedToReplyReadyMs } from "@/shared/utils/diaryReplyTimer";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+
+type ReplyPhase = "waiting" | "ready" | "opened";
+
+const pad = (value: number) => String(value).padStart(2, "0");
+
+function parseDate(date?: string) {
+  const values = date?.split("-").map(Number) ?? [];
+  if (values.length !== 3 || values.some((value) => !Number.isInteger(value))) {
+    return null;
+  }
+  const [year, month, day] = values;
+  return { year, month, day };
+}
+
+function formatDate(date?: string) {
+  const parsed = parseDate(date);
+  if (!parsed) return i18n.t("reply.titleFallback");
+  return new Date(parsed.year, parsed.month - 1, parsed.day).toLocaleDateString(
+    i18n.locale?.startsWith("ko") ? "ko-KR" : "en-US",
+    { month: "long", day: "numeric" },
+  );
+}
+
+function ReplyHeader({
+  title,
+  activeTab,
+  onBack,
+  onChangeTab,
+}: {
+  title: string;
+  activeTab: "diary" | "reply";
+  onBack: () => void;
+  onChangeTab: (tab: "diary" | "reply") => void;
+}) {
+  const tabs: { key: "diary" | "reply"; label: string }[] = [
+    { key: "diary", label: i18n.t("reply.tabs.diary") },
+    { key: "reply", label: i18n.t("reply.tabs.reply") },
+  ];
+
+  return (
+    <>
+      <View style={styles.header}>
+        <Pressable accessibilityRole="button" accessibilityLabel={i18n.t("reply.back")} hitSlop={8} onPress={onBack}>
+          <BackIcon width={28} height={28} />
+        </Pressable>
+        <Text style={styles.headerTitle}>{title}</Text>
+        <View style={styles.headerSide} />
+      </View>
+      <View style={styles.tabs}>
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <Pressable
+              key={tab.key}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              onPress={() => onChangeTab(tab.key)}
+              style={[styles.tab, isActive && styles.activeTab]}
+            >
+              <Text style={isActive ? styles.activeTabText : styles.inactiveTab}>{tab.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </>
+  );
+}
+
+function MyDiary({ diary }: { diary: GetDiaryResponseDTO | null }) {
+  const entries = diary?.diaries ?? [];
+  return (
+    <ScrollView contentContainerStyle={styles.diaryList} showsVerticalScrollIndicator={false}>
+      {entries.map((entry, index) => (
+        <View key={`${index}-${entry.content}`} style={styles.diaryItem}>
+          <Text style={styles.diaryText}>{`${index + 1}. ${entry.content}`}</Text>
+          <Text accessibilityLabel={i18n.t("reply.diaryMore")} style={styles.moreIcon}>⋮</Text>
+        </View>
+      ))}
+      {entries.length === 0 && <Text style={styles.emptyDiary}>{i18n.t("reply.emptyDiary")}</Text>}
+    </ScrollView>
+  );
+}
+
+function WaitingReply({ remaining }: { remaining: number }) {
+  const hours = Math.floor(remaining / 3_600_000);
+  const minutes = Math.floor(remaining / 60_000) % 60;
+  const seconds = Math.floor(remaining / 1_000) % 60;
+  return (
+    <View style={styles.waitingContent}>
+      <View style={[styles.imagePlaceholder, styles.waitingLody]} />
+      <Text style={styles.waitingCaption}>{i18n.t("reply.waiting.caption")}</Text>
+      <Text style={styles.timer}>{`${pad(hours)}:${pad(minutes)}:${pad(seconds)}`}</Text>
+      <Pressable accessibilityRole="button" onPress={() => {}} style={styles.adButton}>
+        <Text style={styles.adButtonText}>{i18n.t("reply.waiting.ad")}</Text>
+        <Text style={styles.chevron}>›</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function ReadyReply({ onOpen }: { onOpen: () => void }) {
+  return (
+    <View style={styles.readyContent}>
+      <Text style={styles.readyCaption}>{i18n.t("reply.ready.caption")}</Text>
+      <Text style={styles.readyTimer}>00:00:00</Text>
+      <Pressable accessibilityRole="button" onPress={onOpen} style={styles.openButton}>
+        <Text style={styles.openButtonText}>{i18n.t("reply.ready.open")}</Text>
+        <Text style={styles.openChevron}>›</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function ReplyLetter({ reply }: { reply: GetReplyResponseDTO }) {
+  return (
+    <View style={styles.letterWrap}>
+      <ScrollView contentContainerStyle={styles.letter} showsVerticalScrollIndicator={false}>
+        <View style={[styles.imagePlaceholder, styles.letterLodyPlaceholder]} />
+        <Text style={styles.to}>{i18n.t("reply.letter.to", { nickname: reply.nickname })}</Text>
+        <Text style={styles.letterContent}>{reply.content}</Text>
+        <Text style={styles.from}>{i18n.t("reply.letter.from")}</Text>
+      </ScrollView>
+    </View>
+  );
+}
+
+function CloverRewardModal({ visible, onConfirm }: { visible: boolean; onConfirm: () => void }) {
+  return (
+    <Modal animationType="fade" transparent visible={visible} onRequestClose={onConfirm}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.rewardModal}>
+          <View style={[styles.imagePlaceholder, styles.cloverImage]} />
+          <Text style={styles.rewardTitle}>{i18n.t("reply.reward.title")}</Text>
+          <Text style={styles.rewardDescription}>{i18n.t("reply.reward.description")}</Text>
+          <Pressable accessibilityRole="button" onPress={onConfirm} style={styles.confirmButton}>
+            <Text style={styles.confirmButtonText}>{i18n.t("reply.reward.confirm")}</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+export default function ReplyScreen() {
+  const router = useRouter();
+  const { date } = useLocalSearchParams<{ date: string }>();
+  const targetDate = useMemo(() => parseDate(date), [date]);
+  const [activeTab, setActiveTab] = useState<"diary" | "reply">("reply");
+  const [diary, setDiary] = useState<GetDiaryResponseDTO | null>(null);
+  const [reply, setReply] = useState<GetReplyResponseDTO | null>(null);
+  const [replyReadyAt, setReplyReadyAt] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+  const [loading, setLoading] = useState(true);
+  const [opened, setOpened] = useState(false);
+  const [showReward, setShowReward] = useState(false);
+
+  const loadReply = useCallback(async () => {
+    if (!targetDate) return null;
+    try {
+      const result = await ReplyAPI.getReply(targetDate.year, targetDate.month, targetDate.day);
+      setReply(result);
+      return result;
+    } catch {
+      return null;
+    }
+  }, [targetDate]);
+
+  useEffect(() => {
+    if (!targetDate) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [diaryResult, replyResult] = await Promise.all([
+          DiaryAPI.getDiary(targetDate.year, targetDate.month, targetDate.day),
+          ReplyAPI.getReply(targetDate.year, targetDate.month, targetDate.day).catch(() => null),
+        ]);
+        if (cancelled) return;
+        setDiary(diaryResult);
+        setReply(replyResult);
+
+        // 답장이 아직 없을 때만 생성 시각을 조회해 대기 타이머를 계산한다.
+        if (!replyResult?.content?.trim()) {
+          const timeResult = await DiaryAPI.getDiaryCreatedTime(
+            targetDate.year,
+            targetDate.month,
+            targetDate.day,
+          );
+          if (!cancelled) setReplyReadyAt(diaryCreatedToReplyReadyMs(timeResult));
+        }
+      } catch (error) {
+        console.warn("[reply] 화면 데이터 불러오기 실패", error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [targetDate]);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => setNow(Date.now()), 1_000);
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const remaining = Math.max(0, (replyReadyAt ?? now) - now);
+  const hasReplyContent = Boolean(reply?.content?.trim());
+  const phase: ReplyPhase = !hasReplyContent
+    ? "waiting"
+    : opened || reply?.isRead
+      ? "opened"
+      : "ready";
+
+  const openReply = async () => {
+    const loadedReply = reply ?? (await loadReply());
+    if (!loadedReply?.content?.trim()) return;
+    setOpened(true);
+    if (!loadedReply.isRead) setShowReward(true);
+  };
+
+  if (loading) {
+    return <View style={styles.loading}><ActivityIndicator color={palette.accentPrimary500} /></View>;
+  }
+
+  return (
+    <View style={styles.screen}>
+      <ReplyHeader
+        title={formatDate(date)}
+        activeTab={activeTab}
+        onBack={() => router.back()}
+        onChangeTab={setActiveTab}
+      />
+      {activeTab === "diary" ? (
+        <MyDiary diary={diary} />
+      ) : phase === "waiting" ? (
+        <WaitingReply remaining={remaining} />
+      ) : phase === "ready" ? (
+        <ReadyReply onOpen={openReply} />
+      ) : reply ? (
+        <ReplyLetter reply={reply} />
+      ) : null}
+      <CloverRewardModal visible={showReward} onConfirm={() => setShowReward(false)} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: palette.gray0 },
+  loading: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: palette.gray0 },
+  header: { height: 44, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  headerTitle: { ...typography.body1, color: palette.gray1000 },
+  headerSide: { width: 28, height: 28 },
+  tabs: { height: 40, flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: palette.gray100 },
+  tab: { flex: 1, alignItems: "center", justifyContent: "flex-start", paddingTop: 1 },
+  activeTab: { borderBottomWidth: 2, borderBottomColor: palette.gray800 },
+  inactiveTab: { ...typography.body2, color: palette.gray400 },
+  activeTabText: { ...typography.body2, color: palette.gray800 },
+  diaryList: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 28, gap: 12 },
+  diaryItem: { minHeight: 50, borderWidth: 1, borderColor: palette.gray100, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 12, flexDirection: "row", alignItems: "center" },
+  diaryText: { ...typography.body4, color: palette.gray1000, flex: 1, lineHeight: 18 },
+  moreIcon: { ...typography.body3, color: palette.gray400, width: 24, textAlign: "center" },
+  emptyDiary: { ...typography.body3, color: palette.gray400, textAlign: "center", marginTop: 48 },
+  imagePlaceholder: { backgroundColor: palette.gray200 },
+  waitingContent: { flex: 1, alignItems: "center", paddingTop: 141 },
+  waitingLody: { width: 142, height: 151, marginBottom: 67 },
+  waitingCaption: { ...typography.body10, color: palette.gray500 },
+  timer: { ...typography.body7, color: palette.gray800, marginTop: 2 },
+  adButton: { height: 40, marginTop: 10, paddingLeft: 17, paddingRight: 13, borderRadius: 20, backgroundColor: palette.gray700, flexDirection: "row", alignItems: "center", gap: 6 },
+  adButtonText: { ...typography.body3, color: palette.gray0 },
+  chevron: { color: palette.gray0, fontFamily: "PretendardRegular", fontSize: 24, lineHeight: 24 },
+  readyContent: { flex: 1, alignItems: "center", paddingTop: 288 },
+  readyCaption: { ...typography.body10, color: palette.gray500 },
+  readyTimer: { ...typography.body7, color: palette.gray800, marginTop: 2 },
+  openButton: { height: 40, marginTop: 10, paddingLeft: 16, paddingRight: 12, borderRadius: 20, backgroundColor: palette.accentPrimary500, flexDirection: "row", alignItems: "center", gap: 6 },
+  openButtonText: { ...typography.body3, color: palette.gray0 },
+  openChevron: { color: palette.gray0, fontFamily: "PretendardRegular", fontSize: 24, lineHeight: 24 },
+  letterWrap: { flex: 1, marginTop: 19, marginHorizontal: 20, borderRadius: 20, overflow: "hidden", backgroundColor: palette.gray30 },
+  letter: { minHeight: "100%", paddingTop: 48, paddingHorizontal: 20, paddingBottom: 20 },
+  letterLodyPlaceholder: { position: "absolute", top: 20, right: 18, width: 48, height: 42 },
+  to: { ...typography.body2, color: palette.gray800 },
+  letterContent: { ...typography.body10, marginTop: 12, color: palette.gray1000, lineHeight: 26.6 },
+  from: { ...typography.body10, marginTop: "auto", paddingTop: 18, color: palette.gray500, textAlign: "right" },
+  modalOverlay: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.2)" },
+  rewardModal: { width: 264, height: 252, alignItems: "center", borderRadius: 12, backgroundColor: palette.gray0, paddingTop: 19 },
+  cloverImage: { width: 118, height: 89 },
+  rewardTitle: { ...typography.head2, marginTop: 15, color: palette.gray800 },
+  rewardDescription: { ...typography.body12, marginTop: 1, color: palette.gray300 },
+  confirmButton: { width: 232, height: 40, marginTop: 16, alignItems: "center", justifyContent: "center", borderRadius: 6, backgroundColor: palette.gray50 },
+  confirmButtonText: { ...typography.body3, color: palette.gray900 },
+});
