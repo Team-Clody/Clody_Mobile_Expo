@@ -10,6 +10,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -74,9 +75,10 @@ function ReplyHeader({
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
               onPress={() => onChangeTab(tab.key)}
-              style={[styles.tab, isActive && styles.activeTab]}
+              style={styles.tab}
             >
               <Text style={isActive ? styles.activeTabText : styles.inactiveTab}>{tab.label}</Text>
+              <View style={[styles.tabIndicator, isActive && styles.activeTabIndicator]} />
             </Pressable>
           );
         })}
@@ -111,7 +113,7 @@ function WaitingReply({ remaining }: { remaining: number }) {
       <Text style={styles.timer}>{`${pad(hours)}:${pad(minutes)}:${pad(seconds)}`}</Text>
       <Pressable accessibilityRole="button" onPress={() => {}} style={styles.adButton}>
         <Text style={styles.adButtonText}>{i18n.t("reply.waiting.ad")}</Text>
-        <Text style={styles.chevron}>›</Text>
+        <BackIcon width={16} height={16} style={styles.rightChevron} />
       </Pressable>
     </View>
   );
@@ -120,11 +122,12 @@ function WaitingReply({ remaining }: { remaining: number }) {
 function ReadyReply({ onOpen }: { onOpen: () => void }) {
   return (
     <View style={styles.readyContent}>
+      <View style={[styles.imagePlaceholder, styles.readyLody]} />
       <Text style={styles.readyCaption}>{i18n.t("reply.ready.caption")}</Text>
       <Text style={styles.readyTimer}>00:00:00</Text>
       <Pressable accessibilityRole="button" onPress={onOpen} style={styles.openButton}>
         <Text style={styles.openButtonText}>{i18n.t("reply.ready.open")}</Text>
-        <Text style={styles.openChevron}>›</Text>
+        <BackIcon width={16} height={16} style={styles.rightChevron} />
       </Pressable>
     </View>
   );
@@ -133,8 +136,9 @@ function ReadyReply({ onOpen }: { onOpen: () => void }) {
 function ReplyLetter({ reply }: { reply: GetReplyResponseDTO }) {
   return (
     <View style={styles.letterWrap}>
+      <Image source={require("@/assets/images/reply_glow.png")} style={styles.letterGlow} />
       <ScrollView contentContainerStyle={styles.letter} showsVerticalScrollIndicator={false}>
-        <View style={[styles.imagePlaceholder, styles.letterLodyPlaceholder]} />
+        <View style={[styles.imagePlaceholder, styles.letterLody]} />
         <Text style={styles.to}>{i18n.t("reply.letter.to", { nickname: reply.nickname })}</Text>
         <Text style={styles.letterContent}>{reply.content}</Text>
         <Text style={styles.from}>{i18n.t("reply.letter.from")}</Text>
@@ -269,12 +273,13 @@ export default function ReplyScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: palette.gray0 },
   loading: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: palette.gray0 },
-  header: { height: 44, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  header: { height: 32, marginTop: 4, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerTitle: { ...typography.body1, color: palette.gray1000 },
   headerSide: { width: 28, height: 28 },
-  tabs: { height: 40, flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: palette.gray100 },
-  tab: { flex: 1, alignItems: "center", justifyContent: "flex-start", paddingTop: 1 },
-  activeTab: { borderBottomWidth: 2, borderBottomColor: palette.gray800 },
+  tabs: { height: 31, marginTop: 16, paddingHorizontal: 20, flexDirection: "row", gap: 7, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: palette.gray100 },
+  tab: { flex: 1, height: 31, alignItems: "center", justifyContent: "space-between" },
+  tabIndicator: { width: "100%", height: 2, borderRadius: 1 },
+  activeTabIndicator: { backgroundColor: palette.gray800 },
   inactiveTab: { ...typography.body2, color: palette.gray400 },
   activeTabText: { ...typography.body2, color: palette.gray800 },
   diaryList: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 28, gap: 12 },
@@ -283,30 +288,31 @@ const styles = StyleSheet.create({
   moreIcon: { ...typography.body3, color: palette.gray400, width: 24, textAlign: "center" },
   emptyDiary: { ...typography.body3, color: palette.gray400, textAlign: "center", marginTop: 48 },
   imagePlaceholder: { backgroundColor: palette.gray200 },
-  waitingContent: { flex: 1, alignItems: "center", paddingTop: 141 },
-  waitingLody: { width: 142, height: 151, marginBottom: 67 },
-  waitingCaption: { ...typography.body10, color: palette.gray500 },
-  timer: { ...typography.body7, color: palette.gray800, marginTop: 2 },
-  adButton: { height: 40, marginTop: 10, paddingLeft: 17, paddingRight: 13, borderRadius: 20, backgroundColor: palette.gray700, flexDirection: "row", alignItems: "center", gap: 6 },
-  adButtonText: { ...typography.body3, color: palette.gray0 },
-  chevron: { color: palette.gray0, fontFamily: "PretendardRegular", fontSize: 24, lineHeight: 24 },
-  readyContent: { flex: 1, alignItems: "center", paddingTop: 288 },
-  readyCaption: { ...typography.body10, color: palette.gray500 },
-  readyTimer: { ...typography.body7, color: palette.gray800, marginTop: 2 },
-  openButton: { height: 40, marginTop: 10, paddingLeft: 16, paddingRight: 12, borderRadius: 20, backgroundColor: palette.accentPrimary500, flexDirection: "row", alignItems: "center", gap: 6 },
-  openButtonText: { ...typography.body3, color: palette.gray0 },
-  openChevron: { color: palette.gray0, fontFamily: "PretendardRegular", fontSize: 24, lineHeight: 24 },
-  letterWrap: { flex: 1, marginTop: 19, marginHorizontal: 20, borderRadius: 20, overflow: "hidden", backgroundColor: palette.gray30 },
+  waitingContent: { flex: 1, alignItems: "center", paddingTop: 158 },
+  waitingLody: { width: 100, height: 100, marginBottom: 28 },
+  waitingCaption: { ...typography.body9, color: palette.gray500 },
+  timer: { ...typography.head1, color: "#282A31", marginTop: 4 },
+  adButton: { height: 40, marginTop: 22, paddingLeft: 16, paddingRight: 10, borderRadius: 39, backgroundColor: palette.gray700, flexDirection: "row", alignItems: "center", gap: 3 },
+  adButtonText: { ...typography.body2, color: palette.gray0 },
+  rightChevron: { transform: [{ rotate: "180deg" }] },
+  readyContent: { flex: 1, alignItems: "center", paddingTop: 158 },
+  readyLody: { width: 100, height: 100, marginBottom: 28 },
+  readyCaption: { ...typography.body9, color: palette.gray500 },
+  readyTimer: { ...typography.head1, color: "#282A31", marginTop: 4 },
+  openButton: { height: 40, marginTop: 22, paddingLeft: 16, paddingRight: 10, borderRadius: 39, backgroundColor: palette.accentPrimary400, flexDirection: "row", alignItems: "center", gap: 3 },
+  openButtonText: { ...typography.body2, color: palette.gray0 },
+  letterWrap: { flex: 1, marginTop: 20, marginHorizontal: 20, marginBottom: 20, borderRadius: 20, overflow: "hidden", backgroundColor: palette.gray30 },
+  letterGlow: { position: "absolute", top: -241, left: 24, width: 526, height: 526 },
   letter: { minHeight: "100%", paddingTop: 48, paddingHorizontal: 20, paddingBottom: 20 },
-  letterLodyPlaceholder: { position: "absolute", top: 20, right: 18, width: 48, height: 42 },
+  letterLody: { position: "absolute", top: 20, right: 18, width: 48, height: 42 },
   to: { ...typography.body2, color: palette.gray800 },
   letterContent: { ...typography.body10, marginTop: 12, color: palette.gray1000, lineHeight: 26.6 },
   from: { ...typography.body10, marginTop: "auto", paddingTop: 18, color: palette.gray500, textAlign: "right" },
   modalOverlay: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.2)" },
-  rewardModal: { width: 264, height: 252, alignItems: "center", borderRadius: 12, backgroundColor: palette.gray0, paddingTop: 19 },
-  cloverImage: { width: 118, height: 89 },
-  rewardTitle: { ...typography.head2, marginTop: 15, color: palette.gray800 },
-  rewardDescription: { ...typography.body12, marginTop: 1, color: palette.gray300 },
+  rewardModal: { width: 264, height: 252, alignItems: "center", borderRadius: 12, backgroundColor: palette.gray0, paddingTop: 20, paddingHorizontal: 16, paddingBottom: 16 },
+  cloverImage: { width: 110, height: 110 },
+  rewardTitle: { ...typography.display4, marginTop: 9, color: "#282A31" },
+  rewardDescription: { ...typography.body12, marginTop: 4, color: palette.gray500 },
   confirmButton: { width: 232, height: 40, marginTop: 16, alignItems: "center", justifyContent: "center", borderRadius: 6, backgroundColor: palette.gray50 },
   confirmButtonText: { ...typography.body3, color: palette.gray900 },
 });
