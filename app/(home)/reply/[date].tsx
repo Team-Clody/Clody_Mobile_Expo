@@ -220,23 +220,26 @@ export default function ReplyScreen() {
     let cancelled = false;
     void (async () => {
       try {
-        const [diaryResult, replyResult] = await Promise.all([
+        const [diaryResult, timeResult] = await Promise.all([
           DiaryAPI.getDiary(targetDate.year, targetDate.month, targetDate.day),
-          ReplyAPI.getReply(targetDate.year, targetDate.month, targetDate.day).catch(() => null),
-        ]);
-        if (cancelled) return;
-        setDiary(diaryResult);
-        setReply(replyResult);
-
-        // 답장이 아직 없을 때만 생성 시각을 조회해 대기 타이머를 계산한다.
-        if (!replyResult?.content?.trim()) {
-          const timeResult = await DiaryAPI.getDiaryCreatedTime(
+          DiaryAPI.getDiaryCreatedTime(
             targetDate.year,
             targetDate.month,
             targetDate.day,
-          );
-          if (!cancelled) setReplyReadyAt(diaryCreatedToReplyReadyMs(timeResult));
-        }
+          ),
+        ]);
+        const readyAt = diaryCreatedToReplyReadyMs(timeResult);
+        const replyResult = readyAt != null && readyAt <= Date.now()
+          ? await ReplyAPI.getReply(
+              targetDate.year,
+              targetDate.month,
+              targetDate.day,
+            ).catch(() => null)
+          : null;
+        if (cancelled) return;
+        setDiary(diaryResult);
+        setReply(replyResult);
+        setReplyReadyAt(readyAt);
       } catch (error) {
         console.warn("[reply] 화면 데이터 불러오기 실패", error);
       } finally {
@@ -259,14 +262,18 @@ export default function ReplyScreen() {
 
   useEffect(() => {
     if (!isReplyReadyByTime || hasReplyContent) return;
-    void loadReply();
+    void loadReply().then((loadedReply) => {
+      if (!loadedReply?.content?.trim()) {
+        console.error("[reply] 타이머 종료 후에도 답장이 준비되지 않음");
+      }
+    });
   }, [hasReplyContent, isReplyReadyByTime, loadReply]);
 
-  const phase: ReplyPhase = opened || (hasReplyContent && reply?.isRead)
-    ? "opened"
-    : hasReplyContent || isReplyReadyByTime
-      ? "ready"
-      : "waiting";
+  const phase: ReplyPhase = !isReplyReadyByTime
+    ? "waiting"
+    : opened || (hasReplyContent && reply?.isRead)
+      ? "opened"
+      : "ready";
   const changeTab = (tab: "diary" | "reply") => {
     setActiveTab(tab);
     pagerRef.current?.setPage(tab === "diary" ? 0 : 1);
@@ -274,7 +281,10 @@ export default function ReplyScreen() {
 
   const openReply = async () => {
     const loadedReply = hasReplyContent ? reply : await loadReply();
-    if (!loadedReply?.content?.trim()) return;
+    if (!loadedReply?.content?.trim()) {
+      console.error("[reply] 타이머 종료 후에도 답장이 준비되지 않음");
+      return;
+    }
     setOpened(true);
     if (!loadedReply.isRead) setShowReward(true);
   };
