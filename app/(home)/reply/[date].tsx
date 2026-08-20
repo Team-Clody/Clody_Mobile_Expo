@@ -5,6 +5,7 @@ import i18n from "@/app/i18n/i18n";
 import BackIcon from "@/assets/icons/ic_back.svg";
 import ChevronIcon from "@/assets/icons/ic_chevron_green.svg";
 import LodyHead from "@/assets/images/lody_head.svg";
+import { Toast } from "@/shared/components/Toast";
 import { palette } from "@/shared/theme/palette";
 import { typography } from "@/shared/theme/typography";
 import { diaryCreatedToReplyReadyMs } from "@/shared/utils/diaryReplyTimer";
@@ -200,6 +201,12 @@ export default function ReplyScreen() {
   const [loading, setLoading] = useState(true);
   const [opened, setOpened] = useState(false);
   const [showReward, setShowReward] = useState(false);
+  const [showReplyErrorToast, setShowReplyErrorToast] = useState(false);
+
+  const showReplyUnavailableError = useCallback(() => {
+    console.error("[reply] 타이머 종료 후에도 답장이 준비되지 않음");
+    setShowReplyErrorToast(true);
+  }, []);
 
   const loadReply = useCallback(async () => {
     if (!targetDate) return null;
@@ -282,7 +289,7 @@ export default function ReplyScreen() {
   const openReply = async () => {
     const loadedReply = hasReplyContent ? reply : await loadReply();
     if (!loadedReply?.content?.trim()) {
-      console.error("[reply] 타이머 종료 후에도 답장이 준비되지 않음");
+      showReplyUnavailableError();
       return;
     }
     setOpened(true);
@@ -321,6 +328,12 @@ export default function ReplyScreen() {
         </View>
       </PagerView>
       <CloverRewardModal visible={showReward} onConfirm={() => setShowReward(false)} />
+      <Toast
+        message={i18n.t("reply.toast.genericError")}
+        visible={showReplyErrorToast}
+        variant="warning"
+        onHide={() => setShowReplyErrorToast(false)}
+      />
     </View>
   );
 }

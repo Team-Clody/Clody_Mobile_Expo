@@ -304,5 +304,8 @@ export default {
       description: 'Level 1 mission 1/2 complete',
       confirm: 'Done',
     },
+    toast: {
+      genericError: 'Something went wrong.',
+    },
   },
 };

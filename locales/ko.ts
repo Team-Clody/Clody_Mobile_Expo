@@ -310,5 +310,8 @@ export default {
       description: '레벨 1 미션 1/2 완료',
       confirm: '확인',
     },
+    toast: {
+      genericError: '일시적인 오류가 발생했어요.',
+    },
   },
 };
