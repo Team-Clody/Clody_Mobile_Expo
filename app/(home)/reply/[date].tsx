@@ -365,10 +365,10 @@ const styles = StyleSheet.create({
   letterContent: { ...typography.body10, marginTop: 12, color: palette.gray1000, lineHeight: 26.6 },
   from: { ...typography.body10, marginTop: "auto", paddingTop: 18, color: palette.gray500, textAlign: "right" },
   modalOverlay: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.2)" },
-  rewardModal: { width: 264, height: 252, alignItems: "center", borderRadius: 12, backgroundColor: palette.gray0, paddingTop: 20, paddingHorizontal: 16, paddingBottom: 16 },
+  rewardModal: { width: 212, height: 251, alignItems: "center", borderRadius: 12, backgroundColor: palette.gray0, paddingTop: 20, paddingHorizontal: 16, paddingBottom: 16 },
   cloverImage: { width: 110, height: 110 },
   rewardTitle: { ...typography.display4, marginTop: 9, color: "#282A31" },
   rewardDescription: { ...typography.body12, marginTop: 4, color: palette.gray500 },
-  confirmButton: { width: 232, height: 40, marginTop: 16, alignItems: "center", justifyContent: "center", borderRadius: 6, backgroundColor: palette.gray50 },
+  confirmButton: { width: 180, height: 40, marginTop: 16, alignItems: "center", justifyContent: "center", borderRadius: 6, backgroundColor: palette.gray50 },
   confirmButtonText: { ...typography.body3, color: palette.gray900 },
 });
