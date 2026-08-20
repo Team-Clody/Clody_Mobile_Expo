@@ -4,6 +4,7 @@ import { ReplyAPI } from "@/api/replyAPI";
 import i18n from "@/app/i18n/i18n";
 import BackIcon from "@/assets/icons/ic_back.svg";
 import ChevronIcon from "@/assets/icons/ic_chevron_green.svg";
+import LodyHead from "@/assets/images/lody_head.svg";
 import { palette } from "@/shared/theme/palette";
 import { typography } from "@/shared/theme/typography";
 import { diaryCreatedToReplyReadyMs } from "@/shared/utils/diaryReplyTimer";
@@ -140,11 +141,7 @@ function ReplyLetter({ reply }: { reply: GetReplyResponseDTO }) {
     <View style={styles.letterWrap}>
       <Image source={require("@/assets/images/reply_glow.png")} style={styles.letterGlow} />
       <ScrollView contentContainerStyle={styles.letter} showsVerticalScrollIndicator={false}>
-        <Image
-          source={require("@/assets/images/img_lody_prompt.png")}
-          resizeMode="contain"
-          style={styles.letterLody}
-        />
+        <LodyHead style={styles.letterLody} />
         <Text style={styles.to}>{i18n.t("reply.letter.to", { nickname: reply.nickname })}</Text>
         <Text style={styles.letterContent}>{reply.content}</Text>
         <Text style={styles.from}>{i18n.t("reply.letter.from")}</Text>
@@ -243,7 +240,6 @@ export default function ReplyScreen() {
     : opened || reply?.isRead
       ? "opened"
       : "ready";
-
   const changeTab = (tab: "diary" | "reply") => {
     setActiveTab(tab);
     pagerRef.current?.setPage(tab === "diary" ? 0 : 1);
@@ -327,7 +323,7 @@ const styles = StyleSheet.create({
   letterWrap: { flex: 1, marginTop: 20, marginHorizontal: 20, marginBottom: 20, borderRadius: 20, overflow: "hidden", backgroundColor: palette.gray30 },
   letterGlow: { position: "absolute", top: -241, left: 24, width: 526, height: 526 },
   letter: { minHeight: "100%", paddingTop: 48, paddingHorizontal: 20, paddingBottom: 20 },
-  letterLody: { position: "absolute", top: 20, right: 18, width: 48, height: 42 },
+  letterLody: { position: "absolute", top: 20, right: 20.39, width: 43.61, height: 39.91 },
   to: { ...typography.body2, color: palette.gray800 },
   letterContent: { ...typography.body10, marginTop: 12, color: palette.gray1000, lineHeight: 26.6 },
   from: { ...typography.body10, marginTop: "auto", paddingTop: 18, color: palette.gray500, textAlign: "right" },
