@@ -1,81 +1,151 @@
-import { DiaryItem } from "@/api/dto/list/response/getCalendarListResponseDTO";
+import type { DiaryItem } from "@/api/dto/list/response/getCalendarListResponseDTO";
 import { ListAPI } from "@/api/listAPI";
 import { DiaryList } from "@/components/list/DiaryList";
-import { Icon } from "@/shared/components";
+import { Icon } from "@/shared/components/Icon";
 import {
   MonthPickerBottomSheet,
-  MonthPickerValue,
+  type MonthPickerValue,
 } from "@/shared/components/MonthPickerBottomSheet";
 import { HStack } from "@/shared/components/stack/HStack";
 import { Typo } from "@/shared/components/typo/Typo";
-import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
+import { palette } from "@/shared/theme/palette";
+import { isKoreanLocale } from "@/shared/utils/locale";
+import { useRouter } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+
+function formatMonthTitle(year: number, month: number, isKo: boolean) {
+  if (isKo) return `${year}년 ${month}월`;
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "long",
+  }).format(new Date(year, month - 1, 1));
+}
 
 export default function ListScreen() {
-  const now = new Date();
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
-  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const router = useRouter();
+  const todayRef = useRef(new Date());
+  const requestIdRef = useRef(0);
+  const isKo = isKoreanLocale();
+  const today = todayRef.current;
+
+  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
+  const [isMonthPickerVisible, setIsMonthPickerVisible] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [diaries, setDiaries] = useState<DiaryItem[]>([]);
   const [prompt, setPrompt] = useState("");
 
-  const fetchCalendarList = async (year: number, month: number) => {
+  const fetchCalendarList = useCallback(async (year: number, month: number) => {
+    const requestId = ++requestIdRef.current;
     try {
       const data = await ListAPI.getCalendarList(year, month);
-      setDiaries(data.diaries ?? []);
-    } catch {
-      setDiaries([]);
+      if (requestId === requestIdRef.current) {
+        setDiaries(data.diaries ?? []);
+      }
+    } catch (error) {
+      if (requestId === requestIdRef.current) setDiaries([]);
+      console.warn("[list] calendar list request failed", error);
     }
-  };
+  }, []);
 
-  const fetchPrompt = async () => {
+  const fetchPrompt = useCallback(async () => {
     try {
       const data = await ListAPI.getJournalPrompt(
-        now.getMonth() + 1,
-        now.getDate(),
+        today.getMonth() + 1,
+        today.getDate(),
       );
-      setPrompt(data.prompt);
-    } catch {
+      setPrompt(data.prompt ?? "");
+    } catch (error) {
       setPrompt("");
+      console.warn("[list] journal prompt request failed", error);
     }
-  };
+  }, [today]);
 
   useEffect(() => {
-    fetchPrompt();
-    fetchCalendarList(selectedYear, selectedMonth);
-  }, []);
+    void fetchCalendarList(selectedYear, selectedMonth);
+  }, [fetchCalendarList, selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    void fetchPrompt();
+  }, [fetchPrompt]);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      fetchCalendarList(selectedYear, selectedMonth),
+      fetchPrompt(),
+    ]);
+    setIsRefreshing(false);
+  }, [fetchCalendarList, fetchPrompt, selectedMonth, selectedYear]);
 
   const handleMonthConfirm = (value: MonthPickerValue) => {
     setSelectedYear(value.year);
     setSelectedMonth(value.month);
-    setBottomSheetVisible(false);
-    fetchCalendarList(value.year, value.month);
+    setIsMonthPickerVisible(false);
+  };
+
+  const handlePressWrite = () => {
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const date = String(today.getDate()).padStart(2, "0");
+    router.push({
+      pathname: "/(home)/diaryWrite",
+      params: { date: `${year}-${month}-${date}` },
+    });
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      <View style={{ paddingHorizontal: 20, paddingVertical: 12 }}>
-        <Pressable onPress={() => setBottomSheetVisible(true)}>
-          <HStack
-            alignment={4}
-            style={{
-              gap: 4,
-            }}
-          >
-            <Typo.Head variant="head1" style={{ color: "#293038" }}>
-              {`${selectedYear}년 ${selectedMonth}월`}
+    <View style={styles.screen}>
+      <View style={styles.header}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={formatMonthTitle(
+            selectedYear,
+            selectedMonth,
+            isKo,
+          )}
+          hitSlop={8}
+          onPress={() => setIsMonthPickerVisible(true)}
+        >
+          <HStack alignment={4} style={styles.monthTitle}>
+            <Typo.Head variant="head1" color="gray800">
+              {formatMonthTitle(selectedYear, selectedMonth, isKo)}
             </Typo.Head>
             <Icon.IcDropdown width={24} height={24} />
           </HStack>
         </Pressable>
       </View>
-      <DiaryList diaries={diaries} prompt={prompt} />
+
+      <DiaryList
+        diaries={diaries}
+        prompt={prompt}
+        refreshing={isRefreshing}
+        onRefresh={handleRefresh}
+        onPressWrite={handlePressWrite}
+      />
+
       <MonthPickerBottomSheet
-        visible={bottomSheetVisible}
+        visible={isMonthPickerVisible}
         initialValue={{ year: selectedYear, month: selectedMonth }}
         onConfirm={handleMonthConfirm}
-        onClose={() => setBottomSheetVisible(false)}
+        onClose={() => setIsMonthPickerVisible(false)}
       />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: palette.gray0,
+  },
+  header: {
+    paddingTop: 8,
+    paddingBottom: 18,
+    paddingHorizontal: 20,
+  },
+  monthTitle: {
+    gap: 4,
+  },
+});
