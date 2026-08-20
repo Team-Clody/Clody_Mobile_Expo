@@ -6,7 +6,15 @@ import { Typo } from "@/shared/components/typo/Typo";
 import { palette } from "@/shared/theme/palette";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { LinearGradient } from "expo-linear-gradient";
-import { Image, Pressable, StyleSheet } from "react-native";
+import {
+  Image,
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+} from "react-native";
+
+const FIGMA_SCREEN_WIDTH = 375;
+const FIGMA_PROMPT_COPY_WIDTH = 210;
 
 interface PromptHeaderProps {
   prompt?: string;
@@ -14,13 +22,16 @@ interface PromptHeaderProps {
 }
 
 export function PromptHeader({ prompt, onPressWrite }: PromptHeaderProps) {
+  const { width: screenWidth } = useWindowDimensions();
   const promptText = prompt?.trim() || i18n.t("list.promptFallback");
+  const promptCopyWidth =
+    (FIGMA_PROMPT_COPY_WIDTH / FIGMA_SCREEN_WIDTH) * screenWidth;
 
   return (
     <VStack style={styles.card}>
       <VStack style={styles.content}>
         <HStack alignment={10} style={styles.promptRow}>
-          <VStack style={styles.copy}>
+          <VStack style={[styles.copy, { width: promptCopyWidth }]}>
             <HStack alignment={4} style={styles.eyebrow}>
               <Icon.IcStars width={18} height={18} />
               <Typo.Body variant="body5" style={styles.eyebrowText}>
@@ -97,7 +108,6 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   copy: {
-    width: 210,
     gap: 4,
   },
   eyebrow: {
