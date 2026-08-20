@@ -58,7 +58,12 @@ export default {
       pastBadgePast: '지난 기록',
       pastBadgeFuture: '예정',
       continueWriting: '이어쓰기',
+      fastReplyUnlocked: '답장을 바로 확인할 수 있어요.',
     },
+  },
+  ads: {
+    notReady: '광고를 불러오는 중이에요. 잠시 후 다시 시도해 주세요.',
+    unavailable: '광고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
   },
 
   // 소스 프로젝트 번역 (구조화)
@@ -238,6 +243,7 @@ export default {
       emptyEntry: '빈 칸을 채워야 보낼 수 있어요.',
       networkError: '서비스 접속이 원활하지 않아요.',
       genericError: '일시적인 오류가 발생했어요.',
+      adEntryUnlocked: '일기 칸이 추가됐어요.',
     },
   },
 };

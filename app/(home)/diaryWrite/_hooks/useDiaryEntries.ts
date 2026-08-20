@@ -6,8 +6,10 @@ interface DiaryEntry {
   text: string;
 }
 
-// 기본 3칸, 무료 최대 5칸 (광고 확장 시 7칸 — 추후)
-const MAX_ENTRY_COUNT = 5;
+const INITIAL_ENTRY_COUNT = 3;
+const FREE_MAX_ENTRY_COUNT = 5;
+const AD_UNLOCK_ENTRY_COUNT = 1;
+const AD_MAX_ENTRY_COUNT = 7;
 
 export function useDiaryEntries() {
   const seqRef = useRef(0);
@@ -18,18 +20,38 @@ export function useDiaryEntries() {
   }, []);
 
   const [entries, setEntries] = useState<DiaryEntry[]>(() =>
-    Array.from({ length: 3 }, () => {
+    Array.from({ length: INITIAL_ENTRY_COUNT }, () => {
       seqRef.current += 1;
       return { id: `entry-${seqRef.current}`, text: "" };
     }),
   );
+  const [isAdEntryBonusApplied, setIsAdEntryBonusApplied] = useState(false);
 
-  const canAddEntry = entries.length < MAX_ENTRY_COUNT;
+  const maxEntryCount = isAdEntryBonusApplied
+    ? AD_MAX_ENTRY_COUNT
+    : FREE_MAX_ENTRY_COUNT;
+  const canAddEntry = entries.length < maxEntryCount;
+  const canUnlockAdEntries =
+    !isAdEntryBonusApplied && entries.length >= FREE_MAX_ENTRY_COUNT;
 
   const addEntry = useCallback(() => {
     setEntries((prev) =>
-      prev.length < MAX_ENTRY_COUNT ? [...prev, createEntry()] : prev,
+      prev.length < maxEntryCount ? [...prev, createEntry()] : prev,
     );
+  }, [createEntry, maxEntryCount]);
+
+  const unlockAdEntries = useCallback(() => {
+    setIsAdEntryBonusApplied(true);
+    setEntries((prev) => {
+      const availableCount = Math.max(AD_MAX_ENTRY_COUNT - prev.length, 0);
+      const appendCount = Math.min(AD_UNLOCK_ENTRY_COUNT, availableCount);
+      if (appendCount === 0) return prev;
+
+      return [
+        ...prev,
+        ...Array.from({ length: appendCount }, () => createEntry()),
+      ];
+    });
   }, [createEntry]);
 
   const removeEntry = useCallback((id: string) => {
@@ -64,7 +86,8 @@ export function useDiaryEntries() {
 
   // 임시저장 불러오기 — 빈 문자열 항목도 칸으로 복원, 없으면 빈 1칸
   const loadEntries = useCallback((texts: string[]) => {
-    const source = texts.length > 0 ? texts.slice(0, MAX_ENTRY_COUNT) : [""];
+    const source = texts.length > 0 ? texts.slice(0, AD_MAX_ENTRY_COUNT) : [""];
+    setIsAdEntryBonusApplied(source.length > FREE_MAX_ENTRY_COUNT);
     setEntries(
       source.map((text) => {
         seqRef.current += 1;
@@ -81,7 +104,9 @@ export function useDiaryEntries() {
   return {
     entries,
     canAddEntry,
+    canUnlockAdEntries,
     addEntry,
+    unlockAdEntries,
     removeEntry,
     moveEntry,
     updateEntry,

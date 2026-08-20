@@ -1,6 +1,7 @@
 import { DiaryAPI } from "@/api/diaryAPI";
 import i18n from "@/app/i18n/i18n";
 import { Toast } from "@/shared/components/Toast";
+import { useAdMobInterstitial } from "@/shared/ads";
 import { isDiaryWritableDate } from "@/shared/utils/diaryDate";
 import { Typo } from "@/shared/components/typo/Typo";
 import { palette } from "@/shared/theme/palette";
@@ -51,7 +52,9 @@ export default function DiaryWrite() {
   const {
     entries,
     canAddEntry,
+    canUnlockAdEntries,
     addEntry,
+    unlockAdEntries,
     removeEntry,
     moveEntry,
     updateEntry,
@@ -59,6 +62,7 @@ export default function DiaryWrite() {
     filledEntries,
     isAllEmpty,
   } = useDiaryEntries();
+  const extraDiaryAd = useAdMobInterstitial("extraDiaryInterstitial");
 
   const [isNoticeVisible, setIsNoticeVisible] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -75,6 +79,7 @@ export default function DiaryWrite() {
   const [isLoadingDraft, setIsLoadingDraft] = useState(true);
   const [isReordering, setIsReordering] = useState(false);
   const navigateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingEntryUnlockRef = useRef(false);
   // 진입 시점 스냅샷 — 변경이 없으면 뒤로가기 시 팝업 없이 나감 (v1 정책)
   const initialTextsRef = useRef(JSON.stringify(["", "", ""]));
 
@@ -141,6 +146,27 @@ export default function DiaryWrite() {
     },
     [],
   );
+
+  useEffect(() => {
+    if (!extraDiaryAd.isClosed || !pendingEntryUnlockRef.current) return;
+
+    pendingEntryUnlockRef.current = false;
+    unlockAdEntries();
+    setToast({
+      message: i18n.t("diaryWrite.toast.adEntryUnlocked"),
+      variant: "success",
+    });
+  }, [extraDiaryAd.isClosed, unlockAdEntries]);
+
+  useEffect(() => {
+    if (!extraDiaryAd.error || !pendingEntryUnlockRef.current) return;
+
+    pendingEntryUnlockRef.current = false;
+    setToast({
+      message: i18n.t("ads.unavailable"),
+      variant: "warning",
+    });
+  }, [extraDiaryAd.error]);
 
   const dismissNotice = () => {
     setIsNoticeVisible(false);
@@ -263,6 +289,26 @@ export default function DiaryWrite() {
     setDeleteTargetId(null);
   };
 
+  const handlePressAddEntry = () => {
+    if (canAddEntry) {
+      addEntry();
+    }
+  };
+
+  const handlePressAdTooltip = () => {
+    if (!canUnlockAdEntries || extraDiaryAd.isShowing) return;
+
+    pendingEntryUnlockRef.current = true;
+    const didShowAd = extraDiaryAd.showAd();
+    if (didShowAd) return;
+
+    pendingEntryUnlockRef.current = false;
+    setToast({
+      message: i18n.t("ads.notReady"),
+      variant: "warning",
+    });
+  };
+
   // 루트 SafeAreaView가 bottom 인셋을 이미 적용하므로 키보드 높이에서 제외
   const addButtonBottom = keyboardVisible
     ? (Platform.OS === "ios" ? Math.max(keyboardHeight - insets.bottom, 0) : 0) +
@@ -337,11 +383,17 @@ export default function DiaryWrite() {
           style={[styles.addButtonWrap, { bottom: addButtonBottom }]}
           pointerEvents="box-none"
         >
-          {!canAddEntry && <AdTooltip style={styles.adTooltip} />}
+          {!canAddEntry && canUnlockAdEntries && (
+            <AdTooltip
+              disabled={extraDiaryAd.isShowing}
+              onPress={handlePressAdTooltip}
+              style={styles.adTooltip}
+            />
+          )}
           <AddEntryButton
             compact={keyboardVisible}
-            disabled={!canAddEntry}
-            onPress={addEntry}
+            disabled={!canAddEntry || extraDiaryAd.isShowing}
+            onPress={handlePressAddEntry}
           />
         </View>
       </KeyboardAvoidingView>

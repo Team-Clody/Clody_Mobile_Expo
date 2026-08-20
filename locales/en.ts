@@ -60,7 +60,12 @@ export default {
       pastBadgePast: 'Past entry',
       pastBadgeFuture: 'Upcoming',
       continueWriting: 'Continue Writing',
+      fastReplyUnlocked: 'Your reply is ready to view.',
     },
+  },
+  ads: {
+    notReady: 'The ad is still loading. Please try again shortly.',
+    unavailable: "Couldn't load the ad. Please try again shortly.",
   },
 
   // 소스 프로젝트 번역 (구조화)
@@ -232,6 +237,7 @@ export default {
       emptyEntry: 'Fill in the blanks before sending.',
       networkError: "Couldn't connect to the service.",
       genericError: 'Something went wrong.',
+      adEntryUnlocked: 'A diary slot has been added.',
     },
   },
 };
