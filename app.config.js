@@ -50,6 +50,13 @@ export default {
         },
       ],
       [
+        "react-native-google-mobile-ads",
+        {
+          androidAppId: "ca-app-pub-6721111543239153~7854886391",
+          iosAppId: "ca-app-pub-6721111543239153~7854886391",
+        },
+      ],
+      [
         "expo-build-properties",
         {
           android: {
@@ -90,6 +97,11 @@ export default {
       /** Web Google Sign-In configure용 Client ID (서버 idToken 검증용 audience) */
       googleWebClientId:
         "430648671385-fpd7ugcuko0dphopbt329mh9r7lml8bc.apps.googleusercontent.com",
+      /** true/false로 지정하면 dev/release 기본 테스트 광고 ID 정책을 덮어씀 */
+      admobUseTestAds:
+        process.env.EXPO_PUBLIC_ADMOB_USE_TEST_ADS == null
+          ? undefined
+          : process.env.EXPO_PUBLIC_ADMOB_USE_TEST_ADS !== "false",
       eas: {
         projectId: "32473cd1-e225-4303-b3b1-8c52103eded6",
       },

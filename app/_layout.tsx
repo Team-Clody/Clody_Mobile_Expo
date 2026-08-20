@@ -13,6 +13,7 @@ import {
   SafeAreaProvider,
   SafeAreaView,
 } from "react-native-safe-area-context";
+import { initializeAdMob } from "@/shared/ads";
 import { useAppStore } from "@/store/useAppStore";
 
 const APP_BACKGROUND = "#FFFFFF";
@@ -58,6 +59,13 @@ export default function RootLayout() {
       offlineAccess: true,
       forceCodeForRefreshToken: true,
     });
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    void initializeAdMob().catch((error) =>
+      console.warn("[AdMob] initialize failed", error),
+    );
   }, []);
 
   useEffect(() => {
