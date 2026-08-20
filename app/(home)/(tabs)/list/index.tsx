@@ -77,6 +77,10 @@ export default function ListScreen() {
     });
   };
 
+  const handlePressReply = (date: string) => {
+    router.push({ pathname: "/(home)/reply/[date]", params: { date } });
+  };
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
@@ -105,6 +109,7 @@ export default function ListScreen() {
         refreshing={isRefreshing}
         onRefresh={handleRefresh}
         onPressWrite={handlePressWrite}
+        onPressReply={handlePressReply}
       />
 
       <MonthPickerBottomSheet
