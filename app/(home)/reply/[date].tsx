@@ -7,7 +7,7 @@ import { palette } from "@/shared/theme/palette";
 import { typography } from "@/shared/theme/typography";
 import { diaryCreatedToReplyReadyMs } from "@/shared/utils/diaryReplyTimer";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -18,6 +18,7 @@ import {
   Text,
   View,
 } from "react-native";
+import PagerView from "react-native-pager-view";
 
 type ReplyPhase = "waiting" | "ready" | "opened";
 
@@ -166,6 +167,7 @@ function CloverRewardModal({ visible, onConfirm }: { visible: boolean; onConfirm
 
 export default function ReplyScreen() {
   const router = useRouter();
+  const pagerRef = useRef<PagerView>(null);
   const { date } = useLocalSearchParams<{ date: string }>();
   const targetDate = useMemo(() => parseDate(date), [date]);
   const [activeTab, setActiveTab] = useState<"diary" | "reply">("reply");
@@ -237,6 +239,11 @@ export default function ReplyScreen() {
       ? "opened"
       : "ready";
 
+  const changeTab = (tab: "diary" | "reply") => {
+    setActiveTab(tab);
+    pagerRef.current?.setPage(tab === "diary" ? 0 : 1);
+  };
+
   const openReply = async () => {
     const loadedReply = reply ?? (await loadReply());
     if (!loadedReply?.content?.trim()) return;
@@ -254,17 +261,27 @@ export default function ReplyScreen() {
         title={formatDate(date)}
         activeTab={activeTab}
         onBack={() => router.back()}
-        onChangeTab={setActiveTab}
+        onChangeTab={changeTab}
       />
-      {activeTab === "diary" ? (
-        <MyDiary diary={diary} />
-      ) : phase === "waiting" ? (
-        <WaitingReply remaining={remaining} />
-      ) : phase === "ready" ? (
-        <ReadyReply onOpen={openReply} />
-      ) : reply ? (
-        <ReplyLetter reply={reply} />
-      ) : null}
+      <PagerView
+        ref={pagerRef}
+        style={styles.pager}
+        initialPage={1}
+        onPageSelected={({ nativeEvent }) => setActiveTab(nativeEvent.position === 0 ? "diary" : "reply")}
+      >
+        <View key="diary" style={styles.page}>
+          <MyDiary diary={diary} />
+        </View>
+        <View key="reply" style={styles.page}>
+          {phase === "waiting" ? (
+            <WaitingReply remaining={remaining} />
+          ) : phase === "ready" ? (
+            <ReadyReply onOpen={openReply} />
+          ) : reply ? (
+            <ReplyLetter reply={reply} />
+          ) : null}
+        </View>
+      </PagerView>
       <CloverRewardModal visible={showReward} onConfirm={() => setShowReward(false)} />
     </View>
   );
@@ -282,6 +299,8 @@ const styles = StyleSheet.create({
   activeTabIndicator: { backgroundColor: palette.gray800 },
   inactiveTab: { ...typography.body2, color: palette.gray400 },
   activeTabText: { ...typography.body2, color: palette.gray800 },
+  pager: { flex: 1 },
+  page: { flex: 1 },
   diaryList: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 28, gap: 12 },
   diaryItem: { minHeight: 50, borderWidth: 1, borderColor: palette.gray100, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 12, flexDirection: "row", alignItems: "center" },
   diaryText: { ...typography.body4, color: palette.gray1000, flex: 1, lineHeight: 18 },
