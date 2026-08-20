@@ -39,6 +39,14 @@ export default {
   supportContent: '커피 사주기',
   home: '홈',
   calander: '모아보기',
+  list: {
+    promptTitle: '오늘의 감사 주제',
+    promptFallback:
+      '“버텨줘서 고마워”라고 말해주고 싶은 나의 모습을 적어보세요',
+    writeToday: '오늘 일기쓰기',
+    reply: '답장확인',
+    more: '더보기',
+  },
   main: {
     header: {
       today: '오늘',

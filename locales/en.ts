@@ -40,7 +40,14 @@ export default {
   supportTitle: 'Support Clody',
   supportContent: 'Buy me a coffee',
   home: 'Home',
-  calander: 'Calander',
+  calander: 'Memories',
+  list: {
+    promptTitle: "Today's Gratitude Prompt",
+    promptFallback: 'Write about the version of yourself you want to say',
+    writeToday: "Write Today's Entry",
+    reply: 'Reply',
+    more: 'More',
+  },
   main: {
     header: {
       today: 'Today',

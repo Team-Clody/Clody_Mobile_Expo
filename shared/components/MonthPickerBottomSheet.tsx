@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Modal, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import i18n from "@/app/i18n/i18n";
+import { isKoreanLocale } from "@/shared/utils/locale";
 import { Typo } from "./typo/Typo";
 
 const ITEM_HEIGHT = 44;
@@ -106,6 +108,7 @@ export const MonthPickerBottomSheet = ({
   onClose,
 }: MonthPickerBottomSheetProps) => {
   const insets = useSafeAreaInsets();
+  const isKo = isKoreanLocale();
   const now = new Date();
   const [year, setYear] = useState<number>(
     initialValue?.year ?? now.getFullYear(),
@@ -144,36 +147,60 @@ export const MonthPickerBottomSheet = ({
               variant="display4"
               style={{ color: "#212124", fontWeight: "bold" }}
             >
-              날짜 선택
+              {i18n.t("main.datePicker.title")}
             </Typo.Display>
             <View style={styles.wheelRow}>
               <View style={styles.selectionOverlay} pointerEvents="none" />
               <View style={styles.wheelContainer}>
-                <WheelColumn
-                  items={yearOptions}
-                  value={year}
-                  onChange={setYear}
-                  formatItem={(item) => `${item}년`}
-                  scrollKey={scrollKey}
-                />
-                <WheelColumn
-                  items={monthOptions}
-                  value={month}
-                  onChange={setMonth}
-                  formatItem={(item) => `${item}월`}
-                  scrollKey={scrollKey}
-                />
+                {isKo ? (
+                  <>
+                    <WheelColumn
+                      items={yearOptions}
+                      value={year}
+                      onChange={setYear}
+                      formatItem={(item) => `${item}년`}
+                      scrollKey={scrollKey}
+                    />
+                    <WheelColumn
+                      items={monthOptions}
+                      value={month}
+                      onChange={setMonth}
+                      formatItem={(item) => `${item}월`}
+                      scrollKey={scrollKey}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <WheelColumn
+                      items={monthOptions}
+                      value={month}
+                      onChange={setMonth}
+                      formatItem={(item) =>
+                        new Intl.DateTimeFormat("en-US", {
+                          month: "long",
+                        }).format(new Date(2026, item - 1, 1))
+                      }
+                      scrollKey={scrollKey}
+                    />
+                    <WheelColumn
+                      items={yearOptions}
+                      value={year}
+                      onChange={setYear}
+                      scrollKey={scrollKey}
+                    />
+                  </>
+                )}
               </View>
             </View>
             <View style={styles.buttonRow}>
               <Pressable style={styles.todayButton} onPress={handleToday}>
                 <Typo.Body variant="body1" style={{ color: "#6B7684" }}>
-                  오늘
+                  {i18n.t("main.datePicker.today")}
                 </Typo.Body>
               </Pressable>
               <Pressable style={styles.confirmButton} onPress={handleConfirm}>
                 <Typo.Body variant="body1" style={{ color: "#FFFFFF" }}>
-                  확인
+                  {i18n.t("main.datePicker.confirm")}
                 </Typo.Body>
               </Pressable>
             </View>
