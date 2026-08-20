@@ -8,6 +8,7 @@ import {
 } from "@/shared/components/MonthPickerBottomSheet";
 import { HStack } from "@/shared/components/stack/HStack";
 import { Typo } from "@/shared/components/typo/Typo";
+import { useJournalPrompt } from "@/shared/hooks/useJournalPrompt";
 import { palette } from "@/shared/theme/palette";
 import { isKoreanLocale } from "@/shared/utils/locale";
 import { useRouter } from "expo-router";
@@ -35,6 +36,7 @@ export default function ListScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [diaries, setDiaries] = useState<DiaryItem[]>([]);
   const [prompt, setPrompt] = useState("");
+  useJournalPrompt(today, setPrompt);
 
   const fetchCalendarList = useCallback(async (year: number, month: number) => {
     const requestId = ++requestIdRef.current;
@@ -49,35 +51,15 @@ export default function ListScreen() {
     }
   }, []);
 
-  const fetchPrompt = useCallback(async () => {
-    try {
-      const data = await ListAPI.getJournalPrompt(
-        today.getMonth() + 1,
-        today.getDate(),
-      );
-      setPrompt(data.prompt ?? "");
-    } catch (error) {
-      setPrompt("");
-      console.warn("[list] journal prompt request failed", error);
-    }
-  }, [today]);
-
   useEffect(() => {
     void fetchCalendarList(selectedYear, selectedMonth);
   }, [fetchCalendarList, selectedMonth, selectedYear]);
 
-  useEffect(() => {
-    void fetchPrompt();
-  }, [fetchPrompt]);
-
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    await Promise.all([
-      fetchCalendarList(selectedYear, selectedMonth),
-      fetchPrompt(),
-    ]);
+    await fetchCalendarList(selectedYear, selectedMonth);
     setIsRefreshing(false);
-  }, [fetchCalendarList, fetchPrompt, selectedMonth, selectedYear]);
+  }, [fetchCalendarList, selectedMonth, selectedYear]);
 
   const handleMonthConfirm = (value: MonthPickerValue) => {
     setSelectedYear(value.year);
