@@ -17,11 +17,16 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import PagerView from "react-native-pager-view";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ReplyPhase = "waiting" | "ready" | "opened";
+
+const REPLY_HEADER_AND_TABS_HEIGHT = 83;
+const REPLY_STATUS_CONTENT_HEIGHT = 243;
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
@@ -104,12 +109,26 @@ function MyDiary({ diary }: { diary: GetDiaryResponseDTO | null }) {
   );
 }
 
+function useCenteredReplyContentTop() {
+  const { height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+
+  return Math.max(
+    0,
+    height / 2
+      - insets.top
+      - REPLY_HEADER_AND_TABS_HEIGHT
+      - REPLY_STATUS_CONTENT_HEIGHT / 2,
+  );
+}
+
 function WaitingReply({ remaining }: { remaining: number }) {
+  const contentTop = useCenteredReplyContentTop();
   const hours = Math.floor(remaining / 3_600_000);
   const minutes = Math.floor(remaining / 60_000) % 60;
   const seconds = Math.floor(remaining / 1_000) % 60;
   return (
-    <View style={styles.waitingContent}>
+    <View style={[styles.waitingContent, { paddingTop: contentTop }]}>
       <View style={[styles.imagePlaceholder, styles.waitingLody]} />
       <Text style={styles.waitingCaption}>{i18n.t("reply.waiting.caption")}</Text>
       <Text style={styles.timer}>{`${pad(hours)}:${pad(minutes)}:${pad(seconds)}`}</Text>
@@ -122,8 +141,10 @@ function WaitingReply({ remaining }: { remaining: number }) {
 }
 
 function ReadyReply({ onOpen }: { onOpen: () => void }) {
+  const contentTop = useCenteredReplyContentTop();
+
   return (
-    <View style={styles.readyContent}>
+    <View style={[styles.readyContent, { paddingTop: contentTop }]}>
       <View style={[styles.imagePlaceholder, styles.readyLody]} />
       <Text style={styles.readyCaption}>{i18n.t("reply.ready.caption")}</Text>
       <Text style={styles.readyTimer}>00:00:00</Text>
@@ -307,13 +328,13 @@ const styles = StyleSheet.create({
   moreIcon: { ...typography.body3, color: palette.gray400, width: 24, textAlign: "center" },
   emptyDiary: { ...typography.body3, color: palette.gray400, textAlign: "center", marginTop: 48 },
   imagePlaceholder: { backgroundColor: palette.gray200 },
-  waitingContent: { flex: 1, alignItems: "center", paddingTop: 158 },
+  waitingContent: { flex: 1, alignItems: "center" },
   waitingLody: { width: 100, height: 100, marginBottom: 28 },
   waitingCaption: { ...typography.body9, color: palette.gray500 },
   timer: { ...typography.head1, color: "#282A31", marginTop: 4 },
   adButton: { height: 40, marginTop: 22, paddingLeft: 16, paddingRight: 10, borderRadius: 39, backgroundColor: palette.gray700, flexDirection: "row", alignItems: "center", gap: 3 },
   adButtonText: { ...typography.body2, color: palette.gray0 },
-  readyContent: { flex: 1, alignItems: "center", paddingTop: 158 },
+  readyContent: { flex: 1, alignItems: "center" },
   readyLody: { width: 100, height: 100, marginBottom: 28 },
   readyCaption: { ...typography.body9, color: palette.gray500 },
   readyTimer: { ...typography.head1, color: "#282A31", marginTop: 4 },
