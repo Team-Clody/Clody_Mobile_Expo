@@ -1,10 +1,15 @@
 import { DiaryAPI, type GetDiaryResponseDTO } from "@/api/diaryAPI";
 import type { GetReplyResponseDTO } from "@/api/dto/reply/response/getReplyResponseDTO";
-import { ReplyAPI } from "@/api/replyAPI";
+import {
+  ReplyAPI,
+  type ReplyAdRequest,
+  type SupportedReplyLanguage,
+} from "@/api/replyAPI";
 import i18n from "@/app/i18n/i18n";
 import BackIcon from "@/assets/icons/ic_back.svg";
 import ChevronIcon from "@/assets/icons/ic_chevron_green.svg";
 import LodyHead from "@/assets/images/lody_head.svg";
+import { useAdMobRewarded } from "@/shared/ads";
 import { Toast } from "@/shared/components/Toast";
 import { palette } from "@/shared/theme/palette";
 import { typography } from "@/shared/theme/typography";
@@ -123,7 +128,15 @@ function useCenteredReplyContentTop() {
   );
 }
 
-function WaitingReply({ remaining }: { remaining: number }) {
+function WaitingReply({
+  remaining,
+  adDisabled,
+  onPressAd,
+}: {
+  remaining: number;
+  adDisabled?: boolean;
+  onPressAd: () => void;
+}) {
   const contentTop = useCenteredReplyContentTop();
   const hours = Math.floor(remaining / 3_600_000);
   const minutes = Math.floor(remaining / 60_000) % 60;
@@ -133,7 +146,12 @@ function WaitingReply({ remaining }: { remaining: number }) {
       <View style={[styles.imagePlaceholder, styles.waitingLody]} />
       <Text style={styles.waitingCaption}>{i18n.t("reply.waiting.caption")}</Text>
       <Text style={styles.timer}>{`${pad(hours)}:${pad(minutes)}:${pad(seconds)}`}</Text>
-      <Pressable accessibilityRole="button" onPress={() => {}} style={styles.adButton}>
+      <Pressable
+        accessibilityRole="button"
+        disabled={adDisabled}
+        onPress={onPressAd}
+        style={[styles.adButton, adDisabled && styles.disabledButton]}
+      >
         <Text style={styles.adButtonText}>{i18n.t("reply.waiting.ad")}</Text>
         <ChevronIcon width={16} height={16} color={palette.gray0} />
       </Pressable>
@@ -193,6 +211,10 @@ export default function ReplyScreen() {
   const pagerRef = useRef<PagerView>(null);
   const { date } = useLocalSearchParams<{ date: string }>();
   const targetDate = useMemo(() => parseDate(date), [date]);
+  const isKo = i18n.locale?.startsWith("ko");
+  const supportedLanguage: SupportedReplyLanguage = isKo ? "KO" : "EN";
+  const fastReplyRewardAd = useAdMobRewarded("fastReplyReward");
+  const pendingFastReplyRequestRef = useRef<ReplyAdRequest | null>(null);
   const [activeTab, setActiveTab] = useState<"diary" | "reply">("reply");
   const [diary, setDiary] = useState<GetDiaryResponseDTO | null>(null);
   const [reply, setReply] = useState<GetReplyResponseDTO | null>(null);
@@ -201,11 +223,28 @@ export default function ReplyScreen() {
   const [loading, setLoading] = useState(true);
   const [opened, setOpened] = useState(false);
   const [showReward, setShowReward] = useState(false);
-  const [showReplyErrorToast, setShowReplyErrorToast] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    variant: "success" | "warning";
+  } | null>(null);
+  const [isStartingFastReplyAd, setIsStartingFastReplyAd] = useState(false);
+
+  const replyAdRequest = useMemo<ReplyAdRequest | null>(() => {
+    if (!targetDate) return null;
+    return {
+      year: targetDate.year,
+      month: targetDate.month,
+      date: targetDate.day,
+      supportedLanguage,
+    };
+  }, [targetDate, supportedLanguage]);
 
   const showReplyUnavailableError = useCallback(() => {
     console.error("[reply] 타이머 종료 후에도 답장이 준비되지 않음");
-    setShowReplyErrorToast(true);
+    setToast({
+      message: i18n.t("reply.toast.genericError"),
+      variant: "warning",
+    });
   }, []);
 
   const loadReply = useCallback(async () => {
@@ -263,6 +302,51 @@ export default function ReplyScreen() {
     return () => clearInterval(intervalId);
   }, []);
 
+  const revealReplyAfterAd = useCallback(async () => {
+    const loadedReply = await loadReply();
+    if (!loadedReply?.content?.trim()) {
+      showReplyUnavailableError();
+      return;
+    }
+    setReplyReadyAt(Date.now());
+    setOpened(true);
+    if (!loadedReply.isRead) setShowReward(true);
+  }, [loadReply, showReplyUnavailableError]);
+
+  useEffect(() => {
+    const pendingRequest = pendingFastReplyRequestRef.current;
+    if (!fastReplyRewardAd.isEarnedReward || !pendingRequest) return;
+
+    pendingFastReplyRequestRef.current = null;
+    ReplyAPI.endAdViewing(pendingRequest)
+      .then(() => {
+        void revealReplyAfterAd();
+      })
+      .catch((error) => {
+        console.warn("[reply] fast reply ad end failed", error);
+        setToast({
+          message: i18n.t("ads.unavailable"),
+          variant: "warning",
+        });
+      });
+  }, [fastReplyRewardAd.isEarnedReward, revealReplyAfterAd]);
+
+  useEffect(() => {
+    if (!fastReplyRewardAd.isClosed || !pendingFastReplyRequestRef.current) return;
+    if (fastReplyRewardAd.isEarnedReward) return;
+    pendingFastReplyRequestRef.current = null;
+  }, [fastReplyRewardAd.isClosed, fastReplyRewardAd.isEarnedReward]);
+
+  useEffect(() => {
+    if (!fastReplyRewardAd.error || !pendingFastReplyRequestRef.current) return;
+
+    pendingFastReplyRequestRef.current = null;
+    setToast({
+      message: i18n.t("ads.unavailable"),
+      variant: "warning",
+    });
+  }, [fastReplyRewardAd.error]);
+
   const remaining = Math.max(0, (replyReadyAt ?? now) - now);
   const hasReplyContent = Boolean(reply?.content?.trim());
   const isReplyReadyByTime = replyReadyAt != null && remaining === 0;
@@ -296,6 +380,45 @@ export default function ReplyScreen() {
     if (!loadedReply.isRead) setShowReward(true);
   };
 
+  const handlePressAd = async () => {
+    if (!replyAdRequest || fastReplyRewardAd.isShowing || isStartingFastReplyAd) {
+      return;
+    }
+
+    if (!fastReplyRewardAd.isLoaded) {
+      fastReplyRewardAd.load();
+      setToast({
+        message: i18n.t("ads.notReady"),
+        variant: "warning",
+      });
+      return;
+    }
+
+    setIsStartingFastReplyAd(true);
+    try {
+      await ReplyAPI.startAdViewing(replyAdRequest);
+    } catch (error) {
+      console.warn("[reply] fast reply ad start failed", error);
+      setToast({
+        message: i18n.t("ads.unavailable"),
+        variant: "warning",
+      });
+      return;
+    } finally {
+      setIsStartingFastReplyAd(false);
+    }
+
+    pendingFastReplyRequestRef.current = replyAdRequest;
+    const didShowAd = fastReplyRewardAd.showAd();
+    if (didShowAd) return;
+
+    pendingFastReplyRequestRef.current = null;
+    setToast({
+      message: i18n.t("ads.notReady"),
+      variant: "warning",
+    });
+  };
+
   if (loading) {
     return <View style={styles.loading}><ActivityIndicator color={palette.accentPrimary500} /></View>;
   }
@@ -319,7 +442,11 @@ export default function ReplyScreen() {
         </View>
         <View key="reply" style={styles.page}>
           {phase === "waiting" ? (
-            <WaitingReply remaining={remaining} />
+            <WaitingReply
+              remaining={remaining}
+              adDisabled={fastReplyRewardAd.isShowing || isStartingFastReplyAd}
+              onPressAd={handlePressAd}
+            />
           ) : phase === "ready" ? (
             <ReadyReply onOpen={openReply} />
           ) : reply ? (
@@ -329,10 +456,10 @@ export default function ReplyScreen() {
       </PagerView>
       <CloverRewardModal visible={showReward} onConfirm={() => setShowReward(false)} />
       <Toast
-        message={i18n.t("reply.toast.genericError")}
-        visible={showReplyErrorToast}
-        variant="warning"
-        onHide={() => setShowReplyErrorToast(false)}
+        message={toast?.message ?? ""}
+        visible={toast !== null}
+        variant={toast?.variant}
+        onHide={() => setToast(null)}
       />
     </View>
   );
@@ -364,6 +491,7 @@ const styles = StyleSheet.create({
   timer: { ...typography.head1, color: "#282A31", marginTop: 4 },
   adButton: { height: 40, marginTop: 22, paddingLeft: 16, paddingRight: 10, borderRadius: 39, backgroundColor: palette.gray700, flexDirection: "row", alignItems: "center", gap: 3 },
   adButtonText: { ...typography.body2, color: palette.gray0 },
+  disabledButton: { opacity: 0.6 },
   readyContent: { flex: 1, alignItems: "center" },
   readyLody: { width: 100, height: 100, marginBottom: 28 },
   readyCaption: { ...typography.body9, color: palette.gray500 },

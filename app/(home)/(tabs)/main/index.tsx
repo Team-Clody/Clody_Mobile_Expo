@@ -84,7 +84,7 @@ export default function Main() {
   const pendingPickedDateRef = useRef<Date | null>(null);
   const pendingFastReplyDateKeyRef = useRef<string | null>(null);
   const pendingFastReplyRequestRef = useRef<ReplyAdRequest | null>(null);
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
 
   const [calendarDate, setCalendarDate] = useState(today);
   const [gratitudeDate, setGratitudeDate] = useState(today);
@@ -257,9 +257,10 @@ export default function Main() {
 
   useEffect(() => {
     if (!fastReplyRewardAd.isClosed || !pendingFastReplyDateKeyRef.current) return;
+    if (fastReplyRewardAd.isEarnedReward) return;
     pendingFastReplyDateKeyRef.current = null;
     pendingFastReplyRequestRef.current = null;
-  }, [fastReplyRewardAd.isClosed]);
+  }, [fastReplyRewardAd.isClosed, fastReplyRewardAd.isEarnedReward]);
 
   useEffect(() => {
     if (!fastReplyRewardAd.error || !pendingFastReplyDateKeyRef.current) return;
@@ -312,9 +313,7 @@ export default function Main() {
     : `Reply available in ${formatRemainingTime(replyRemainingMs)}`;
   const unreadyNoScheduleText = isKo ? "답장 준비 중" : "Reply getting ready";
 
-  const { weeks } = useMemo(() => buildWeekStrip(today), [
-    `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`,
-  ]);
+  const { weeks } = useMemo(() => buildWeekStrip(today), [today]);
 
   const weekStripExtraData = useMemo(
     () => ({
