@@ -72,13 +72,13 @@ export default function ListScreen() {
     const month = String(today.getMonth() + 1).padStart(2, "0");
     const date = String(today.getDate()).padStart(2, "0");
     router.push({
-      pathname: "/(home)/diaryWrite",
+      pathname: "/(home)/diaryWrite" as never,
       params: { date: `${year}-${month}-${date}` },
     });
   };
 
   const handlePressReply = (date: string) => {
-    router.push({ pathname: "/(home)/reply/[date]", params: { date } });
+    router.push({ pathname: "/(home)/reply/[date]" as never, params: { date } });
   };
 
   return (

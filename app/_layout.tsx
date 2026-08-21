@@ -10,6 +10,8 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { initializeAdMob } from "@/shared/ads";
+import { useAppStore } from "@/store/useAppStore";
 
 const APP_BACKGROUND = "#FFFFFF";
 void SplashScreen.preventAutoHideAsync();
@@ -55,6 +57,18 @@ export default function RootLayout() {
       forceCodeForRefreshToken: true,
     });
   }, []);
+
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    void initializeAdMob().catch((error) =>
+      console.warn("[AdMob] initialize failed", error),
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!fontsLoaded) return;
+    void useAppStore.getState().hydrateAuthFromStorage();
+  }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;
 

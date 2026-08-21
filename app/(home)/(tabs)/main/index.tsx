@@ -17,8 +17,15 @@ import {
 } from "react-native";
 import TodayIconKo from "@/assets/icons/weekday-item_ko.svg";
 import TodayIconEn from "@/assets/icons/weekday-item_en.svg";
+import {
+  ReplyAPI,
+  type ReplyAdRequest,
+  type SupportedReplyLanguage,
+} from "@/api/replyAPI";
 import CloverRewardBottomSheet from "@/components/CloverRewardBottomSheet";
 import i18n from "@/app/i18n/i18n";
+import { useAdMobRewarded } from "@/shared/ads";
+import { Toast } from "@/shared/components/Toast";
 import { useApp } from "@/store/useAppStore";
 import { useStorageStore } from "@/store/useStorageStore";
 import { HomeContext } from "../../_layout";
@@ -52,6 +59,7 @@ import {
   startOfLocalDay,
   weekStripFlatIndexForDate,
 } from "./_utils/dateUtils";
+import { isDiaryWritableDate } from "@/shared/utils/diaryDate";
 
 export default function Main() {
   const router = useRouter();
@@ -59,6 +67,7 @@ export default function Main() {
   const { isLoggedIn, authReady } = useApp();
 
   const [showReward, setShowReward] = useState(false);
+  const fastReplyRewardAd = useAdMobRewarded("fastReplyReward");
   const shouldReopenReward = useStorageStore((s) => s.shouldReopenReward);
   const setShouldReopenReward = useStorageStore((s) => s.setShouldReopenReward);
 
@@ -73,7 +82,9 @@ export default function Main() {
 
   const flatListRef = useRef<FlatList>(null);
   const pendingPickedDateRef = useRef<Date | null>(null);
-  const today = new Date();
+  const pendingFastReplyDateKeyRef = useRef<string | null>(null);
+  const pendingFastReplyRequestRef = useRef<ReplyAdRequest | null>(null);
+  const today = useMemo(() => new Date(), []);
 
   const [calendarDate, setCalendarDate] = useState(today);
   const [gratitudeDate, setGratitudeDate] = useState(today);
@@ -85,6 +96,11 @@ export default function Main() {
   const [journalPromptText, setJournalPromptText] = useState("");
   const [nowTickMs, setNowTickMs] = useState(() => Date.now());
   const [visualAreaSize, setVisualAreaSize] = useState({ width: 0, height: 0 });
+  const [toast, setToast] = useState<{
+    message: string;
+    variant: "success" | "warning";
+  } | null>(null);
+  const [isStartingFastReplyAd, setIsStartingFastReplyAd] = useState(false);
 
   const currentYear = calendarDate.getFullYear();
   const currentMonth = calendarDate.getMonth() + 1;
@@ -114,6 +130,7 @@ export default function Main() {
   const datePickerTranslateY = useRef(new Animated.Value(420)).current;
 
   const isKo = i18n.locale?.startsWith("ko");
+  const supportedLanguage: SupportedReplyLanguage = isKo ? "KO" : "EN";
   const TodayIcon = isKo ? TodayIconKo : TodayIconEn;
   const weekDays = isKo ? WEEK_DAYS_KO : WEEK_DAYS_EN;
   const headerActionTextStyle = localeTextStyle("headerAction", !!isKo, {
@@ -158,6 +175,15 @@ export default function Main() {
 
   const selectedDateKey = formatDateKey(gratitudeDate);
   const selectedDiaryCount = diaryCountByDate[selectedDateKey] ?? 0;
+  const selectedReplyAdRequest = useMemo<ReplyAdRequest>(
+    () => ({
+      year: gratitudeDate.getFullYear(),
+      month: gratitudeDate.getMonth() + 1,
+      date: gratitudeDate.getDate(),
+      supportedLanguage,
+    }),
+    [gratitudeDate, supportedLanguage],
+  );
 
   const getDisplayReplyStatusForDate = useCallback(
     (date: Date, diaryCount: number): ReplyStatus => {
@@ -194,6 +220,59 @@ export default function Main() {
     setReplyReadyAtByDate,
   );
 
+  useEffect(() => {
+    const pendingDateKey = pendingFastReplyDateKeyRef.current;
+    const pendingRequest = pendingFastReplyRequestRef.current;
+    if (!fastReplyRewardAd.isEarnedReward || !pendingDateKey || !pendingRequest) {
+      return;
+    }
+
+    pendingFastReplyDateKeyRef.current = null;
+    pendingFastReplyRequestRef.current = null;
+    ReplyAPI.endAdViewing(pendingRequest)
+      .then(() => {
+        setReplyStatusByDate((prev) => ({
+          ...prev,
+          [pendingDateKey]: "READY_NOT_READ",
+        }));
+        setReplyReadyAtByDate((prev) => {
+          if (!(pendingDateKey in prev)) return prev;
+          const next = { ...prev };
+          delete next[pendingDateKey];
+          return next;
+        });
+        setToast({
+          message: i18n.t("main.gratitude.fastReplyUnlocked"),
+          variant: "success",
+        });
+      })
+      .catch((error) => {
+        console.warn("[main] fast reply ad end failed", error);
+        setToast({
+          message: i18n.t("ads.unavailable"),
+          variant: "warning",
+        });
+      });
+  }, [fastReplyRewardAd.isEarnedReward]);
+
+  useEffect(() => {
+    if (!fastReplyRewardAd.isClosed || !pendingFastReplyDateKeyRef.current) return;
+    if (fastReplyRewardAd.isEarnedReward) return;
+    pendingFastReplyDateKeyRef.current = null;
+    pendingFastReplyRequestRef.current = null;
+  }, [fastReplyRewardAd.isClosed, fastReplyRewardAd.isEarnedReward]);
+
+  useEffect(() => {
+    if (!fastReplyRewardAd.error || !pendingFastReplyDateKeyRef.current) return;
+
+    pendingFastReplyDateKeyRef.current = null;
+    pendingFastReplyRequestRef.current = null;
+    setToast({
+      message: i18n.t("ads.unavailable"),
+      variant: "warning",
+    });
+  }, [fastReplyRewardAd.error]);
+
   const replyRemainingMs =
     selectedReplyReadyAtMs != null
       ? Math.max(0, selectedReplyReadyAtMs - nowTickMs)
@@ -210,6 +289,7 @@ export default function Main() {
     hasSelectedDiary && (isReadyNotRead || isReadyRead);
   const showWriteEntry =
     !isFutureSelected && !hasSelectedDiary && !isDraft && !isUnready;
+  const isWritableSelected = isDiaryWritableDate(gratitudeDate);
   const actionLabel = showWriteEntry
     ? i18n.t("main.gratitude.writeEntry")
     : showReplyAction
@@ -220,19 +300,20 @@ export default function Main() {
         ? i18n.t("main.gratitude.continueWriting")
         : "Continue Writing";
   const actionTextColor = showWriteEntry
-    ? "#13B567"
+    ? isWritableSelected
+      ? "#13B567"
+      : "#ABAFBB"
     : isReadyNotRead
       ? "#00A34A"
       : "#374151";
-  const useGreenActionChevron = showWriteEntry || isReadyNotRead;
+  const useGreenActionChevron =
+    (showWriteEntry && isWritableSelected) || isReadyNotRead;
   const timerText = isKo
     ? `답장 ${formatRemainingTime(replyRemainingMs)} 남음`
     : `Reply available in ${formatRemainingTime(replyRemainingMs)}`;
   const unreadyNoScheduleText = isKo ? "답장 준비 중" : "Reply getting ready";
 
-  const { weeks } = useMemo(() => buildWeekStrip(today), [
-    `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`,
-  ]);
+  const { weeks } = useMemo(() => buildWeekStrip(today), [today]);
 
   const weekStripExtraData = useMemo(
     () => ({
@@ -443,6 +524,45 @@ export default function Main() {
     }
   };
 
+  const handlePressFastReplyAd = async () => {
+    if (!isUnready || fastReplyRewardAd.isShowing || isStartingFastReplyAd) return;
+
+    if (!fastReplyRewardAd.isLoaded) {
+      fastReplyRewardAd.load();
+      setToast({
+        message: i18n.t("ads.notReady"),
+        variant: "warning",
+      });
+      return;
+    }
+
+    setIsStartingFastReplyAd(true);
+    try {
+      await ReplyAPI.startAdViewing(selectedReplyAdRequest);
+    } catch (error) {
+      console.warn("[main] fast reply ad start failed", error);
+      setToast({
+        message: i18n.t("ads.unavailable"),
+        variant: "warning",
+      });
+      return;
+    } finally {
+      setIsStartingFastReplyAd(false);
+    }
+
+    pendingFastReplyDateKeyRef.current = selectedDateKey;
+    pendingFastReplyRequestRef.current = selectedReplyAdRequest;
+    const didShowAd = fastReplyRewardAd.showAd();
+    if (didShowAd) return;
+
+    pendingFastReplyDateKeyRef.current = null;
+    pendingFastReplyRequestRef.current = null;
+    setToast({
+      message: i18n.t("ads.notReady"),
+      variant: "warning",
+    });
+  };
+
   const datePickerLayer = (
     <DatePickerSheet
       translateY={datePickerTranslateY}
@@ -527,17 +647,19 @@ export default function Main() {
           actionLabel={actionLabel}
           actionTextColor={actionTextColor}
           useGreenActionChevron={useGreenActionChevron}
+          onPressFastReplyAd={handlePressFastReplyAd}
           onPressAction={() => {
+            if (showWriteEntry && !isWritableSelected) return;
             if (showWriteEntry || isDraft) {
               router.push({
-                pathname: "/(home)/diaryWrite",
+                pathname: "/(home)/diaryWrite" as never,
                 params: { date: selectedDateKey },
               });
               return;
             }
 
             router.push({
-              pathname: "/(home)/reply/[date]",
+              pathname: "/(home)/reply/[date]" as never,
               params: {
                 date: selectedDateKey,
                 source: "home",
@@ -589,6 +711,12 @@ export default function Main() {
       <CloverRewardBottomSheet
         visible={showReward}
         onClose={() => setShowReward(false)}
+      />
+      <Toast
+        message={toast?.message ?? ""}
+        visible={toast !== null}
+        variant={toast?.variant}
+        onHide={() => setToast(null)}
       />
     </View>
   );

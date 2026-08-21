@@ -67,7 +67,12 @@ export default {
       pastBadgePast: 'Past entry',
       pastBadgeFuture: 'Upcoming',
       continueWriting: 'Continue Writing',
+      fastReplyUnlocked: 'Your reply is ready to view.',
     },
+  },
+  ads: {
+    notReady: 'The ad is still loading. Please try again shortly.',
+    unavailable: "Couldn't load the ad. Please try again shortly.",
   },
   storage: {
     empty: "You haven't received any outfits yet.",
