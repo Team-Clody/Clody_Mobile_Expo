@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import {
   useCallback,
   useContext,
@@ -45,7 +45,6 @@ import {
   WEEK_STRIP_LENGTH,
 } from "./_constants";
 import { localeTextStyle } from "@/shared/theme/localeTypography";
-import { isDiaryWritableDate } from "@/shared/utils/diaryDate";
 import { useJournalPrompt } from "./_hooks/useJournalPrompt";
 import { useMainCalendarData } from "./_hooks/useMainCalendarData";
 import { useReplyReadyTime } from "./_hooks/useReplyReadyTime";
@@ -60,8 +59,10 @@ import {
   startOfLocalDay,
   weekStripFlatIndexForDate,
 } from "./_utils/dateUtils";
+import { isDiaryWritableDate } from "@/shared/utils/diaryDate";
 
 export default function Main() {
+  const router = useRouter();
   const homeContext = useContext(HomeContext);
   const { isLoggedIn, authReady } = useApp();
 
@@ -83,7 +84,7 @@ export default function Main() {
   const pendingPickedDateRef = useRef<Date | null>(null);
   const pendingFastReplyDateKeyRef = useRef<string | null>(null);
   const pendingFastReplyRequestRef = useRef<ReplyAdRequest | null>(null);
-  const today = useMemo(() => new Date(), []);
+  const today = new Date();
 
   const [calendarDate, setCalendarDate] = useState(today);
   const [gratitudeDate, setGratitudeDate] = useState(today);
@@ -287,7 +288,6 @@ export default function Main() {
     hasSelectedDiary && (isReadyNotRead || isReadyRead);
   const showWriteEntry =
     !isFutureSelected && !hasSelectedDiary && !isDraft && !isUnready;
-  // 작성 가능일: KST 오늘+어제, 그 외 타임존은 오늘만 (v1 정책)
   const isWritableSelected = isDiaryWritableDate(gratitudeDate);
   const actionLabel = showWriteEntry
     ? i18n.t("main.gratitude.writeEntry")
@@ -312,7 +312,9 @@ export default function Main() {
     : `Reply available in ${formatRemainingTime(replyRemainingMs)}`;
   const unreadyNoScheduleText = isKo ? "답장 준비 중" : "Reply getting ready";
 
-  const { weeks } = useMemo(() => buildWeekStrip(today), [today]);
+  const { weeks } = useMemo(() => buildWeekStrip(today), [
+    `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`,
+  ]);
 
   const weekStripExtraData = useMemo(
     () => ({
@@ -523,18 +525,6 @@ export default function Main() {
     }
   };
 
-  const handleGratitudeAction = () => {
-    if (showReplyAction) {
-      console.log("[main] 답장확인 - 미구현");
-      return;
-    }
-    if (showWriteEntry && !isWritableSelected) return;
-    router.push({
-      pathname: "/(home)/diaryWrite" as never,
-      params: { date: selectedDateKey },
-    });
-  };
-
   const handlePressFastReplyAd = async () => {
     if (!isUnready || fastReplyRewardAd.isShowing || isStartingFastReplyAd) return;
 
@@ -659,7 +649,25 @@ export default function Main() {
           actionTextColor={actionTextColor}
           useGreenActionChevron={useGreenActionChevron}
           onPressFastReplyAd={handlePressFastReplyAd}
-          onPressAction={handleGratitudeAction}
+          onPressAction={() => {
+            if (showWriteEntry && !isWritableSelected) return;
+            if (showWriteEntry || isDraft) {
+              router.push({
+                pathname: "/(home)/diaryWrite" as never,
+                params: { date: selectedDateKey },
+              });
+              return;
+            }
+
+            router.push({
+              pathname: "/(home)/reply/[date]" as never,
+              params: {
+                date: selectedDateKey,
+                source: "home",
+                status: selectedReplyStatus,
+              },
+            });
+          }}
         />
       </View>
 

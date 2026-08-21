@@ -7,6 +7,12 @@ interface PostDiaryResponse {
   isFromDraft: boolean;
 }
 
+export interface GetDiaryResponseDTO {
+  diaries: { content: string }[];
+  isDeleted: boolean;
+  isDraft: boolean;
+}
+
 /**
  * POST /diary 전용 날짜 포맷: KST 기준 "yyyy-MM-dd'T'HH:mm:ss" (v1 toKSTDiaryString과 동일한 서버 계약).
  * 날짜는 선택한 일기 날짜, 시각은 현재 시각의 KST 표현.
@@ -23,6 +29,18 @@ const toKSTDiaryString = (dateKey: string) => {
 };
 
 export const DiaryAPI = {
+  /** 선택한 날짜의 작성 일기 조회 */
+  getDiary: async (year: number, month: number, date: number) => {
+    const res = await createAPIRequest<GetDiaryResponseDTO>(
+      "get",
+      "/api/v1/diary",
+      HeaderType.TIME_ZONE,
+      undefined,
+      { params: { year, month, date } },
+    );
+    return res.data.data;
+  },
+
   /** 일기 작성 시각 조회 (답장 UNREADY 시 타이머 = 이 시각 + 12시간) */
   getDiaryCreatedTime: async (year: number, month: number, date: number) => {
     const res = await createAPIRequest<GetDiaryCreatedTimeResponseDTO>(

@@ -206,6 +206,7 @@ export const createAPIRequest = async <T>(
   const headers = await getHeaders(headerType, platformToken);
 
   return APIKit.request<ApiResponse<T>>({
+    ...config,
     method,
     url,
     data,
@@ -213,7 +214,6 @@ export const createAPIRequest = async <T>(
       ...headers,
       ...config?.headers,
     },
-    ...config,
   });
 };
 

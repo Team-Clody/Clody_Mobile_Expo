@@ -149,7 +149,7 @@ export function GratitudeCard({
                         overflow: "visible",
                       }}
                     >
-                      <AdToReplyIcon width={isKo ? 143 : 132} height={35} />
+                      <AdToReplyIcon width={isKo ? 168 : 160} height={42} />
                     </Pressable>
                   )}
                 </View>

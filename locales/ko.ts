@@ -1,4 +1,5 @@
 export default {
+  // 기존 인라인 번역
   mypage: '마이페이지',
   noNickname: '닉네임 없음',
   noEmail: '이메일 없음',
@@ -38,6 +39,14 @@ export default {
   supportContent: '커피 사주기',
   home: '홈',
   calander: '모아보기',
+  list: {
+    promptTitle: '오늘의 감사 주제',
+    promptFallback:
+      '“버텨줘서 고마워”라고 말해주고 싶은 나의 모습을 적어보세요',
+    writeToday: '오늘 일기쓰기',
+    reply: '답장확인',
+    more: '더보기',
+  },
   main: {
     header: {
       today: '오늘',
@@ -107,6 +116,8 @@ export default {
       20: '우주복',
     },
   },
+
+  // 소스 프로젝트 번역 (구조화)
   login: {
     pager: {
       page1: {
@@ -284,6 +295,36 @@ export default {
       networkError: '서비스 접속이 원활하지 않아요.',
       genericError: '일시적인 오류가 발생했어요.',
       adEntryUnlocked: '일기 칸이 추가됐어요.',
+    },
+  },
+  reply: {
+    titleFallback: '답장',
+    back: '뒤로 가기',
+    tabs: {
+      diary: '내 일기',
+      reply: '답장',
+    },
+    diaryMore: '일기 더보기',
+    emptyDiary: '작성한 일기가 없어요.',
+    waiting: {
+      caption: '로디가 열심히 답장을 적고 있어요!',
+      ad: '광고 보고 바로 답장 받기',
+    },
+    ready: {
+      caption: '행운의 답장이 도착했어요!',
+      open: '답장 열어보기',
+    },
+    letter: {
+      to: 'To. %{nickname}',
+      from: 'From. 로디',
+    },
+    reward: {
+      title: '클로버 1개 획득',
+      description: '레벨 1 미션 1/2 완료',
+      confirm: '확인',
+    },
+    toast: {
+      genericError: '일시적인 오류가 발생했어요.',
     },
   },
 };

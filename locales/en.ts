@@ -1,4 +1,5 @@
 export default {
+  // 기존 인라인 번역
   mypage: 'My Page',
   noNickname: 'No nickname',
   noEmail: 'No email',
@@ -39,7 +40,14 @@ export default {
   supportTitle: 'Support Clody',
   supportContent: 'Buy me a coffee',
   home: 'Home',
-  calander: 'Calander',
+  calander: 'Memories',
+  list: {
+    promptTitle: "Today's Gratitude Prompt",
+    promptFallback: 'Write about the version of yourself you want to say',
+    writeToday: "Write Today's Entry",
+    reply: 'Reply',
+    more: 'More',
+  },
   main: {
     header: {
       today: 'Today',
@@ -109,6 +117,8 @@ export default {
       20: 'Spacesuit',
     },
   },
+
+  // 소스 프로젝트 번역 (구조화)
   login: {
     pager: {
       page1: {
@@ -278,6 +288,36 @@ export default {
       networkError: "Couldn't connect to the service.",
       genericError: 'Something went wrong.',
       adEntryUnlocked: 'A diary slot has been added.',
+    },
+  },
+  reply: {
+    titleFallback: 'Reply',
+    back: 'Go back',
+    tabs: {
+      diary: 'My Journal',
+      reply: 'Reply',
+    },
+    diaryMore: 'More diary options',
+    emptyDiary: 'No journal entries yet.',
+    waiting: {
+      caption: 'Lody is writing your reply!',
+      ad: 'Watch an ad to get your reply now',
+    },
+    ready: {
+      caption: 'Your lucky reply has arrived!',
+      open: 'Open reply',
+    },
+    letter: {
+      to: 'To. %{nickname}',
+      from: 'From. Lody',
+    },
+    reward: {
+      title: 'You got 1 clover',
+      description: 'Level 1 mission 1/2 complete',
+      confirm: 'Done',
+    },
+    toast: {
+      genericError: 'Something went wrong.',
     },
   },
 };

@@ -24,14 +24,15 @@ import IcMyOff from "@/assets/icons/ic_my_off.svg";
 import IcMyOn from "@/assets/icons/ic_my_on.svg";
 import IcNext from "@/assets/icons/ic_next.svg";
 import IcProfile from "@/assets/icons/ic_profile.svg";
+import IcPlus from "@/assets/icons/ic_plus.svg";
 import IcStars from "@/assets/icons/ic_stars.svg";
 import IcSuccess from "@/assets/icons/ic_success.svg";
-import IcPlus from "@/assets/icons/ic_plus.svg";
 import IcWarning from "@/assets/icons/ic_warning.svg";
 
 export const Icon = {
   IcNext,
   IcProfile,
+  IcPlus,
   IcBack,
   IcLeftArrow,
   IcRightArrow,
@@ -49,6 +50,7 @@ export const Icon = {
   IcCheckGray,
   IcCheckGreen,
   IcSuccess,
+  IcWarning,
   IcStars,
   IcCloverFull,
   IcCloverIng,
@@ -58,6 +60,4 @@ export const Icon = {
   IcKebob,
   IcCloverNot,
   IcCloverUnread,
-  IcPlus,
-  IcWarning,
 };
