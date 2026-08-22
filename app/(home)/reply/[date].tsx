@@ -31,6 +31,12 @@ import PagerView from "react-native-pager-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ReplyPhase = "waiting" | "ready" | "opened";
+type ReplyRouteStatus =
+  | "UNREADY"
+  | "READY_NOT_READ"
+  | "READY_READ"
+  | "HAS_DRAFT"
+  | "INVALID_DRAFT";
 
 const REPLY_HEADER_AND_TABS_HEIGHT = 83;
 const REPLY_STATUS_CONTENT_HEIGHT = 243;
@@ -44,6 +50,14 @@ function parseDate(date?: string) {
   }
   const [year, month, day] = values;
   return { year, month, day };
+}
+
+function getParamValue(value?: string | string[]) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function isReplyReadyRouteStatus(status?: string): status is Extract<ReplyRouteStatus, "READY_NOT_READ" | "READY_READ"> {
+  return status === "READY_NOT_READ" || status === "READY_READ";
 }
 
 function formatDate(date?: string) {
@@ -210,7 +224,10 @@ function CloverRewardModal({ visible, onConfirm }: { visible: boolean; onConfirm
 export default function ReplyScreen() {
   const router = useRouter();
   const pagerRef = useRef<PagerView>(null);
-  const { date } = useLocalSearchParams<{ date: string }>();
+  const params = useLocalSearchParams<{ date?: string | string[]; status?: string | string[] }>();
+  const date = getParamValue(params.date);
+  const routeReplyStatus = getParamValue(params.status);
+  const isReadyFromRoute = isReplyReadyRouteStatus(routeReplyStatus);
   const targetDate = useMemo(() => parseDate(date), [date]);
   const supportedLanguage = getSupportedReplyLanguage();
   const fastReplyRewardAd = useAdMobRewarded("fastReplyReward");
@@ -277,8 +294,12 @@ export default function ReplyScreen() {
             targetDate.day,
           ),
         ]);
-        const readyAt = diaryCreatedToReplyReadyMs(timeResult);
-        const replyResult = readyAt != null && readyAt <= Date.now()
+        const nowMs = Date.now();
+        const readyAtByCreatedTime = diaryCreatedToReplyReadyMs(timeResult);
+        const shouldLoadReply =
+          isReadyFromRoute ||
+          (readyAtByCreatedTime != null && readyAtByCreatedTime <= nowMs);
+        const replyResult = shouldLoadReply
           ? await ReplyAPI.getReply(
               targetDate.year,
               targetDate.month,
@@ -288,7 +309,8 @@ export default function ReplyScreen() {
         if (cancelled) return;
         setDiary(diaryResult);
         setReply(replyResult);
-        setReplyReadyAt(readyAt);
+        setNow(nowMs);
+        setReplyReadyAt(isReadyFromRoute ? nowMs : readyAtByCreatedTime);
       } catch (error) {
         console.warn("[reply] 화면 데이터 불러오기 실패", error);
       } finally {
@@ -298,7 +320,7 @@ export default function ReplyScreen() {
     return () => {
       cancelled = true;
     };
-  }, [targetDate]);
+  }, [isReadyFromRoute, targetDate]);
 
   useEffect(() => {
     const intervalId = setInterval(() => setNow(Date.now()), 1_000);
@@ -311,7 +333,9 @@ export default function ReplyScreen() {
       showReplyUnavailableError();
       return;
     }
-    setReplyReadyAt(Date.now());
+    const nowMs = Date.now();
+    setNow(nowMs);
+    setReplyReadyAt(nowMs);
     setOpened(true);
     if (!loadedReply.isRead) setShowReward(true);
   }, [loadReply, showReplyUnavailableError]);
