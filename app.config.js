@@ -1,3 +1,5 @@
+const ADMOB_APP_ID = "ca-app-pub-6721111543239153~7854886391";
+
 export default {
   expo: {
     name: "Clody_Mobile_Expo",
@@ -12,6 +14,9 @@ export default {
       supportsTablet: true,
       bundleIdentifier: "com.clody.corp",
       buildNumber: "7",
+      infoPlist: {
+        GADApplicationIdentifier: ADMOB_APP_ID,
+      },
     },
     android: {
       googleServicesFile:
@@ -52,8 +57,8 @@ export default {
       [
         "react-native-google-mobile-ads",
         {
-          androidAppId: "ca-app-pub-6721111543239153~7854886391",
-          iosAppId: "ca-app-pub-6721111543239153~7854886391",
+          androidAppId: ADMOB_APP_ID,
+          iosAppId: ADMOB_APP_ID,
         },
       ],
       [

@@ -12,9 +12,18 @@ export const ADMOB_PLACEMENTS = {
 
 export type AdMobPlacement = keyof typeof ADMOB_PLACEMENTS;
 
-const PRODUCTION_AD_UNIT_IDS: Record<AdMobPlacement, string> = {
-  extraDiaryInterstitial: "ca-app-pub-6721111543239153/7712010610",
-  fastReplyReward: "ca-app-pub-6721111543239153/8020745222",
+const PRODUCTION_AD_UNIT_IDS: Record<
+  "android" | "ios",
+  Record<AdMobPlacement, string>
+> = {
+  android: {
+    extraDiaryInterstitial: "ca-app-pub-6721111543239153/7712010610",
+    fastReplyReward: "ca-app-pub-6721111543239153/8020745222",
+  },
+  ios: {
+    extraDiaryInterstitial: "ca-app-pub-6721111543239153/7712010610",
+    fastReplyReward: "ca-app-pub-6721111543239153/8020745222",
+  },
 };
 
 const TEST_AD_UNIT_IDS: Record<"android" | "ios", Record<AdMobPlacement, string>> = {
@@ -50,10 +59,10 @@ export function shouldUseAdMobTestIds() {
 }
 
 export function getAdMobUnitId(placement: AdMobPlacement) {
-  if (!shouldUseAdMobTestIds()) {
-    return PRODUCTION_AD_UNIT_IDS[placement];
-  }
-
   const platform = Platform.OS === "ios" ? "ios" : "android";
-  return TEST_AD_UNIT_IDS[platform][placement];
+  const adUnitIds = shouldUseAdMobTestIds()
+    ? TEST_AD_UNIT_IDS
+    : PRODUCTION_AD_UNIT_IDS;
+
+  return adUnitIds[platform][placement];
 }
