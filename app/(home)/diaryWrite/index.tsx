@@ -306,7 +306,7 @@ export default function DiaryWrite() {
 
     pendingEntryUnlockRef.current = false;
     setToast({
-      message: i18n.t("ads.notReady"),
+      message: i18n.t(extraDiaryAd.error ? "ads.unavailable" : "ads.notReady"),
       variant: "warning",
     });
   };

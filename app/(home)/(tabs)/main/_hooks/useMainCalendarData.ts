@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { useFocusEffect } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
 import { logCalendarDiaryQuery } from "@/shared/utils/debugCalendarDiaries";
 import { getDeviceTimeZone } from "@/shared/utils/timezone";
 import authService from "@/services/authService";
@@ -9,6 +10,23 @@ import {
   buildDiaryCountMap,
   buildReplyMetaMaps,
 } from "../_utils/calendarDataUtils";
+
+const getMonthKey = (year: number, month: number) =>
+  `${year}-${String(month).padStart(2, "0")}`;
+
+const replaceMonthValues = <T,>(
+  prev: Record<string, T>,
+  year: number,
+  month: number,
+  values: Record<string, T>,
+) => {
+  const prefix = `${getMonthKey(year, month)}-`;
+  const next = { ...prev };
+  for (const key of Object.keys(next)) {
+    if (key.startsWith(prefix)) delete next[key];
+  }
+  return { ...next, ...values };
+};
 
 export function useMainCalendarData(
   currentYear: number,
@@ -27,8 +45,8 @@ export function useMainCalendarData(
   const fetchedMonthKeysRef = useRef<Set<string>>(new Set());
   const fetchingMonthKeysRef = useRef<Set<string>>(new Set());
 
-  useEffect(() => {
-    const fetchCalendar = async () => {
+  const fetchCalendar = useCallback(
+    async ({ forceCurrentMonth = false } = {}) => {
       const timeZone = getDeviceTimeZone();
       const requestCalendarList = async (
         accessToken: string,
@@ -46,13 +64,21 @@ export function useMainCalendarData(
       const mergeMonthDiaryCount = (
         diaries: CalendarDiary[],
         totalClover: number,
+        year: number,
+        month: number,
       ) => {
         const diaryCountMap = buildDiaryCountMap(diaries);
         const { replyStatusByDate: rs, replyReadyAtByDate: rr } =
           buildReplyMetaMaps(diaries);
-        setDiaryCountByDate((prev) => ({ ...prev, ...diaryCountMap }));
-        setReplyStatusByDate((prev) => ({ ...prev, ...rs }));
-        setReplyReadyAtByDate((prev) => ({ ...prev, ...rr }));
+        setDiaryCountByDate((prev) =>
+          replaceMonthValues(prev, year, month, diaryCountMap),
+        );
+        setReplyStatusByDate((prev) =>
+          replaceMonthValues(prev, year, month, rs),
+        );
+        setReplyReadyAtByDate((prev) =>
+          replaceMonthValues(prev, year, month, rr),
+        );
         setTotalCloverCount(totalClover);
       };
 
@@ -60,10 +86,11 @@ export function useMainCalendarData(
         accessToken: string,
         year: number,
         month: number,
+        options?: { force?: boolean; tag?: string },
       ) => {
-        const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+        const monthKey = getMonthKey(year, month);
         if (
-          fetchedMonthKeysRef.current.has(monthKey) ||
+          (!options?.force && fetchedMonthKeysRef.current.has(monthKey)) ||
           fetchingMonthKeysRef.current.has(monthKey)
         ) {
           return;
@@ -72,10 +99,15 @@ export function useMainCalendarData(
         fetchingMonthKeysRef.current.add(monthKey);
         try {
           const resp = await requestCalendarList(accessToken, year, month);
-          logCalendarDiaryQuery("Main.fetchMonth", year, month, resp.data?.data);
+          logCalendarDiaryQuery(
+            options?.tag ?? "Main.fetchMonth",
+            year,
+            month,
+            resp.data?.data,
+          );
           const diaries = (resp.data?.data?.diaries ?? []) as CalendarDiary[];
           const totalClover = Number(resp.data?.data?.totalCloverCount ?? 0);
-          mergeMonthDiaryCount(diaries, totalClover);
+          mergeMonthDiaryCount(diaries, totalClover, year, month);
           fetchedMonthKeysRef.current.add(monthKey);
         } finally {
           fetchingMonthKeysRef.current.delete(monthKey);
@@ -94,13 +126,16 @@ export function useMainCalendarData(
           return;
         }
 
-        await fetchMonth(accessToken, currentYear, currentMonth);
+        await fetchMonth(accessToken, currentYear, currentMonth, {
+          force: forceCurrentMonth,
+          tag: forceCurrentMonth ? "Main.refreshMonth" : "Main.fetchMonth",
+        });
         const prevMonth = getNeighborMonth(currentYear, currentMonth, -1);
         const nextMonth = getNeighborMonth(currentYear, currentMonth, 1);
         void fetchMonth(accessToken, prevMonth.year, prevMonth.month);
         void fetchMonth(accessToken, nextMonth.year, nextMonth.month);
       } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
+        if (isAxiosError(error) && error.response?.status === 401) {
           try {
             const refreshToken = await SecureStore.getItemAsync("refreshToken");
             const reissued =
@@ -110,7 +145,10 @@ export function useMainCalendarData(
             const newAccessToken = await SecureStore.getItemAsync("accessToken");
             if (!newAccessToken) return;
 
-            await fetchMonth(newAccessToken, currentYear, currentMonth);
+            await fetchMonth(newAccessToken, currentYear, currentMonth, {
+              force: forceCurrentMonth,
+              tag: forceCurrentMonth ? "Main.refreshMonth" : "Main.fetchMonth",
+            });
             const prevMonth = getNeighborMonth(currentYear, currentMonth, -1);
             const nextMonth = getNeighborMonth(currentYear, currentMonth, 1);
             void fetchMonth(newAccessToken, prevMonth.year, prevMonth.month);
@@ -122,15 +160,24 @@ export function useMainCalendarData(
         }
         console.error("[TEST] calendar/list error:", error);
       }
-    };
+    },
+    [
+      currentYear,
+      currentMonth,
+      setDiaryCountByDate,
+      setReplyStatusByDate,
+      setReplyReadyAtByDate,
+      setTotalCloverCount,
+    ],
+  );
 
+  useEffect(() => {
     void fetchCalendar();
-  }, [
-    currentYear,
-    currentMonth,
-    setDiaryCountByDate,
-    setReplyStatusByDate,
-    setReplyReadyAtByDate,
-    setTotalCloverCount,
-  ]);
+  }, [fetchCalendar]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void fetchCalendar({ forceCurrentMonth: true });
+    }, [fetchCalendar]),
+  );
 }

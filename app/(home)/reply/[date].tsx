@@ -2,8 +2,8 @@ import { DiaryAPI, type GetDiaryResponseDTO } from "@/api/diaryAPI";
 import type { GetReplyResponseDTO } from "@/api/dto/reply/response/getReplyResponseDTO";
 import {
   ReplyAPI,
+  getSupportedReplyLanguage,
   type ReplyAdRequest,
-  type SupportedReplyLanguage,
 } from "@/api/replyAPI";
 import i18n from "@/app/i18n/i18n";
 import BackIcon from "@/assets/icons/ic_back.svg";
@@ -14,6 +14,7 @@ import { Toast } from "@/shared/components/Toast";
 import { palette } from "@/shared/theme/palette";
 import { typography } from "@/shared/theme/typography";
 import { diaryCreatedToReplyReadyMs } from "@/shared/utils/diaryReplyTimer";
+import { isAxiosError } from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -211,10 +212,10 @@ export default function ReplyScreen() {
   const pagerRef = useRef<PagerView>(null);
   const { date } = useLocalSearchParams<{ date: string }>();
   const targetDate = useMemo(() => parseDate(date), [date]);
-  const isKo = i18n.locale?.startsWith("ko");
-  const supportedLanguage: SupportedReplyLanguage = isKo ? "KO" : "EN";
+  const supportedLanguage = getSupportedReplyLanguage();
   const fastReplyRewardAd = useAdMobRewarded("fastReplyReward");
   const pendingFastReplyRequestRef = useRef<ReplyAdRequest | null>(null);
+  const queuedFastReplyRequestRef = useRef<ReplyAdRequest | null>(null);
   const [activeTab, setActiveTab] = useState<"diary" | "reply">("reply");
   const [diary, setDiary] = useState<GetDiaryResponseDTO | null>(null);
   const [reply, setReply] = useState<GetReplyResponseDTO | null>(null);
@@ -228,6 +229,8 @@ export default function ReplyScreen() {
     variant: "success" | "warning";
   } | null>(null);
   const [isStartingFastReplyAd, setIsStartingFastReplyAd] = useState(false);
+  const [isWaitingForFastReplyAdLoad, setIsWaitingForFastReplyAdLoad] =
+    useState(false);
 
   const replyAdRequest = useMemo<ReplyAdRequest | null>(() => {
     if (!targetDate) return null;
@@ -347,6 +350,17 @@ export default function ReplyScreen() {
     });
   }, [fastReplyRewardAd.error]);
 
+  useEffect(() => {
+    if (!fastReplyRewardAd.error || !queuedFastReplyRequestRef.current) return;
+
+    queuedFastReplyRequestRef.current = null;
+    setIsWaitingForFastReplyAdLoad(false);
+    setToast({
+      message: i18n.t("ads.unavailable"),
+      variant: "warning",
+    });
+  }, [fastReplyRewardAd.error]);
+
   const remaining = Math.max(0, (replyReadyAt ?? now) - now);
   const hasReplyContent = Boolean(reply?.content?.trim());
   const isReplyReadyByTime = replyReadyAt != null && remaining === 0;
@@ -380,25 +394,20 @@ export default function ReplyScreen() {
     if (!loadedReply.isRead) setShowReward(true);
   };
 
-  const handlePressAd = async () => {
-    if (!replyAdRequest || fastReplyRewardAd.isShowing || isStartingFastReplyAd) {
+  const startFastReplyAdFlow = useCallback(async (request: ReplyAdRequest) => {
+    if (fastReplyRewardAd.isShowing || isStartingFastReplyAd) {
       return;
     }
-
-    if (!fastReplyRewardAd.isLoaded) {
-      fastReplyRewardAd.load();
-      setToast({
-        message: i18n.t("ads.notReady"),
-        variant: "warning",
-      });
-      return;
-    }
-
     setIsStartingFastReplyAd(true);
     try {
-      await ReplyAPI.startAdViewing(replyAdRequest);
+      await ReplyAPI.startAdViewing(request);
     } catch (error) {
-      console.warn("[reply] fast reply ad start failed", error);
+      console.warn("[reply] fast reply ad start failed", {
+        request,
+        status: isAxiosError(error) ? error.response?.status : undefined,
+        data: isAxiosError(error) ? error.response?.data : undefined,
+        message: error instanceof Error ? error.message : String(error),
+      });
       setToast({
         message: i18n.t("ads.unavailable"),
         variant: "warning",
@@ -408,15 +417,72 @@ export default function ReplyScreen() {
       setIsStartingFastReplyAd(false);
     }
 
-    pendingFastReplyRequestRef.current = replyAdRequest;
+    pendingFastReplyRequestRef.current = request;
     const didShowAd = fastReplyRewardAd.showAd();
     if (didShowAd) return;
 
     pendingFastReplyRequestRef.current = null;
     setToast({
-      message: i18n.t("ads.notReady"),
+      message: i18n.t(fastReplyRewardAd.error ? "ads.unavailable" : "ads.notReady"),
       variant: "warning",
     });
+  }, [fastReplyRewardAd, isStartingFastReplyAd]);
+
+  useEffect(() => {
+    if (!isWaitingForFastReplyAdLoad || !fastReplyRewardAd.isLoaded) return;
+
+    const queuedRequest = queuedFastReplyRequestRef.current;
+    queuedFastReplyRequestRef.current = null;
+    setIsWaitingForFastReplyAdLoad(false);
+
+    if (!queuedRequest) return;
+    void startFastReplyAdFlow(queuedRequest);
+  }, [
+    fastReplyRewardAd.isLoaded,
+    isWaitingForFastReplyAdLoad,
+    startFastReplyAdFlow,
+  ]);
+
+  useEffect(() => {
+    if (!isWaitingForFastReplyAdLoad) return;
+
+    const timeoutId = setTimeout(() => {
+      if (!queuedFastReplyRequestRef.current) return;
+      console.warn("[reply] fast reply ad load timeout", {
+        unitId: fastReplyRewardAd.unitId,
+      });
+      queuedFastReplyRequestRef.current = null;
+      setIsWaitingForFastReplyAdLoad(false);
+      setToast({
+        message: i18n.t("ads.notReady"),
+        variant: "warning",
+      });
+    }, 15_000);
+
+    return () => clearTimeout(timeoutId);
+  }, [fastReplyRewardAd.unitId, isWaitingForFastReplyAdLoad]);
+
+  const handlePressAd = async () => {
+    if (
+      !replyAdRequest ||
+      fastReplyRewardAd.isShowing ||
+      isStartingFastReplyAd ||
+      isWaitingForFastReplyAdLoad
+    ) {
+      return;
+    }
+
+    if (!fastReplyRewardAd.isLoaded) {
+      queuedFastReplyRequestRef.current = replyAdRequest;
+      setIsWaitingForFastReplyAdLoad(true);
+      console.log("[reply] fast reply ad loading", {
+        unitId: fastReplyRewardAd.unitId,
+      });
+      fastReplyRewardAd.load();
+      return;
+    }
+
+    await startFastReplyAdFlow(replyAdRequest);
   };
 
   if (loading) {
@@ -444,7 +510,11 @@ export default function ReplyScreen() {
           {phase === "waiting" ? (
             <WaitingReply
               remaining={remaining}
-              adDisabled={fastReplyRewardAd.isShowing || isStartingFastReplyAd}
+              adDisabled={
+                fastReplyRewardAd.isShowing ||
+                isStartingFastReplyAd ||
+                isWaitingForFastReplyAdLoad
+              }
               onPressAd={handlePressAd}
             />
           ) : phase === "ready" ? (
