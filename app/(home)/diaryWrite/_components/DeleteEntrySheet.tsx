@@ -1,6 +1,6 @@
 import { Modal, Pressable, StyleSheet, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import i18n from "@/app/i18n/i18n";
+import { Icon } from "@/shared/components/Icon";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Typo } from "@/shared/components/typo/Typo";
 import { palette } from "@/shared/theme/palette";
@@ -19,7 +19,14 @@ export function DeleteEntrySheet({
   const insets = useSafeAreaInsets();
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      // 안드로이드 모달 창은 기본적으로 시스템 바 안쪽에서 끝나 insets.bottom이 이중으로 더해짐
+      statusBarTranslucent
+      navigationBarTranslucent
+    >
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}>
@@ -30,7 +37,7 @@ export function DeleteEntrySheet({
             accessibilityLabel={i18n.t("diaryWrite.delete")}
             style={styles.deleteRow}
           >
-            <Ionicons name="trash-outline" size={20} color={palette.gray800} />
+            <Icon.IcTrash width={34} height={34} />
             <Typo.Body variant="body8" color="gray800">
               {i18n.t("diaryWrite.delete")}
             </Typo.Body>

@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import i18n from "@/app/i18n/i18n";
 import { Icon } from "@/shared/components/Icon";
 import { Typo } from "@/shared/components/typo/Typo";
 import { palette } from "@/shared/theme/palette";
+import { useState } from "react";
+import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { MIN_ENTRY_LENGTH } from "../_constants";
 
 type DiaryEntryInputProps = {
@@ -11,6 +11,8 @@ type DiaryEntryInputProps = {
   value: string;
   // 보내기 시도 시 2자 미만으로 걸러진 항목 표시용
   invalid: boolean;
+  // 드래그 중 그림자 표시용 (iOS는 DraggableRow의 레이어 그림자를 사용)
+  dragging?: boolean;
   onChangeText: (text: string) => void;
   onPressMore: () => void;
 };
@@ -19,6 +21,7 @@ export function DiaryEntryInput({
   index,
   value,
   invalid,
+  dragging,
   onChangeText,
   onPressMore,
 }: DiaryEntryInputProps) {
@@ -40,15 +43,21 @@ export function DiaryEntryInput({
   const borderColor = hasError
     ? palette.red500
     : isFocused
-      ? palette.accentPrimary500
+      ? "#00D15A" // 디자인 포커스 그린 (광고 툴팁 강조색과 동일)
       : palette.gray100;
 
   return (
     <View style={styles.container}>
-      <View style={[styles.inputWrap, { borderColor }]}>
+      <View
+        style={[
+          styles.inputWrap,
+          { borderColor },
+          Platform.OS === "android" && dragging && styles.inputWrapDragging,
+        ]}
+      >
         <Typo.Body
-          variant="body9"
-          color={value.length > 0 ? "gray800" : "gray300"}
+          variant="body11"
+          color={value.length > 0 ? "gray1000" : "gray300"}
           style={styles.numberLabel}
         >
           {index + 1}.
@@ -80,7 +89,7 @@ export function DiaryEntryInput({
           accessibilityLabel={i18n.t("diaryWrite.more")}
           style={styles.moreButton}
         >
-          <Icon.IcKebob width={16} height={16} />
+          <Icon.IcKebob width={24} height={24} />
         </Pressable>
       </View>
 
@@ -96,12 +105,12 @@ export function DiaryEntryInput({
           })}
         </Typo.Caption>
         <View style={styles.counterRow}>
-          <Typo.Caption variant="caption3" color="gray600">
+          <Typo.Body variant="body12" lineHeight={1.5} color="gray400">
             {value.length}
-          </Typo.Caption>
-          <Typo.Caption variant="caption3" color="gray300">
+          </Typo.Body>
+          <Typo.Body variant="body12" lineHeight={1.5} color="gray200">
             {` / ${maxLength}`}
-          </Typo.Caption>
+          </Typo.Body>
         </View>
       </View>
     </View>
@@ -110,16 +119,27 @@ export function DiaryEntryInput({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 8,
+    marginBottom: 12,
   },
   inputWrap: {
     flexDirection: "row",
     alignItems: "flex-start",
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 6,
     backgroundColor: palette.gray0,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    minHeight: 48,
+    padding: 12,
+  },
+  // 안드로이드 elevation은 투명한 row 래퍼에 사각 그림자를 만들어 흰 입력칸에 직접 적용
+  inputWrapDragging: {
+    boxShadow: [
+      {
+        offsetX: 0,
+        offsetY: 6,
+        blurRadius: 12,
+        color: "rgba(0, 0, 0, 0.14)",
+      },
+    ],
   },
   numberLabel: {
     marginRight: 4,
@@ -130,8 +150,8 @@ const styles = StyleSheet.create({
     padding: 0,
     margin: 0,
     fontFamily: "PretendardMedium",
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
     color: palette.gray1000,
     textAlignVertical: "top",
   },
@@ -143,7 +163,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 5,
+    marginTop: 2,
     paddingHorizontal: 2,
   },
   counterRow: {

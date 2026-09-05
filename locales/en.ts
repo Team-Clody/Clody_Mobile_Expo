@@ -268,7 +268,9 @@ export default {
     entryLengthError: 'Please enter between %{min} and %{max} characters.',
     more: 'More options',
     add: 'Add',
-    adTooltip: 'Watch an ad to add a diary slot',
+    adTooltipPrefix: 'Watch an ad to add ',
+    adTooltipHighlight: '2 diary slots',
+    adTooltipSuffix: '',
     delete: 'Delete',
     sendPopup: {
       title: 'Send your diary to Rody?',

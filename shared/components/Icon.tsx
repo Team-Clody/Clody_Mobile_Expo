@@ -27,6 +27,7 @@ import IcProfile from "@/assets/icons/ic_profile.svg";
 import IcPlus from "@/assets/icons/ic_plus.svg";
 import IcStars from "@/assets/icons/ic_stars.svg";
 import IcSuccess from "@/assets/icons/ic_success.svg";
+import IcTrash from "@/assets/icons/ic_trash.svg";
 import IcWarning from "@/assets/icons/ic_warning.svg";
 
 export const Icon = {
@@ -50,6 +51,7 @@ export const Icon = {
   IcCheckGray,
   IcCheckGreen,
   IcSuccess,
+  IcTrash,
   IcWarning,
   IcStars,
   IcCloverFull,

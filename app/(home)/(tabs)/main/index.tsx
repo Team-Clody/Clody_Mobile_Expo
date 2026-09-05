@@ -70,6 +70,8 @@ export default function Main() {
   const fastReplyRewardAd = useAdMobRewarded("fastReplyReward");
   const shouldReopenReward = useStorageStore((s) => s.shouldReopenReward);
   const setShouldReopenReward = useStorageStore((s) => s.setShouldReopenReward);
+  const pendingToast = useStorageStore((s) => s.pendingToast);
+  const setPendingToast = useStorageStore((s) => s.setPendingToast);
 
   useFocusEffect(
     useCallback(() => {
@@ -100,6 +102,16 @@ export default function Main() {
     message: string;
     variant: "success" | "warning";
   } | null>(null);
+
+  // 다른 화면(일기 작성 등)에서 예약해둔 토스트를 홈 도착 후에 노출
+  useFocusEffect(
+    useCallback(() => {
+      if (!pendingToast) return;
+      setToast(pendingToast);
+      setPendingToast(null);
+    }, [pendingToast, setPendingToast]),
+  );
+
   const [isStartingFastReplyAd, setIsStartingFastReplyAd] = useState(false);
 
   const currentYear = calendarDate.getFullYear();

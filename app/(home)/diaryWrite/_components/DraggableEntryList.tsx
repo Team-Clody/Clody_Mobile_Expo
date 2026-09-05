@@ -180,7 +180,7 @@ function DraggableRow({
 
 type DraggableEntryListProps = {
   ids: string[];
-  renderEntry: (index: number) => ReactNode;
+  renderEntry: (index: number, isDragging: boolean) => ReactNode;
   onMove: (from: number, to: number) => void;
   onDragStateChange: (dragging: boolean) => void;
 };
@@ -230,7 +230,7 @@ export function DraggableEntryList({
           onDragChange={handleDragChange}
           onLayoutHeight={updateHeight}
         >
-          {renderEntry(index)}
+          {renderEntry(index, draggingId === id)}
         </DraggableRow>
       ))}
     </>
