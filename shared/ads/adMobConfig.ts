@@ -3,7 +3,10 @@ import { Platform } from "react-native";
 
 declare const __DEV__: boolean;
 
-export const ADMOB_APP_ID = "ca-app-pub-6721111543239153~7854886391";
+export const ADMOB_APP_IDS = {
+  android: "ca-app-pub-6721111543239153~1390622228",
+  ios: "ca-app-pub-6721111543239153~7854886391",
+} as const;
 
 export const ADMOB_PLACEMENTS = {
   extraDiaryInterstitial: "extraDiaryInterstitial",
@@ -17,8 +20,8 @@ const PRODUCTION_AD_UNIT_IDS: Record<
   Record<AdMobPlacement, string>
 > = {
   android: {
-    extraDiaryInterstitial: "ca-app-pub-6721111543239153/7712010610",
-    fastReplyReward: "ca-app-pub-6721111543239153/8020745222",
+    extraDiaryInterstitial: "ca-app-pub-6721111543239153/3217131759",
+    fastReplyReward: "ca-app-pub-6721111543239153/9525398583",
   },
   ios: {
     extraDiaryInterstitial: "ca-app-pub-6721111543239153/7712010610",

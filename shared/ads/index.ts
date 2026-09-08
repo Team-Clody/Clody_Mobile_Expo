@@ -1,5 +1,5 @@
 export {
-  ADMOB_APP_ID,
+  ADMOB_APP_IDS,
   ADMOB_PLACEMENTS,
   getAdMobUnitId,
   shouldUseAdMobTestIds,
