@@ -1,4 +1,5 @@
 import { useFocusEffect, useRouter } from "expo-router";
+import { isAxiosError } from "axios";
 import {
   useCallback,
   useContext,
@@ -19,8 +20,8 @@ import TodayIconKo from "@/assets/icons/weekday-item_ko.svg";
 import TodayIconEn from "@/assets/icons/weekday-item_en.svg";
 import {
   ReplyAPI,
+  getSupportedReplyLanguage,
   type ReplyAdRequest,
-  type SupportedReplyLanguage,
 } from "@/api/replyAPI";
 import CloverRewardBottomSheet from "@/components/CloverRewardBottomSheet";
 import i18n from "@/app/i18n/i18n";
@@ -84,6 +85,8 @@ export default function Main() {
   const pendingPickedDateRef = useRef<Date | null>(null);
   const pendingFastReplyDateKeyRef = useRef<string | null>(null);
   const pendingFastReplyRequestRef = useRef<ReplyAdRequest | null>(null);
+  const queuedFastReplyDateKeyRef = useRef<string | null>(null);
+  const queuedFastReplyRequestRef = useRef<ReplyAdRequest | null>(null);
   const today = useMemo(() => new Date(), []);
 
   const [calendarDate, setCalendarDate] = useState(today);
@@ -101,6 +104,8 @@ export default function Main() {
     variant: "success" | "warning";
   } | null>(null);
   const [isStartingFastReplyAd, setIsStartingFastReplyAd] = useState(false);
+  const [isWaitingForFastReplyAdLoad, setIsWaitingForFastReplyAdLoad] =
+    useState(false);
 
   const currentYear = calendarDate.getFullYear();
   const currentMonth = calendarDate.getMonth() + 1;
@@ -130,7 +135,7 @@ export default function Main() {
   const datePickerTranslateY = useRef(new Animated.Value(420)).current;
 
   const isKo = i18n.locale?.startsWith("ko");
-  const supportedLanguage: SupportedReplyLanguage = isKo ? "KO" : "EN";
+  const supportedLanguage = getSupportedReplyLanguage();
   const TodayIcon = isKo ? TodayIconKo : TodayIconEn;
   const weekDays = isKo ? WEEK_DAYS_KO : WEEK_DAYS_EN;
   const headerActionTextStyle = localeTextStyle("headerAction", !!isKo, {
@@ -192,10 +197,19 @@ export default function Main() {
       }
       const key = formatDateKey(date);
       const fromApi = replyStatusByDate[key];
+      const readyAt = replyReadyAtByDate[key];
+      if (
+        fromApi === "UNREADY" &&
+        readyAt != null &&
+        readyAt > 0 &&
+        readyAt <= nowTickMs
+      ) {
+        return "READY_NOT_READ";
+      }
       if (fromApi) return fromApi;
       return diaryCount > 0 ? "UNREADY" : "READY_READ";
     },
-    [gratitudeDate, replyStatusByDate],
+    [gratitudeDate, nowTickMs, replyReadyAtByDate, replyStatusByDate],
   );
 
   const selectedReplyStatus = useMemo(
@@ -273,6 +287,18 @@ export default function Main() {
     });
   }, [fastReplyRewardAd.error]);
 
+  useEffect(() => {
+    if (!fastReplyRewardAd.error || !queuedFastReplyRequestRef.current) return;
+
+    queuedFastReplyDateKeyRef.current = null;
+    queuedFastReplyRequestRef.current = null;
+    setIsWaitingForFastReplyAdLoad(false);
+    setToast({
+      message: i18n.t("ads.unavailable"),
+      variant: "warning",
+    });
+  }, [fastReplyRewardAd.error]);
+
   const replyRemainingMs =
     selectedReplyReadyAtMs != null
       ? Math.max(0, selectedReplyReadyAtMs - nowTickMs)
@@ -318,10 +344,12 @@ export default function Main() {
   const weekStripExtraData = useMemo(
     () => ({
       diaryCountByDate,
+      nowTickMs,
+      replyReadyAtByDate,
       replyStatusByDate,
       gratitudeKey: formatDateKey(gratitudeDate),
     }),
-    [diaryCountByDate, replyStatusByDate, gratitudeDate],
+    [diaryCountByDate, gratitudeDate, nowTickMs, replyReadyAtByDate, replyStatusByDate],
   );
 
   const scrollWeekStripToDate = (picked: Date, animated = true) => {
@@ -524,43 +552,106 @@ export default function Main() {
     }
   };
 
-  const handlePressFastReplyAd = async () => {
-    if (!isUnready || fastReplyRewardAd.isShowing || isStartingFastReplyAd) return;
+  const startFastReplyAdFlow = useCallback(
+    async (request: ReplyAdRequest, dateKey: string) => {
+      if (fastReplyRewardAd.isShowing || isStartingFastReplyAd) return;
 
-    if (!fastReplyRewardAd.isLoaded) {
-      fastReplyRewardAd.load();
+      setIsStartingFastReplyAd(true);
+      try {
+        await ReplyAPI.startAdViewing(request);
+      } catch (error) {
+        console.warn("[main] fast reply ad start failed", {
+          request,
+          status: isAxiosError(error) ? error.response?.status : undefined,
+          data: isAxiosError(error) ? error.response?.data : undefined,
+          message: error instanceof Error ? error.message : String(error),
+        });
+        setToast({
+          message: i18n.t("ads.unavailable"),
+          variant: "warning",
+        });
+        return;
+      } finally {
+        setIsStartingFastReplyAd(false);
+      }
+
+      pendingFastReplyDateKeyRef.current = dateKey;
+      pendingFastReplyRequestRef.current = request;
+      const didShowAd = fastReplyRewardAd.showAd();
+      if (didShowAd) return;
+
+      pendingFastReplyDateKeyRef.current = null;
+      pendingFastReplyRequestRef.current = null;
+      setToast({
+        message: i18n.t(fastReplyRewardAd.error ? "ads.unavailable" : "ads.notReady"),
+        variant: "warning",
+      });
+    },
+    [fastReplyRewardAd, isStartingFastReplyAd],
+  );
+
+  useEffect(() => {
+    if (!isWaitingForFastReplyAdLoad || !fastReplyRewardAd.isLoaded) return;
+
+    const queuedDateKey = queuedFastReplyDateKeyRef.current;
+    const queuedRequest = queuedFastReplyRequestRef.current;
+    queuedFastReplyDateKeyRef.current = null;
+    queuedFastReplyRequestRef.current = null;
+    setIsWaitingForFastReplyAdLoad(false);
+
+    if (!queuedDateKey || !queuedRequest) return;
+    if (queuedDateKey !== selectedDateKey || !isUnready) return;
+    void startFastReplyAdFlow(queuedRequest, queuedDateKey);
+  }, [
+    fastReplyRewardAd.isLoaded,
+    isUnready,
+    isWaitingForFastReplyAdLoad,
+    selectedDateKey,
+    startFastReplyAdFlow,
+  ]);
+
+  useEffect(() => {
+    if (!isWaitingForFastReplyAdLoad) return;
+
+    const timeoutId = setTimeout(() => {
+      if (!queuedFastReplyRequestRef.current) return;
+      console.warn("[main] fast reply ad load timeout", {
+        unitId: fastReplyRewardAd.unitId,
+      });
+      queuedFastReplyDateKeyRef.current = null;
+      queuedFastReplyRequestRef.current = null;
+      setIsWaitingForFastReplyAdLoad(false);
       setToast({
         message: i18n.t("ads.notReady"),
         variant: "warning",
       });
+    }, 15_000);
+
+    return () => clearTimeout(timeoutId);
+  }, [fastReplyRewardAd.unitId, isWaitingForFastReplyAdLoad]);
+
+  const handlePressFastReplyAd = async () => {
+    if (
+      !isUnready ||
+      fastReplyRewardAd.isShowing ||
+      isStartingFastReplyAd ||
+      isWaitingForFastReplyAdLoad
+    ) {
       return;
     }
 
-    setIsStartingFastReplyAd(true);
-    try {
-      await ReplyAPI.startAdViewing(selectedReplyAdRequest);
-    } catch (error) {
-      console.warn("[main] fast reply ad start failed", error);
-      setToast({
-        message: i18n.t("ads.unavailable"),
-        variant: "warning",
+    if (!fastReplyRewardAd.isLoaded) {
+      queuedFastReplyDateKeyRef.current = selectedDateKey;
+      queuedFastReplyRequestRef.current = selectedReplyAdRequest;
+      setIsWaitingForFastReplyAdLoad(true);
+      console.log("[main] fast reply ad loading", {
+        unitId: fastReplyRewardAd.unitId,
       });
+      fastReplyRewardAd.load();
       return;
-    } finally {
-      setIsStartingFastReplyAd(false);
     }
 
-    pendingFastReplyDateKeyRef.current = selectedDateKey;
-    pendingFastReplyRequestRef.current = selectedReplyAdRequest;
-    const didShowAd = fastReplyRewardAd.showAd();
-    if (didShowAd) return;
-
-    pendingFastReplyDateKeyRef.current = null;
-    pendingFastReplyRequestRef.current = null;
-    setToast({
-      message: i18n.t("ads.notReady"),
-      variant: "warning",
-    });
+    await startFastReplyAdFlow(selectedReplyAdRequest, selectedDateKey);
   };
 
   const datePickerLayer = (
@@ -647,6 +738,11 @@ export default function Main() {
           actionLabel={actionLabel}
           actionTextColor={actionTextColor}
           useGreenActionChevron={useGreenActionChevron}
+          isFastReplyAdDisabled={
+            fastReplyRewardAd.isShowing ||
+            isStartingFastReplyAd ||
+            isWaitingForFastReplyAdLoad
+          }
           onPressFastReplyAd={handlePressFastReplyAd}
           onPressAction={() => {
             if (showWriteEntry && !isWritableSelected) return;

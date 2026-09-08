@@ -41,6 +41,7 @@ export enum HeaderType {
   REFRESH_TOKEN = 'REFRESH_TOKEN',
   POST_DIARY = 'POST_DIARY',
   TIME_ZONE = 'TIME_ZONE',
+  TIME_ZONE_LANGUAGE = 'TIME_ZONE_LANGUAGE',
 }
 
 export const APIConstants = {
@@ -141,6 +142,19 @@ export const getHeaders = async (
       };
     }
 
+    case HeaderType.TIME_ZONE_LANGUAGE: {
+      const accessToken = await tokenStorage.getAccessToken();
+      if (!accessToken) {
+        throw new Error('accessToken이 없습니다.');
+      }
+      return {
+        [contentType]: applicationJSON,
+        [auth]: Bearer + accessToken,
+        [timeZone]: timeZoneCode,
+        [acceptLanguage]: localeCode,
+      };
+    }
+
     default:
       return {
         [contentType]: applicationJSON,
@@ -178,7 +192,7 @@ const refreshAccessToken = async (): Promise<string> => {
       refreshPromise = null;
 
       return accessToken;
-    } catch (error) {
+    } catch {
       isRefreshing = false;
       refreshPromise = null;
 
