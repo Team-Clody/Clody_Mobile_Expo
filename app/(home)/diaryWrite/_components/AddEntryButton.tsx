@@ -39,7 +39,7 @@ export function AddEntryButton({
       style={[styles.pill, { backgroundColor }, style]}
     >
       <View style={styles.pillContent}>
-        <Icon.IcPlus width={16} height={16} />
+        <Icon.IcPlus width={10} height={10} />
         <Typo.Body variant="body3" color="white">
           {i18n.t("diaryWrite.add")}
         </Typo.Body>

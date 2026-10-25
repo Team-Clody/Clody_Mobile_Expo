@@ -1,23 +1,23 @@
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Pressable,
-  Modal,
-  Alert,
-} from "react-native";
-import { useCallback, useContext, useEffect, useState } from "react";
-import { HomeContext } from "./_layout";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useContext, useEffect, useState } from "react";
+import {
+  Alert,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { HomeContext } from "./_layout";
 
-import { Icon } from "@/shared/components/Icon";
-import BottomToast from "@/components/BottomToast";
 import { AuthAPI } from "@/api/authAPI";
 import i18n from "@/app/i18n/i18n";
-import { useApp } from "@/store/useAppStore";
+import BottomToast from "@/components/BottomToast";
+import { Icon } from "@/shared/components/Icon";
 import { tokenStorage } from "@/shared/storage/tokenStorage";
 import { typography } from "@/shared/theme/typography";
+import { useApp } from "@/store/useAppStore";
 
 export default function Profile() {
   const context = useContext(HomeContext);
@@ -319,6 +319,7 @@ const styles = StyleSheet.create({
   },
 
   actionRow: {
+    paddingTop: 29,
     height: 48,
     justifyContent: "center",
     paddingHorizontal: 15,
@@ -332,91 +333,91 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
     justifyContent: "center",
     alignItems: "center",
   },
 
   modalBox: {
-    width: "80%",
+    marginHorizontal: 24,
+    alignSelf: "stretch",
     backgroundColor: "white",
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
   },
 
   modalDisplayTitle: {
     ...typography.display3,
+    marginTop: 18,
     textAlign: "center",
     color: "#1B1C20",
   },
 
   modalDesc: {
-    marginTop: 8,
-    fontSize: 14,
+    ...typography.caption1,
+    marginTop: 10,
     color: "#666",
     textAlign: "center",
   },
 
   modalActionButtons: {
     flexDirection: "row",
-    marginTop: 20,
+    width: "100%",
+    padding: 18,
     gap: 10,
-    justifyContent: "center",
-    alignItems: "center",
   },
 
   cancelBtn: {
-    width: 139,
-    height: 42,
+    flex: 1,
     borderRadius: 8,
+    paddingVertical: 11,
     backgroundColor: "#E5E7EB",
     alignItems: "center",
     justifyContent: "center",
   },
 
   logoutBtn: {
-    width: 139,
-    height: 42,
+    flex: 1,
     borderRadius: 8,
+    paddingVertical: 11,
     backgroundColor: "#111827",
     alignItems: "center",
     justifyContent: "center",
   },
 
   cancelText: {
+    ...typography.body3,
     color: "#374151",
-    fontWeight: "500",
   },
 
   logoutText: {
+    ...typography.body3,
     color: "white",
-    fontWeight: "600",
   },
   withdrawCancelBtn: {
-    width: 139,
-    height: 42,
+    flex: 1,
     borderRadius: 8,
+    paddingVertical: 11,
     backgroundColor: "#EF4444",
     alignItems: "center",
     justifyContent: "center",
   },
 
   withdrawCancelText: {
+    ...typography.body3,
     color: "white",
-    fontWeight: "600",
   },
 
   withdrawBtn: {
-    width: 139,
-    height: 42,
+    flex: 1,
     borderRadius: 8,
+    paddingVertical: 11,
     backgroundColor: "#E5E7EB",
     alignItems: "center",
     justifyContent: "center",
   },
 
   withdrawText: {
+    ...typography.body3,
     color: "#6B7280",
-    fontWeight: "600",
   },
 });

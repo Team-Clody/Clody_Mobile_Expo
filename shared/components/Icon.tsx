@@ -5,6 +5,7 @@ import IcCalendarOff from "@/assets/icons/ic_calendar_off.svg";
 import IcCalendarOn from "@/assets/icons/ic_calendar_on.svg";
 import IcCheckGray from "@/assets/icons/ic_check_gray.svg";
 import IcCheckGreen from "@/assets/icons/ic_check_green.svg";
+import IcClover from "@/assets/icons/ic_clover.svg";
 import IcCloverFull from "@/assets/icons/ic_clover_full.svg";
 import IcCloverIng from "@/assets/icons/ic_clover_ing.svg";
 import IcCloverLow from "@/assets/icons/ic_clover_low.svg";
@@ -54,6 +55,7 @@ export const Icon = {
   IcTrash,
   IcWarning,
   IcStars,
+  IcClover,
   IcCloverFull,
   IcCloverIng,
   IcCloverLow,
