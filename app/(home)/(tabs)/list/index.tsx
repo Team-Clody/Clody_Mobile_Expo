@@ -1,12 +1,16 @@
+import { DiaryAPI } from "@/api/diaryAPI";
 import type { DiaryItem } from "@/api/dto/list/response/getCalendarListResponseDTO";
 import { ListAPI } from "@/api/listAPI";
+import i18n from "@/app/i18n/i18n";
 import { DiaryList } from "@/components/list/DiaryList";
+import { DeleteActionSheet } from "@/shared/components/DeleteActionSheet";
 import { Icon } from "@/shared/components/Icon";
 import {
   MonthPickerBottomSheet,
   type MonthPickerValue,
 } from "@/shared/components/MonthPickerBottomSheet";
 import { HStack } from "@/shared/components/stack/HStack";
+import { Toast } from "@/shared/components/Toast";
 import { Typo } from "@/shared/components/typo/Typo";
 import { useJournalPrompt } from "@/shared/hooks/useJournalPrompt";
 import { palette } from "@/shared/theme/palette";
@@ -34,6 +38,9 @@ export default function ListScreen() {
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
   const [isMonthPickerVisible, setIsMonthPickerVisible] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteTargetDate, setDeleteTargetDate] = useState<string | null>(null);
+  const [isDeleteErrorVisible, setIsDeleteErrorVisible] = useState(false);
   const [diaries, setDiaries] = useState<DiaryItem[]>([]);
   const [prompt, setPrompt] = useState("");
   useJournalPrompt(today, setPrompt);
@@ -81,6 +88,24 @@ export default function ListScreen() {
     router.push({ pathname: "/(home)/reply/[date]" as never, params: { date } });
   };
 
+  const handleDeleteDiary = async () => {
+    if (!deleteTargetDate || isDeleting) return;
+
+    const [year, month, date] = deleteTargetDate.split("-").map(Number);
+    setIsDeleting(true);
+    try {
+      await DiaryAPI.deleteDiary(year, month, date);
+      setDeleteTargetDate(null);
+      await fetchCalendarList(selectedYear, selectedMonth);
+    } catch (error) {
+      console.warn("[list] diary delete failed", error);
+      setDeleteTargetDate(null);
+      setIsDeleteErrorVisible(true);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
@@ -110,6 +135,7 @@ export default function ListScreen() {
         onRefresh={handleRefresh}
         onPressWrite={handlePressWrite}
         onPressReply={handlePressReply}
+        onPressMore={setDeleteTargetDate}
       />
 
       <MonthPickerBottomSheet
@@ -117,6 +143,18 @@ export default function ListScreen() {
         initialValue={{ year: selectedYear, month: selectedMonth }}
         onConfirm={handleMonthConfirm}
         onClose={() => setIsMonthPickerVisible(false)}
+      />
+      <DeleteActionSheet
+        visible={deleteTargetDate !== null}
+        disabled={isDeleting}
+        onDelete={() => void handleDeleteDiary()}
+        onClose={() => setDeleteTargetDate(null)}
+      />
+      <Toast
+        message={i18n.t("list.deleteError")}
+        visible={isDeleteErrorVisible}
+        variant="warning"
+        onHide={() => setIsDeleteErrorVisible(false)}
       />
     </View>
   );

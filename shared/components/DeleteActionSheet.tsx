@@ -1,25 +1,32 @@
-import { Modal, Pressable, StyleSheet, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import i18n from "@/app/i18n/i18n";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Typo } from "@/shared/components/typo/Typo";
 import { palette } from "@/shared/theme/palette";
+import { Ionicons } from "@expo/vector-icons";
+import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Typo } from "./typo/Typo";
 
-type DeleteEntrySheetProps = {
+type DeleteActionSheetProps = {
   visible: boolean;
   onDelete: () => void;
   onClose: () => void;
+  disabled?: boolean;
 };
 
-export function DeleteEntrySheet({
+export function DeleteActionSheet({
   visible,
   onDelete,
   onClose,
-}: DeleteEntrySheetProps) {
+  disabled = false,
+}: DeleteActionSheetProps) {
   const insets = useSafeAreaInsets();
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}>
@@ -28,7 +35,9 @@ export function DeleteEntrySheet({
             onPress={onDelete}
             accessibilityRole="button"
             accessibilityLabel={i18n.t("diaryWrite.delete")}
-            style={styles.deleteRow}
+            accessibilityState={{ disabled }}
+            disabled={disabled}
+            style={[styles.deleteRow, disabled && styles.disabled]}
           >
             <Ionicons name="trash-outline" size={20} color={palette.gray800} />
             <Typo.Body variant="body8" color="gray800">
@@ -67,5 +76,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     paddingVertical: 16,
+  },
+  disabled: {
+    opacity: 0.5,
   },
 });

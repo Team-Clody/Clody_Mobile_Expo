@@ -53,6 +53,18 @@ export const DiaryAPI = {
     return res.data.data;
   },
 
+  /** 선택한 날짜의 일기와 답장 삭제 */
+  deleteDiary: async (year: number, month: number, date: number) => {
+    const res = await createAPIRequest<unknown>(
+      "delete",
+      "/api/v1/diary",
+      HeaderType.TIME_ZONE,
+      undefined,
+      { params: { year, month, date } },
+    );
+    return res.data.data;
+  },
+
   /** 일기 전송 (빈 칸은 호출 전에 제거해서 넘길 것) */
   postDiary: async (dateKey: string, contents: string[]) => {
     const res = await createAPIRequest<PostDiaryResponse>(
