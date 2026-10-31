@@ -15,8 +15,8 @@ import { Typo } from "@/shared/components/typo/Typo";
 import { useJournalPrompt } from "@/shared/hooks/useJournalPrompt";
 import { palette } from "@/shared/theme/palette";
 import { isKoreanLocale } from "@/shared/utils/locale";
-import { useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 function formatMonthTitle(year: number, month: number, isKo: boolean) {
@@ -42,6 +42,7 @@ export default function ListScreen() {
   const [deleteTargetDate, setDeleteTargetDate] = useState<string | null>(null);
   const [isDeleteErrorVisible, setIsDeleteErrorVisible] = useState(false);
   const [diaries, setDiaries] = useState<DiaryItem[]>([]);
+  const [hasTodayDiary, setHasTodayDiary] = useState(false);
   const [prompt, setPrompt] = useState("");
   useJournalPrompt(today, setPrompt);
 
@@ -51,6 +52,7 @@ export default function ListScreen() {
       const data = await ListAPI.getCalendarList(year, month);
       if (requestId === requestIdRef.current) {
         setDiaries(data.diaries ?? []);
+        setHasTodayDiary(data.hasTodayDiary ?? false);
       }
     } catch (error) {
       if (requestId === requestIdRef.current) setDiaries([]);
@@ -58,9 +60,11 @@ export default function ListScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    void fetchCalendarList(selectedYear, selectedMonth);
-  }, [fetchCalendarList, selectedMonth, selectedYear]);
+  useFocusEffect(
+    useCallback(() => {
+      void fetchCalendarList(selectedYear, selectedMonth);
+    }, [fetchCalendarList, selectedMonth, selectedYear]),
+  );
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -130,6 +134,7 @@ export default function ListScreen() {
 
       <DiaryList
         diaries={diaries}
+        hasTodayDiary={hasTodayDiary}
         prompt={prompt}
         refreshing={isRefreshing}
         onRefresh={handleRefresh}
