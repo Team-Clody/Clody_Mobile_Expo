@@ -10,6 +10,7 @@ import BackIcon from "@/assets/icons/ic_back.svg";
 import ChevronIcon from "@/assets/icons/ic_chevron_green.svg";
 import LodyHead from "@/assets/images/lody_head.svg";
 import { useAdMobRewarded } from "@/shared/ads";
+import { DeleteActionSheet } from "@/shared/components/DeleteActionSheet";
 import { Toast } from "@/shared/components/Toast";
 import { palette } from "@/shared/theme/palette";
 import { typography } from "@/shared/theme/typography";
@@ -100,14 +101,28 @@ function ReplyHeader({
   );
 }
 
-function MyDiary({ diary }: { diary: GetDiaryResponseDTO | null }) {
+function MyDiary({
+  diary,
+  onPressMore,
+}: {
+  diary: GetDiaryResponseDTO | null;
+  onPressMore: () => void;
+}) {
   const entries = diary?.diaries ?? [];
   return (
     <ScrollView contentContainerStyle={styles.diaryList} showsVerticalScrollIndicator={false}>
       {entries.map((entry, index) => (
         <View key={`${index}-${entry.content}`} style={styles.diaryItem}>
           <Text style={styles.diaryText}>{`${index + 1}. ${entry.content}`}</Text>
-          <Text accessibilityLabel={i18n.t("reply.diaryMore")} style={styles.moreIcon}>⋮</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={i18n.t("reply.diaryMore")}
+            hitSlop={8}
+            onPress={onPressMore}
+            style={styles.moreButton}
+          >
+            <Text style={styles.moreIcon}>⋮</Text>
+          </Pressable>
         </View>
       ))}
       {entries.length === 0 && <Text style={styles.emptyDiary}>{i18n.t("reply.emptyDiary")}</Text>}
@@ -223,6 +238,8 @@ export default function ReplyScreen() {
   const [loading, setLoading] = useState(true);
   const [opened, setOpened] = useState(false);
   const [showReward, setShowReward] = useState(false);
+  const [isDeleteSheetVisible, setIsDeleteSheetVisible] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
     variant: "success" | "warning";
@@ -380,6 +397,30 @@ export default function ReplyScreen() {
     if (!loadedReply.isRead) setShowReward(true);
   };
 
+  const handleDeleteDiary = async () => {
+    if (!targetDate || isDeleting) return;
+
+    setIsDeleting(true);
+    try {
+      await DiaryAPI.deleteDiary(
+        targetDate.year,
+        targetDate.month,
+        targetDate.day,
+      );
+      setIsDeleteSheetVisible(false);
+      router.back();
+    } catch (error) {
+      console.warn("[reply] diary delete failed", error);
+      setIsDeleteSheetVisible(false);
+      setToast({
+        message: i18n.t("reply.toast.genericError"),
+        variant: "warning",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handlePressAd = async () => {
     if (!replyAdRequest || fastReplyRewardAd.isShowing || isStartingFastReplyAd) {
       return;
@@ -438,7 +479,10 @@ export default function ReplyScreen() {
         onPageSelected={({ nativeEvent }) => setActiveTab(nativeEvent.position === 0 ? "diary" : "reply")}
       >
         <View key="diary" style={styles.page}>
-          <MyDiary diary={diary} />
+          <MyDiary
+            diary={diary}
+            onPressMore={() => setIsDeleteSheetVisible(true)}
+          />
         </View>
         <View key="reply" style={styles.page}>
           {phase === "waiting" ? (
@@ -455,6 +499,12 @@ export default function ReplyScreen() {
         </View>
       </PagerView>
       <CloverRewardModal visible={showReward} onConfirm={() => setShowReward(false)} />
+      <DeleteActionSheet
+        visible={isDeleteSheetVisible}
+        disabled={isDeleting}
+        onDelete={() => void handleDeleteDiary()}
+        onClose={() => setIsDeleteSheetVisible(false)}
+      />
       <Toast
         message={toast?.message ?? ""}
         visible={toast !== null}
@@ -482,6 +532,7 @@ const styles = StyleSheet.create({
   diaryList: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 28, gap: 12 },
   diaryItem: { minHeight: 50, borderWidth: 1, borderColor: palette.gray100, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 12, flexDirection: "row", alignItems: "center" },
   diaryText: { ...typography.body4, color: palette.gray1000, flex: 1, lineHeight: 18 },
+  moreButton: { width: 24, alignItems: "center", justifyContent: "center" },
   moreIcon: { ...typography.body3, color: palette.gray400, width: 24, textAlign: "center" },
   emptyDiary: { ...typography.body3, color: palette.gray400, textAlign: "center", marginTop: 48 },
   imagePlaceholder: { backgroundColor: palette.gray200 },

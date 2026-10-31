@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import * as SecureStore from "expo-secure-store";
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
 import { logCalendarDiaryQuery } from "@/shared/utils/debugCalendarDiaries";
 import { getDeviceTimeZone } from "@/shared/utils/timezone";
 import authService from "@/services/authService";
@@ -9,6 +9,21 @@ import {
   buildDiaryCountMap,
   buildReplyMetaMaps,
 } from "../_utils/calendarDataUtils";
+
+function replaceMonthEntries<T>(
+  current: Record<string, T>,
+  next: Record<string, T>,
+  year: number,
+  month: number,
+) {
+  const monthPrefix = `${year}-${String(month).padStart(2, "0")}-`;
+  return {
+    ...Object.fromEntries(
+      Object.entries(current).filter(([key]) => !key.startsWith(monthPrefix)),
+    ),
+    ...next,
+  };
+}
 
 export function useMainCalendarData(
   currentYear: number,
@@ -23,6 +38,7 @@ export function useMainCalendarData(
     React.SetStateAction<Record<string, number>>
   >,
   setTotalCloverCount: React.Dispatch<React.SetStateAction<number>>,
+  refreshKey = 0,
 ) {
   const fetchedMonthKeysRef = useRef<Set<string>>(new Set());
   const fetchingMonthKeysRef = useRef<Set<string>>(new Set());
@@ -46,13 +62,21 @@ export function useMainCalendarData(
       const mergeMonthDiaryCount = (
         diaries: CalendarDiary[],
         totalClover: number,
+        year: number,
+        month: number,
       ) => {
         const diaryCountMap = buildDiaryCountMap(diaries);
         const { replyStatusByDate: rs, replyReadyAtByDate: rr } =
           buildReplyMetaMaps(diaries);
-        setDiaryCountByDate((prev) => ({ ...prev, ...diaryCountMap }));
-        setReplyStatusByDate((prev) => ({ ...prev, ...rs }));
-        setReplyReadyAtByDate((prev) => ({ ...prev, ...rr }));
+        setDiaryCountByDate((prev) =>
+          replaceMonthEntries(prev, diaryCountMap, year, month),
+        );
+        setReplyStatusByDate((prev) =>
+          replaceMonthEntries(prev, rs, year, month),
+        );
+        setReplyReadyAtByDate((prev) =>
+          replaceMonthEntries(prev, rr, year, month),
+        );
         setTotalCloverCount(totalClover);
       };
 
@@ -75,7 +99,7 @@ export function useMainCalendarData(
           logCalendarDiaryQuery("Main.fetchMonth", year, month, resp.data?.data);
           const diaries = (resp.data?.data?.diaries ?? []) as CalendarDiary[];
           const totalClover = Number(resp.data?.data?.totalCloverCount ?? 0);
-          mergeMonthDiaryCount(diaries, totalClover);
+          mergeMonthDiaryCount(diaries, totalClover, year, month);
           fetchedMonthKeysRef.current.add(monthKey);
         } finally {
           fetchingMonthKeysRef.current.delete(monthKey);
@@ -88,6 +112,8 @@ export function useMainCalendarData(
       };
 
       try {
+        const currentMonthKey = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
+        fetchedMonthKeysRef.current.delete(currentMonthKey);
         const accessToken = await SecureStore.getItemAsync("accessToken");
         if (!accessToken) {
           console.warn("[TEST] accessToken is missing");
@@ -100,7 +126,7 @@ export function useMainCalendarData(
         void fetchMonth(accessToken, prevMonth.year, prevMonth.month);
         void fetchMonth(accessToken, nextMonth.year, nextMonth.month);
       } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
+        if (isAxiosError(error) && error.response?.status === 401) {
           try {
             const refreshToken = await SecureStore.getItemAsync("refreshToken");
             const reissued =
@@ -132,5 +158,6 @@ export function useMainCalendarData(
     setReplyStatusByDate,
     setReplyReadyAtByDate,
     setTotalCloverCount,
+    refreshKey,
   ]);
 }
