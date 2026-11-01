@@ -145,6 +145,7 @@ function DiarySection({
 
 interface DiaryListProps {
   diaries: DiaryItem[];
+  hasTodayDiary?: boolean;
   prompt?: string;
   refreshing?: boolean;
   onRefresh?: () => void;
@@ -155,6 +156,7 @@ interface DiaryListProps {
 
 export function DiaryList({
   diaries,
+  hasTodayDiary = false,
   prompt,
   refreshing = false,
   onRefresh,
@@ -182,9 +184,11 @@ export function DiaryList({
       )}
       ItemSeparatorComponent={() => <View style={styles.divider} />}
       ListHeaderComponent={
-        <PromptHeader prompt={prompt} onPressWrite={onPressWrite} />
+        hasTodayDiary ? null : (
+          <PromptHeader prompt={prompt} onPressWrite={onPressWrite} />
+        )
       }
-      ListHeaderComponentStyle={styles.listHeader}
+      ListHeaderComponentStyle={hasTodayDiary ? undefined : styles.listHeader}
       refreshControl={
         onRefresh ? (
           <RefreshControl

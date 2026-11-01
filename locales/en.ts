@@ -47,6 +47,7 @@ export default {
     writeToday: "Write Today's Entry",
     reply: 'Reply',
     more: 'More',
+    deleteError: "Couldn't delete the journal. Please try again.",
   },
   main: {
     header: {

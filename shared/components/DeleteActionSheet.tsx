@@ -1,21 +1,23 @@
-import { Modal, Pressable, StyleSheet, View } from "react-native";
 import i18n from "@/app/i18n/i18n";
 import { Icon } from "@/shared/components/Icon";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Typo } from "@/shared/components/typo/Typo";
 import { palette } from "@/shared/theme/palette";
+import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Typo } from "./typo/Typo";
 
-type DeleteEntrySheetProps = {
+type DeleteActionSheetProps = {
   visible: boolean;
   onDelete: () => void;
   onClose: () => void;
+  disabled?: boolean;
 };
 
-export function DeleteEntrySheet({
+export function DeleteActionSheet({
   visible,
   onDelete,
   onClose,
-}: DeleteEntrySheetProps) {
+  disabled = false,
+}: DeleteActionSheetProps) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -23,6 +25,7 @@ export function DeleteEntrySheet({
       visible={visible}
       transparent
       animationType="fade"
+      onRequestClose={onClose}
       // 안드로이드 모달 창은 기본적으로 시스템 바 안쪽에서 끝나 insets.bottom이 이중으로 더해짐
       statusBarTranslucent
       navigationBarTranslucent
@@ -35,7 +38,9 @@ export function DeleteEntrySheet({
             onPress={onDelete}
             accessibilityRole="button"
             accessibilityLabel={i18n.t("diaryWrite.delete")}
-            style={styles.deleteRow}
+            accessibilityState={{ disabled }}
+            disabled={disabled}
+            style={[styles.deleteRow, disabled && styles.disabled]}
           >
             <Icon.IcTrash width={34} height={34} />
             <Typo.Body variant="body8" color="gray800">
@@ -74,5 +79,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     paddingVertical: 16,
+  },
+  disabled: {
+    opacity: 0.5,
   },
 });

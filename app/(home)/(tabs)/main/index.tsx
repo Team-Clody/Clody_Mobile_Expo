@@ -68,6 +68,8 @@ export default function Main() {
   const { isLoggedIn, authReady } = useApp();
 
   const [showReward, setShowReward] = useState(false);
+  const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
+  const hasFocusedOnceRef = useRef(false);
   const fastReplyRewardAd = useAdMobRewarded("fastReplyReward");
   const shouldReopenReward = useStorageStore((s) => s.shouldReopenReward);
   const setShouldReopenReward = useStorageStore((s) => s.setShouldReopenReward);
@@ -76,6 +78,11 @@ export default function Main() {
 
   useFocusEffect(
     useCallback(() => {
+      if (hasFocusedOnceRef.current) {
+        setCalendarRefreshKey((key) => key + 1);
+      } else {
+        hasFocusedOnceRef.current = true;
+      }
       if (shouldReopenReward) {
         setShowReward(true);
         setShouldReopenReward(false);
@@ -133,6 +140,7 @@ export default function Main() {
     setReplyStatusByDate,
     setReplyReadyAtByDate,
     setTotalCloverCount,
+    calendarRefreshKey,
   );
   useJournalPrompt(gratitudeDate, setJournalPromptText);
 

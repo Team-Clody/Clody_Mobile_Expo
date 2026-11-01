@@ -46,6 +46,7 @@ export default {
     writeToday: '오늘 일기쓰기',
     reply: '답장확인',
     more: '더보기',
+    deleteError: '일기를 삭제하지 못했어요. 다시 시도해 주세요.',
   },
   main: {
     header: {

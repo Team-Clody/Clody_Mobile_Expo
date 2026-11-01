@@ -1,5 +1,6 @@
 import { DiaryAPI } from "@/api/diaryAPI";
 import i18n from "@/app/i18n/i18n";
+import { DeleteActionSheet } from "@/shared/components/DeleteActionSheet";
 import { Toast } from "@/shared/components/Toast";
 import { useAdMobInterstitial } from "@/shared/ads";
 import { isDiaryWritableDate } from "@/shared/utils/diaryDate";
@@ -23,7 +24,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddEntryButton } from "./_components/AddEntryButton";
 import { AdTooltip } from "./_components/AdTooltip";
 import { ConfirmModal } from "./_components/ConfirmModal";
-import { DeleteEntrySheet } from "./_components/DeleteEntrySheet";
 import { DiaryEntryInput } from "./_components/DiaryEntryInput";
 import { DiaryWriteHeader } from "./_components/DiaryWriteHeader";
 import { DraggableEntryList } from "./_components/DraggableEntryList";
@@ -415,7 +415,7 @@ export default function DiaryWrite() {
         onConfirm={handleSaveDraft}
       />
 
-      <DeleteEntrySheet
+      <DeleteActionSheet
         visible={deleteTargetId !== null}
         onDelete={handleDeleteEntry}
         onClose={() => setDeleteTargetId(null)}

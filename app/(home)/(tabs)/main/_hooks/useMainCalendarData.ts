@@ -41,6 +41,7 @@ export function useMainCalendarData(
     React.SetStateAction<Record<string, number>>
   >,
   setTotalCloverCount: React.Dispatch<React.SetStateAction<number>>,
+  refreshKey = 0,
 ) {
   const fetchedMonthKeysRef = useRef<Set<string>>(new Set());
   const fetchingMonthKeysRef = useRef<Set<string>>(new Set());
@@ -172,8 +173,8 @@ export function useMainCalendarData(
   );
 
   useEffect(() => {
-    void fetchCalendar();
-  }, [fetchCalendar]);
+    void fetchCalendar({ forceCurrentMonth: true });
+  }, [fetchCalendar, refreshKey]);
 
   useFocusEffect(
     useCallback(() => {
