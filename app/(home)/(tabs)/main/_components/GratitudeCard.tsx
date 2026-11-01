@@ -35,6 +35,7 @@ type GratitudeCardProps = {
   actionLabel: string;
   actionTextColor: string;
   useGreenActionChevron: boolean;
+  isFastReplyAdDisabled: boolean;
   onPressFastReplyAd: () => void;
   onPressAction: () => void;
 };
@@ -53,6 +54,7 @@ export function GratitudeCard({
   actionLabel,
   actionTextColor,
   useGreenActionChevron,
+  isFastReplyAdDisabled,
   onPressFastReplyAd,
   onPressAction,
 }: GratitudeCardProps) {
@@ -124,36 +126,41 @@ export function GratitudeCard({
                       (isKo ? DUMMY_JOURNAL_PROMPT_KO : DUMMY_JOURNAL_PROMPT_EN)}
                   </GradientText>
                 </View>
+              </>
+            )}
+            {(isToday || isUnready) && (
+              <View
+                style={{
+                  position: "relative",
+                  marginBottom: 14,
+                  overflow: "visible",
+                }}
+              >
                 <View
                   style={{
-                    position: "relative",
-                    marginBottom: 14,
-                    overflow: "visible",
+                    height: StyleSheet.hairlineWidth,
+                    backgroundColor: "#E5E7EB",
                   }}
-                >
-                  <View
+                />
+                {isUnready && (
+                  <Pressable
+                    disabled={isFastReplyAdDisabled}
+                    onPress={onPressFastReplyAd}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: isFastReplyAdDisabled }}
+                    hitSlop={8}
                     style={{
-                      height: StyleSheet.hairlineWidth,
-                      backgroundColor: "#E5E7EB",
+                      position: "absolute",
+                      right: -15,
+                      top: -13,
+                      overflow: "visible",
+                      opacity: isFastReplyAdDisabled ? 0.7 : 1,
                     }}
-                  />
-                  {isUnready && (
-                    <Pressable
-                      onPress={onPressFastReplyAd}
-                      accessibilityRole="button"
-                      hitSlop={8}
-                      style={{
-                        position: "absolute",
-                        right: -15,
-                        top: -13,
-                        overflow: "visible",
-                      }}
-                    >
-                      <AdToReplyIcon width={isKo ? 168 : 160} height={42} />
-                    </Pressable>
-                  )}
-                </View>
-              </>
+                  >
+                    <AdToReplyIcon width={isKo ? 143 : 132} height={35} />
+                  </Pressable>
+                )}
+              </View>
             )}
             <View
               style={{

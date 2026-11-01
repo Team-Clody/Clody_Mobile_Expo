@@ -3,7 +3,10 @@ import { Platform } from "react-native";
 
 declare const __DEV__: boolean;
 
-export const ADMOB_APP_ID = "ca-app-pub-6721111543239153~7854886391";
+export const ADMOB_APP_IDS = {
+  android: "ca-app-pub-6721111543239153~1390622228",
+  ios: "ca-app-pub-6721111543239153~7854886391",
+} as const;
 
 export const ADMOB_PLACEMENTS = {
   extraDiaryInterstitial: "extraDiaryInterstitial",
@@ -12,9 +15,18 @@ export const ADMOB_PLACEMENTS = {
 
 export type AdMobPlacement = keyof typeof ADMOB_PLACEMENTS;
 
-const PRODUCTION_AD_UNIT_IDS: Record<AdMobPlacement, string> = {
-  extraDiaryInterstitial: "ca-app-pub-6721111543239153/7712010610",
-  fastReplyReward: "ca-app-pub-6721111543239153/8020745222",
+const PRODUCTION_AD_UNIT_IDS: Record<
+  "android" | "ios",
+  Record<AdMobPlacement, string>
+> = {
+  android: {
+    extraDiaryInterstitial: "ca-app-pub-6721111543239153/3217131759",
+    fastReplyReward: "ca-app-pub-6721111543239153/9525398583",
+  },
+  ios: {
+    extraDiaryInterstitial: "ca-app-pub-6721111543239153/7712010610",
+    fastReplyReward: "ca-app-pub-6721111543239153/8020745222",
+  },
 };
 
 const TEST_AD_UNIT_IDS: Record<"android" | "ios", Record<AdMobPlacement, string>> = {
@@ -50,10 +62,10 @@ export function shouldUseAdMobTestIds() {
 }
 
 export function getAdMobUnitId(placement: AdMobPlacement) {
-  if (!shouldUseAdMobTestIds()) {
-    return PRODUCTION_AD_UNIT_IDS[placement];
-  }
-
   const platform = Platform.OS === "ios" ? "ios" : "android";
-  return TEST_AD_UNIT_IDS[platform][placement];
+  const adUnitIds = shouldUseAdMobTestIds()
+    ? TEST_AD_UNIT_IDS
+    : PRODUCTION_AD_UNIT_IDS;
+
+  return adUnitIds[platform][placement];
 }

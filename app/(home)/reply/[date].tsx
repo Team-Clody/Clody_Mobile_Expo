@@ -2,8 +2,8 @@ import { DiaryAPI, type GetDiaryResponseDTO } from "@/api/diaryAPI";
 import type { GetReplyResponseDTO } from "@/api/dto/reply/response/getReplyResponseDTO";
 import {
   ReplyAPI,
+  getSupportedReplyLanguage,
   type ReplyAdRequest,
-  type SupportedReplyLanguage,
 } from "@/api/replyAPI";
 import i18n from "@/app/i18n/i18n";
 import BackIcon from "@/assets/icons/ic_back.svg";
@@ -14,6 +14,7 @@ import { Toast } from "@/shared/components/Toast";
 import { palette } from "@/shared/theme/palette";
 import { typography } from "@/shared/theme/typography";
 import { diaryCreatedToReplyReadyMs } from "@/shared/utils/diaryReplyTimer";
+import { isAxiosError } from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -30,6 +31,12 @@ import PagerView from "react-native-pager-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ReplyPhase = "waiting" | "ready" | "opened";
+type ReplyRouteStatus =
+  | "UNREADY"
+  | "READY_NOT_READ"
+  | "READY_READ"
+  | "HAS_DRAFT"
+  | "INVALID_DRAFT";
 
 const REPLY_HEADER_AND_TABS_HEIGHT = 83;
 const REPLY_STATUS_CONTENT_HEIGHT = 243;
@@ -43,6 +50,14 @@ function parseDate(date?: string) {
   }
   const [year, month, day] = values;
   return { year, month, day };
+}
+
+function getParamValue(value?: string | string[]) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function isReplyReadyRouteStatus(status?: string): status is Extract<ReplyRouteStatus, "READY_NOT_READ" | "READY_READ"> {
+  return status === "READY_NOT_READ" || status === "READY_READ";
 }
 
 function formatDate(date?: string) {
@@ -209,12 +224,15 @@ function CloverRewardModal({ visible, onConfirm }: { visible: boolean; onConfirm
 export default function ReplyScreen() {
   const router = useRouter();
   const pagerRef = useRef<PagerView>(null);
-  const { date } = useLocalSearchParams<{ date: string }>();
+  const params = useLocalSearchParams<{ date?: string | string[]; status?: string | string[] }>();
+  const date = getParamValue(params.date);
+  const routeReplyStatus = getParamValue(params.status);
+  const isReadyFromRoute = isReplyReadyRouteStatus(routeReplyStatus);
   const targetDate = useMemo(() => parseDate(date), [date]);
-  const isKo = i18n.locale?.startsWith("ko");
-  const supportedLanguage: SupportedReplyLanguage = isKo ? "KO" : "EN";
+  const supportedLanguage = getSupportedReplyLanguage();
   const fastReplyRewardAd = useAdMobRewarded("fastReplyReward");
   const pendingFastReplyRequestRef = useRef<ReplyAdRequest | null>(null);
+  const queuedFastReplyRequestRef = useRef<ReplyAdRequest | null>(null);
   const [activeTab, setActiveTab] = useState<"diary" | "reply">("reply");
   const [diary, setDiary] = useState<GetDiaryResponseDTO | null>(null);
   const [reply, setReply] = useState<GetReplyResponseDTO | null>(null);
@@ -228,6 +246,8 @@ export default function ReplyScreen() {
     variant: "success" | "warning";
   } | null>(null);
   const [isStartingFastReplyAd, setIsStartingFastReplyAd] = useState(false);
+  const [isWaitingForFastReplyAdLoad, setIsWaitingForFastReplyAdLoad] =
+    useState(false);
 
   const replyAdRequest = useMemo<ReplyAdRequest | null>(() => {
     if (!targetDate) return null;
@@ -274,8 +294,12 @@ export default function ReplyScreen() {
             targetDate.day,
           ),
         ]);
-        const readyAt = diaryCreatedToReplyReadyMs(timeResult);
-        const replyResult = readyAt != null && readyAt <= Date.now()
+        const nowMs = Date.now();
+        const readyAtByCreatedTime = diaryCreatedToReplyReadyMs(timeResult);
+        const shouldLoadReply =
+          isReadyFromRoute ||
+          (readyAtByCreatedTime != null && readyAtByCreatedTime <= nowMs);
+        const replyResult = shouldLoadReply
           ? await ReplyAPI.getReply(
               targetDate.year,
               targetDate.month,
@@ -285,7 +309,8 @@ export default function ReplyScreen() {
         if (cancelled) return;
         setDiary(diaryResult);
         setReply(replyResult);
-        setReplyReadyAt(readyAt);
+        setNow(nowMs);
+        setReplyReadyAt(isReadyFromRoute ? nowMs : readyAtByCreatedTime);
       } catch (error) {
         console.warn("[reply] 화면 데이터 불러오기 실패", error);
       } finally {
@@ -295,7 +320,7 @@ export default function ReplyScreen() {
     return () => {
       cancelled = true;
     };
-  }, [targetDate]);
+  }, [isReadyFromRoute, targetDate]);
 
   useEffect(() => {
     const intervalId = setInterval(() => setNow(Date.now()), 1_000);
@@ -308,7 +333,9 @@ export default function ReplyScreen() {
       showReplyUnavailableError();
       return;
     }
-    setReplyReadyAt(Date.now());
+    const nowMs = Date.now();
+    setNow(nowMs);
+    setReplyReadyAt(nowMs);
     setOpened(true);
     if (!loadedReply.isRead) setShowReward(true);
   }, [loadReply, showReplyUnavailableError]);
@@ -341,6 +368,17 @@ export default function ReplyScreen() {
     if (!fastReplyRewardAd.error || !pendingFastReplyRequestRef.current) return;
 
     pendingFastReplyRequestRef.current = null;
+    setToast({
+      message: i18n.t("ads.unavailable"),
+      variant: "warning",
+    });
+  }, [fastReplyRewardAd.error]);
+
+  useEffect(() => {
+    if (!fastReplyRewardAd.error || !queuedFastReplyRequestRef.current) return;
+
+    queuedFastReplyRequestRef.current = null;
+    setIsWaitingForFastReplyAdLoad(false);
     setToast({
       message: i18n.t("ads.unavailable"),
       variant: "warning",
@@ -380,25 +418,20 @@ export default function ReplyScreen() {
     if (!loadedReply.isRead) setShowReward(true);
   };
 
-  const handlePressAd = async () => {
-    if (!replyAdRequest || fastReplyRewardAd.isShowing || isStartingFastReplyAd) {
+  const startFastReplyAdFlow = useCallback(async (request: ReplyAdRequest) => {
+    if (fastReplyRewardAd.isShowing || isStartingFastReplyAd) {
       return;
     }
-
-    if (!fastReplyRewardAd.isLoaded) {
-      fastReplyRewardAd.load();
-      setToast({
-        message: i18n.t("ads.notReady"),
-        variant: "warning",
-      });
-      return;
-    }
-
     setIsStartingFastReplyAd(true);
     try {
-      await ReplyAPI.startAdViewing(replyAdRequest);
+      await ReplyAPI.startAdViewing(request);
     } catch (error) {
-      console.warn("[reply] fast reply ad start failed", error);
+      console.warn("[reply] fast reply ad start failed", {
+        request,
+        status: isAxiosError(error) ? error.response?.status : undefined,
+        data: isAxiosError(error) ? error.response?.data : undefined,
+        message: error instanceof Error ? error.message : String(error),
+      });
       setToast({
         message: i18n.t("ads.unavailable"),
         variant: "warning",
@@ -408,15 +441,72 @@ export default function ReplyScreen() {
       setIsStartingFastReplyAd(false);
     }
 
-    pendingFastReplyRequestRef.current = replyAdRequest;
+    pendingFastReplyRequestRef.current = request;
     const didShowAd = fastReplyRewardAd.showAd();
     if (didShowAd) return;
 
     pendingFastReplyRequestRef.current = null;
     setToast({
-      message: i18n.t("ads.notReady"),
+      message: i18n.t(fastReplyRewardAd.error ? "ads.unavailable" : "ads.notReady"),
       variant: "warning",
     });
+  }, [fastReplyRewardAd, isStartingFastReplyAd]);
+
+  useEffect(() => {
+    if (!isWaitingForFastReplyAdLoad || !fastReplyRewardAd.isLoaded) return;
+
+    const queuedRequest = queuedFastReplyRequestRef.current;
+    queuedFastReplyRequestRef.current = null;
+    setIsWaitingForFastReplyAdLoad(false);
+
+    if (!queuedRequest) return;
+    void startFastReplyAdFlow(queuedRequest);
+  }, [
+    fastReplyRewardAd.isLoaded,
+    isWaitingForFastReplyAdLoad,
+    startFastReplyAdFlow,
+  ]);
+
+  useEffect(() => {
+    if (!isWaitingForFastReplyAdLoad) return;
+
+    const timeoutId = setTimeout(() => {
+      if (!queuedFastReplyRequestRef.current) return;
+      console.warn("[reply] fast reply ad load timeout", {
+        unitId: fastReplyRewardAd.unitId,
+      });
+      queuedFastReplyRequestRef.current = null;
+      setIsWaitingForFastReplyAdLoad(false);
+      setToast({
+        message: i18n.t("ads.notReady"),
+        variant: "warning",
+      });
+    }, 15_000);
+
+    return () => clearTimeout(timeoutId);
+  }, [fastReplyRewardAd.unitId, isWaitingForFastReplyAdLoad]);
+
+  const handlePressAd = async () => {
+    if (
+      !replyAdRequest ||
+      fastReplyRewardAd.isShowing ||
+      isStartingFastReplyAd ||
+      isWaitingForFastReplyAdLoad
+    ) {
+      return;
+    }
+
+    if (!fastReplyRewardAd.isLoaded) {
+      queuedFastReplyRequestRef.current = replyAdRequest;
+      setIsWaitingForFastReplyAdLoad(true);
+      console.log("[reply] fast reply ad loading", {
+        unitId: fastReplyRewardAd.unitId,
+      });
+      fastReplyRewardAd.load();
+      return;
+    }
+
+    await startFastReplyAdFlow(replyAdRequest);
   };
 
   if (loading) {
@@ -444,7 +534,11 @@ export default function ReplyScreen() {
           {phase === "waiting" ? (
             <WaitingReply
               remaining={remaining}
-              adDisabled={fastReplyRewardAd.isShowing || isStartingFastReplyAd}
+              adDisabled={
+                fastReplyRewardAd.isShowing ||
+                isStartingFastReplyAd ||
+                isWaitingForFastReplyAdLoad
+              }
               onPressAd={handlePressAd}
             />
           ) : phase === "ready" ? (
