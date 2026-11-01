@@ -1,10 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { useContext } from "react";
-import { HomeContext } from "../../_layout";
-import { useRouter } from "expo-router";
-import { Icon } from "@/shared/components/Icon";
 import i18n from "@/app/i18n/i18n";
+import { Icon } from "@/shared/components/Icon";
 import { typography } from "@/shared/theme/typography";
+import { useRouter } from "expo-router";
+import { useContext } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { HomeContext } from "../../_layout";
 
 export default function MyPage() {
   const context = useContext(HomeContext);
@@ -24,7 +24,7 @@ export default function MyPage() {
             onPress={() => router.push("/(home)/profile")}
           >
             <View style={styles.profileLeft}>
-              <View style={styles.avatar} />
+              <Icon.IcProfile width={42} height={42} />
               <Text style={styles.name}>
                 {form.nickname || i18n.t("noNickname")}
               </Text>
@@ -37,9 +37,14 @@ export default function MyPage() {
           <TouchableOpacity style={styles.row}>
             <Text style={styles.menuText}>{i18n.t("myCover")}</Text>
 
-            <Text style={styles.count}>
-              {i18n.t("cloverCountWithUnit", { count: form.cloverCount ?? 0 })}
-            </Text>
+            <View style={styles.cloverRight}>
+              <Icon.IcClover width={16} height={16} />
+              <Text style={styles.count}>
+                {i18n.t("cloverCountWithUnit", {
+                  count: form.cloverCount ?? 0,
+                })}
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -132,12 +137,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#D9D9D9",
-  },
   name: {
     fontSize: 16,
     fontWeight: "500",
@@ -151,6 +150,11 @@ const styles = StyleSheet.create({
     color: "#8791A0",
   },
   right: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  cloverRight: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,

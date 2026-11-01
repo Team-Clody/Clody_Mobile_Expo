@@ -11,9 +11,9 @@ type NoticeBannerProps = {
 export function NoticeBanner({ onDismiss }: NoticeBannerProps) {
   return (
     <View style={styles.container}>
-      <Typo.Caption variant="caption2" color="gray500" style={styles.message}>
+      <Typo.Body variant="body11" color="gray500" style={styles.message}>
         {i18n.t("diaryWrite.notice")}
-      </Typo.Caption>
+      </Typo.Body>
       <Pressable onPress={onDismiss} hitSlop={8}>
         <Ionicons name="close" size={16} color={palette.gray400} />
       </Pressable>
@@ -25,9 +25,11 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: palette.gray50,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    minHeight: 44,
+    backgroundColor: palette.gray30,
+    borderRadius: 6,
+    paddingLeft: 16,
+    paddingRight: 12,
     paddingVertical: 11,
     gap: 8,
   },

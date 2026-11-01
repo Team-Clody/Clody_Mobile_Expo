@@ -5,6 +5,7 @@ import IcCalendarOff from "@/assets/icons/ic_calendar_off.svg";
 import IcCalendarOn from "@/assets/icons/ic_calendar_on.svg";
 import IcCheckGray from "@/assets/icons/ic_check_gray.svg";
 import IcCheckGreen from "@/assets/icons/ic_check_green.svg";
+import IcClover from "@/assets/icons/ic_clover.svg";
 import IcCloverFull from "@/assets/icons/ic_clover_full.svg";
 import IcCloverIng from "@/assets/icons/ic_clover_ing.svg";
 import IcCloverLow from "@/assets/icons/ic_clover_low.svg";
@@ -27,6 +28,7 @@ import IcProfile from "@/assets/icons/ic_profile.svg";
 import IcPlus from "@/assets/icons/ic_plus.svg";
 import IcStars from "@/assets/icons/ic_stars.svg";
 import IcSuccess from "@/assets/icons/ic_success.svg";
+import IcTrash from "@/assets/icons/ic_trash.svg";
 import IcWarning from "@/assets/icons/ic_warning.svg";
 
 export const Icon = {
@@ -50,8 +52,10 @@ export const Icon = {
   IcCheckGray,
   IcCheckGreen,
   IcSuccess,
+  IcTrash,
   IcWarning,
   IcStars,
+  IcClover,
   IcCloverFull,
   IcCloverIng,
   IcCloverLow,

@@ -1,8 +1,8 @@
-import { Pressable, StyleSheet, View } from "react-native";
 import i18n from "@/app/i18n/i18n";
 import { Icon } from "@/shared/components/Icon";
 import { Typo } from "@/shared/components/typo/Typo";
 import { palette } from "@/shared/theme/palette";
+import { Pressable, StyleSheet, View } from "react-native";
 
 type DiaryWriteHeaderProps = {
   onPressBack: () => void;
@@ -29,13 +29,13 @@ export function DiaryWriteHeader({
 
       <View style={styles.actions}>
         <Pressable onPress={onPressSaveDraft} hitSlop={8}>
-          <Typo.Body variant="body3" color="gray400">
+          <Typo.Body variant="body2" color="gray500">
             {i18n.t("diaryWrite.saveDraft")}
           </Typo.Body>
         </Pressable>
         <View style={styles.divider} />
         <Pressable onPress={onPressSend} hitSlop={8}>
-          <Typo.Body variant="body3" color="accentPrimary500">
+          <Typo.Body variant="body2" color="accentPrimary450">
             {i18n.t("diaryWrite.send")}
           </Typo.Body>
         </Pressable>
@@ -46,8 +46,9 @@ export function DiaryWriteHeader({
 
 const styles = StyleSheet.create({
   container: {
-    height: 56,
-    paddingHorizontal: 14,
+    height: 36,
+    paddingLeft: 12,
+    paddingRight: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -61,11 +62,11 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
   },
   divider: {
     width: 1,
     height: 12,
-    backgroundColor: palette.gray100,
+    backgroundColor: palette.gray200,
   },
 });

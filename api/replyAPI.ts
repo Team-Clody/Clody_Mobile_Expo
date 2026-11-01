@@ -1,13 +1,28 @@
 import { createAPIRequest, HeaderType } from "@/shared/http";
+import { getLanguageCode } from "@/shared/utils/locale";
+import { isKoreanTimeZone } from "@/shared/utils/timezone";
 import type { GetReplyResponseDTO } from "./dto/reply/response/getReplyResponseDTO";
 
-export type SupportedReplyLanguage = "KO" | "EN" | "CHRISTIAN_EN";
+export type SupportedReplyLanguage =
+  | "KO"
+  | "KO_US"
+  | "EN"
+  | "EN_KR"
+  | "CHRISTIAN_EN";
 
 export type ReplyAdRequest = {
   year: number;
   month: number;
   date: number;
   supportedLanguage: SupportedReplyLanguage;
+};
+
+export const getSupportedReplyLanguage = (): SupportedReplyLanguage => {
+  const isKo = getLanguageCode() === "ko";
+  const isKst = isKoreanTimeZone();
+
+  if (isKo) return isKst ? "KO" : "KO_US";
+  return isKst ? "EN_KR" : "EN";
 };
 
 export const ReplyAPI = {
@@ -22,7 +37,7 @@ export const ReplyAPI = {
     const response = await createAPIRequest<void>(
       "post",
       "/api/v1/reply/ad/start",
-      HeaderType.TIME_ZONE,
+      HeaderType.TIME_ZONE_LANGUAGE,
       request,
     );
     return response.data.data;
@@ -32,7 +47,7 @@ export const ReplyAPI = {
     const response = await createAPIRequest<void>(
       "patch",
       "/api/v1/reply/ad/end",
-      HeaderType.TIME_ZONE,
+      HeaderType.TIME_ZONE_LANGUAGE,
       request,
     );
     return response.data.data;

@@ -41,6 +41,15 @@ export function useAdMobInterstitial(
     }
   }, [error, isClosed, load]);
 
+  useEffect(() => {
+    if (!error) return;
+    console.warn("[AdMob] interstitial ad load failed", {
+      placement,
+      unitId,
+      message: error.message,
+    });
+  }, [error, placement, unitId]);
+
   const showAd = useCallback(() => {
     if (isShowing) return false;
     if (!isLoaded) {

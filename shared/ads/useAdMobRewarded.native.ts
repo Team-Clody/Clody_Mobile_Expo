@@ -43,6 +43,15 @@ export function useAdMobRewarded(
     }
   }, [error, isClosed, load]);
 
+  useEffect(() => {
+    if (!error) return;
+    console.warn("[AdMob] rewarded ad load failed", {
+      placement,
+      unitId,
+      message: error.message,
+    });
+  }, [error, placement, unitId]);
+
   const showAd = useCallback(() => {
     if (isShowing) return false;
     if (!isLoaded) {

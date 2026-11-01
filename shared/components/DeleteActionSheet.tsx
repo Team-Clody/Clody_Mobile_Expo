@@ -1,6 +1,6 @@
 import i18n from "@/app/i18n/i18n";
+import { Icon } from "@/shared/components/Icon";
 import { palette } from "@/shared/theme/palette";
-import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Typo } from "./typo/Typo";
@@ -26,6 +26,9 @@ export function DeleteActionSheet({
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      // 안드로이드 모달 창은 기본적으로 시스템 바 안쪽에서 끝나 insets.bottom이 이중으로 더해짐
+      statusBarTranslucent
+      navigationBarTranslucent
     >
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
@@ -39,7 +42,7 @@ export function DeleteActionSheet({
             disabled={disabled}
             style={[styles.deleteRow, disabled && styles.disabled]}
           >
-            <Ionicons name="trash-outline" size={20} color={palette.gray800} />
+            <Icon.IcTrash width={34} height={34} />
             <Typo.Body variant="body8" color="gray800">
               {i18n.t("diaryWrite.delete")}
             </Typo.Body>
