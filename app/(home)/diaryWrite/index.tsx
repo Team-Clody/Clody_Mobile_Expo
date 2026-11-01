@@ -30,9 +30,9 @@ import { DraggableEntryList } from "./_components/DraggableEntryList";
 import { NoticeBanner } from "./_components/NoticeBanner";
 import { MIN_ENTRY_LENGTH } from "./_constants";
 import { useDiaryEntries } from "./_hooks/useDiaryEntries";
+import { useStorageStore } from "@/store/useStorageStore";
 
 const NOTICE_DISMISSED_KEY = "diaryWriteNoticeDismissed";
-const TOAST_NAVIGATE_DELAY = 1200;
 
 function parseDateParam(dateParam?: string): Date {
   if (dateParam) {
@@ -78,7 +78,7 @@ export default function DiaryWrite() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingDraft, setIsLoadingDraft] = useState(true);
   const [isReordering, setIsReordering] = useState(false);
-  const navigateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setPendingToast = useStorageStore((s) => s.setPendingToast);
   const pendingEntryUnlockRef = useRef(false);
   // 진입 시점 스냅샷 — 변경이 없으면 뒤로가기 시 팝업 없이 나감 (v1 정책)
   const initialTextsRef = useRef(JSON.stringify(["", "", ""]));
@@ -140,13 +140,6 @@ export default function DiaryWrite() {
     };
   }, []);
 
-  useEffect(
-    () => () => {
-      if (navigateTimerRef.current) clearTimeout(navigateTimerRef.current);
-    },
-    [],
-  );
-
   useEffect(() => {
     if (!extraDiaryAd.isClosed || !pendingEntryUnlockRef.current) return;
 
@@ -192,9 +185,10 @@ export default function DiaryWrite() {
     }
   };
 
-  const showToastThenGoHome = (message: string) => {
-    setToast({ message, variant: "success" });
-    navigateTimerRef.current = setTimeout(goHome, TOAST_NAVIGATE_DELAY);
+  // 토스트는 홈에 도착한 뒤 노출되어야 하므로 예약만 하고 바로 이동한다
+  const goHomeWithToast = (message: string) => {
+    setPendingToast({ message, variant: "success" });
+    goHome();
   };
 
   // 변경사항이 없으면 팝업 없이 바로 나감 (v1 정책)
@@ -226,7 +220,7 @@ export default function DiaryWrite() {
         dateKey,
         entries.map((entry) => entry.text),
       );
-      showToastThenGoHome(i18n.t("diaryWrite.toast.draftSaved"));
+      goHomeWithToast(i18n.t("diaryWrite.toast.draftSaved"));
     } catch (error) {
       console.warn("[diaryWrite] 임시저장 실패", error);
       showRequestError(error);
@@ -313,8 +307,7 @@ export default function DiaryWrite() {
 
   // 루트 SafeAreaView가 bottom 인셋을 이미 적용하므로 키보드 높이에서 제외
   const addButtonBottom = keyboardVisible
-    ? (Platform.OS === "ios" ? Math.max(keyboardHeight - insets.bottom, 0) : 0) +
-      12
+    ? Math.max(keyboardHeight - insets.bottom, 0) + 12
     : 20;
 
   return (
@@ -328,10 +321,8 @@ export default function DiaryWrite() {
         onPressSend={handlePressSend}
       />
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      {/* SDK 54 edge-to-edge 강제로 안드로이드 adjustResize가 동작하지 않아 양쪽 모두 padding 사용 */}
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.scrollContent}
@@ -339,13 +330,14 @@ export default function DiaryWrite() {
           showsVerticalScrollIndicator={false}
           scrollEnabled={!isReordering}
         >
-          <Typo.Display
-            variant="display2"
-            color="gray1000"
+          <Typo.Head
+            variant="head1"
+            lineHeight={1.5}
+            color="#282A31"
             style={styles.title}
           >
             {dateTitle}
-          </Typo.Display>
+          </Typo.Head>
 
           {isNoticeVisible && (
             <View style={styles.bannerWrap}>
@@ -358,13 +350,14 @@ export default function DiaryWrite() {
               ids={entries.map((entry) => entry.id)}
               onMove={moveEntry}
               onDragStateChange={setIsReordering}
-              renderEntry={(index) => {
+              renderEntry={(index, isDragging) => {
                 const entry = entries[index];
                 return (
                   <DiaryEntryInput
                     index={index}
                     value={entry.text}
                     invalid={invalidEntryIds.includes(entry.id)}
+                    dragging={isDragging}
                     onChangeText={(text) => {
                       updateEntry(entry.id, text);
                       if (invalidEntryIds.includes(entry.id)) {
@@ -457,21 +450,25 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   title: {
-    marginTop: 4,
+    marginTop: 16,
   },
   bannerWrap: {
-    marginTop: 14,
+    marginTop: 12,
   },
   entryList: {
     marginTop: 16,
   },
   addButtonWrap: {
     position: "absolute",
-    right: 20,
-    alignItems: "center",
+    right: 24,
+    // center면 툴팁이 뜰 때 래퍼 폭이 넓어지며 버튼이 왼쪽으로 밀린다
+    alignItems: "flex-end",
   },
+  // 디자인 기준: 버튼 중앙 위, 꼬리 끝이 버튼 상단에 밀착 (간격 0)
   adTooltip: {
-    marginBottom: 8,
+    position: "absolute",
+    bottom: "100%",
+    alignSelf: "center",
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

@@ -2,7 +2,7 @@ import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { initializeKakaoSDK } from "@react-native-kakao/core";
 import Constants from "expo-constants";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
@@ -17,6 +17,14 @@ const APP_BACKGROUND = "#FFFFFF";
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const pathname = usePathname();
+  // 배경이 회색인 화면은 상태바 영역도 같은 색으로 맞춰 색 단절을 없앤다
+  const topBackground =
+    pathname === "/mypage"
+      ? "#EFEFF4"
+      : pathname === "/teamClody"
+        ? "#F3F3F6"
+        : APP_BACKGROUND;
   const [fontsLoaded] = useFonts({
     PretendardRegular: require("@/assets/fonts/Pretendard-Regular.otf"),
     PretendardMedium: require("@/assets/fonts/Pretendard-Medium.otf"),
@@ -76,16 +84,21 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <SafeAreaView
-          style={{ flex: 1, backgroundColor: APP_BACKGROUND }}
-          edges={["top", "right", "bottom", "left"]}
+          style={{ flex: 1, backgroundColor: topBackground }}
+          edges={["top", "right", "left"]}
         >
-          <StatusBar style="auto" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: APP_BACKGROUND },
-            }}
-          />
+          <SafeAreaView
+            style={{ flex: 1, backgroundColor: APP_BACKGROUND }}
+            edges={["bottom"]}
+          >
+            <StatusBar style="auto" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: APP_BACKGROUND },
+              }}
+            />
+          </SafeAreaView>
         </SafeAreaView>
       </SafeAreaProvider>
     </GestureHandlerRootView>

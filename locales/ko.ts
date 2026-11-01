@@ -275,7 +275,9 @@ export default {
     entryLengthError: '%{min}~%{max}자까지 입력할 수 있어요.',
     more: '더보기',
     add: '추가하기',
-    adTooltip: '광고 보고 일기 칸 추가',
+    adTooltipPrefix: '광고 보고 ',
+    adTooltipHighlight: '일기 2개',
+    adTooltipSuffix: ' 추가',
     delete: '삭제하기',
     sendPopup: {
       title: '일기를 로디에게 보낼까요?',

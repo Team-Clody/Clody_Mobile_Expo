@@ -11,6 +11,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Modal } from "react-native";
 import i18n from "../i18n/i18n";
 import BottomToast from "@/components/BottomToast";
+import { Icon } from "@/shared/components/Icon";
 export default function Profile() {
   const context = useContext(HomeContext);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -39,7 +40,7 @@ export default function Profile() {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Text style={styles.backIcon}>‹</Text>
+            <Icon.IcBack width={28} height={28} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{i18n.t("teamClody")}</Text>
 
@@ -88,7 +89,9 @@ function InfoRow({
             <Text style={styles.value} numberOfLines={1}>
               {value}
             </Text>
-            {arrow ? <Text style={styles.arrow}>{">"}</Text> : null}
+            {arrow ? (
+              <Icon.IcRightArrow width={7} height={12} style={styles.arrow} />
+            ) : null}
           </View>
         </View>
       </Pressable>
@@ -136,12 +139,6 @@ const styles = StyleSheet.create({
     height: 28,
     justifyContent: "center",
     alignItems: "flex-start",
-  },
-  backIcon: {
-    fontSize: 30,
-    lineHeight: 30,
-    color: "#111111",
-    fontWeight: "300",
   },
   headerTitle: {
     fontSize: 16,
@@ -192,9 +189,6 @@ const styles = StyleSheet.create({
   },
   arrow: {
     marginLeft: 8,
-    fontSize: 18,
-    lineHeight: 18,
-    color: "#9A9AA2",
   },
 
   sectionDivider: {
