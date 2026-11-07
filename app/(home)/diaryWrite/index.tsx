@@ -300,7 +300,7 @@ export default function DiaryWrite() {
 
     pendingEntryUnlockRef.current = false;
     setToast({
-      message: i18n.t(extraDiaryAd.error ? "ads.unavailable" : "ads.notReady"),
+      message: i18n.t(extraDiaryAd.error || extraDiaryAd.isLoaded ? "ads.unavailable" : "ads.notReady"),
       variant: "warning",
     });
   };
