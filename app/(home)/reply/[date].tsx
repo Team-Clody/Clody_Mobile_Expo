@@ -488,7 +488,7 @@ export default function ReplyScreen() {
 
     pendingFastReplyRequestRef.current = null;
     setToast({
-      message: i18n.t(fastReplyRewardAd.error ? "ads.unavailable" : "ads.notReady"),
+      message: i18n.t("ads.unavailable"),
       variant: "warning",
     });
   }, [fastReplyRewardAd, isStartingFastReplyAd]);
@@ -538,12 +538,15 @@ export default function ReplyScreen() {
     }
 
     if (!fastReplyRewardAd.isLoaded) {
+      if (!fastReplyRewardAd.load()) {
+        setToast({ message: i18n.t("ads.unavailable"), variant: "warning" });
+        return;
+      }
       queuedFastReplyRequestRef.current = replyAdRequest;
       setIsWaitingForFastReplyAdLoad(true);
       console.log("[reply] fast reply ad loading", {
         unitId: fastReplyRewardAd.unitId,
       });
-      fastReplyRewardAd.load();
       return;
     }
 
