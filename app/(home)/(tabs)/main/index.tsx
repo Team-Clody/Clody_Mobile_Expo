@@ -603,7 +603,7 @@ export default function Main() {
       pendingFastReplyDateKeyRef.current = null;
       pendingFastReplyRequestRef.current = null;
       setToast({
-        message: i18n.t(fastReplyRewardAd.error ? "ads.unavailable" : "ads.notReady"),
+        message: i18n.t("ads.unavailable"),
         variant: "warning",
       });
     },
@@ -661,13 +661,16 @@ export default function Main() {
     }
 
     if (!fastReplyRewardAd.isLoaded) {
+      if (!fastReplyRewardAd.load()) {
+        setToast({ message: i18n.t("ads.unavailable"), variant: "warning" });
+        return;
+      }
       queuedFastReplyDateKeyRef.current = selectedDateKey;
       queuedFastReplyRequestRef.current = selectedReplyAdRequest;
       setIsWaitingForFastReplyAdLoad(true);
       console.log("[main] fast reply ad loading", {
         unitId: fastReplyRewardAd.unitId,
       });
-      fastReplyRewardAd.load();
       return;
     }
 

@@ -10,7 +10,9 @@ export type AdMobFullScreenAdState = {
   isClosed: boolean;
   isClicked: boolean;
   error?: Error;
-  load: () => void;
+  /** False when a retry cooldown or active presentation blocks loading. */
+  load: () => boolean;
+  /** True when presentation was requested; asynchronous failures set error. */
   showAd: () => boolean;
 };
 

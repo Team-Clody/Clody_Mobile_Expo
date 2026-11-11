@@ -1,7 +1,7 @@
 import type { AdMobPlacement } from "@/shared/ads/adMobConfig";
 import type { AdMobRewardedAdState } from "@/shared/ads/types";
 
-const noop = () => undefined;
+const noop = () => false;
 
 export function useAdMobRewarded(
   _placement: AdMobPlacement,

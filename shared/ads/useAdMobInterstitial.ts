@@ -1,7 +1,7 @@
 import type { AdMobPlacement } from "@/shared/ads/adMobConfig";
 import type { AdMobFullScreenAdState } from "@/shared/ads/types";
 
-const noop = () => undefined;
+const noop = () => false;
 
 export function useAdMobInterstitial(
   _placement: AdMobPlacement,
