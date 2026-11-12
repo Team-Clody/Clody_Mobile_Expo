@@ -2,9 +2,8 @@ import * as Application from "expo-application";
 import Constants from "expo-constants";
 import * as SplashScreen from "expo-splash-screen";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, AppState, Linking, Platform, View } from "react-native";
+import { ActivityIndicator, AppState, Linking, Platform, View } from "react-native";
 import { HardUpdateDialog } from "@/shared/components/modal/HardUpdateModal";
-import { useTranslation } from "@/shared/hooks/useTranslation";
 import { fetchUpdatePolicy, type RemoteUpdatePolicy } from "./remoteConfigClient";
 import { evaluateUpdatePolicy, validateStoreUrl } from "./versionPolicy";
 
@@ -16,26 +15,30 @@ const EMPTY_POLICY: RemoteUpdatePolicy = {
 const CURRENT_VERSION = Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? "";
 
 export function AppUpdateGate({ children }: { children: ReactNode }) {
-  const { t } = useTranslation();
   const [policy, setPolicy] = useState<RemoteUpdatePolicy | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [openingStore, setOpeningStore] = useState(false);
+  const policyRef = useRef<RemoteUpdatePolicy | null>(null);
   const mounted = useRef(false);
-  const fetching = useRef(false);
+  const fetching = useRef<Promise<boolean> | null>(null);
 
-  const refresh = useCallback(async (forceRefresh = false) => {
-    if (fetching.current) return;
-    fetching.current = true;
-    setRefreshing(true);
-    try {
-      const next = await fetchUpdatePolicy({ forceRefresh });
-      if (mounted.current) setPolicy(next);
-    } catch {
-      if (mounted.current) setPolicy((previous) => previous ?? EMPTY_POLICY);
-    } finally {
-      fetching.current = false;
-      if (mounted.current) setRefreshing(false);
-    }
+  const refresh = useCallback((forceRefresh = false): Promise<boolean> => {
+    if (fetching.current) return fetching.current;
+    const request = (async () => {
+      let next: RemoteUpdatePolicy;
+      try {
+        next = await fetchUpdatePolicy({ forceRefresh });
+      } catch {
+        next = policyRef.current ?? EMPTY_POLICY;
+      }
+      if (mounted.current) {
+        policyRef.current = next;
+        setPolicy(next);
+      }
+      return evaluateUpdatePolicy(CURRENT_VERSION, next).status === "hardUpdate";
+    })().finally(() => {
+      if (fetching.current === request) fetching.current = null;
+    });
+    fetching.current = request;
+    return request;
   }, []);
 
   useEffect(() => {
@@ -56,24 +59,16 @@ export function AppUpdateGate({ children }: { children: ReactNode }) {
 
   const result = evaluateUpdatePolicy(CURRENT_VERSION, policy ?? EMPTY_POLICY);
   const openStore = async () => {
-    if (openingStore) return;
-    setOpeningStore(true);
-    try {
-      const extra = Constants.expoConfig?.extra as
-        | { androidStoreUrl?: string; iosStoreUrl?: string }
-        | undefined;
-      const platform = Platform.OS === "android" ? "android" : "ios";
-      const remoteUrl = platform === "android" ? policy?.androidStoreUrl : policy?.iosStoreUrl;
-      const bundledUrl = platform === "android" ? extra?.androidStoreUrl : extra?.iosStoreUrl;
-      const url = validateStoreUrl(remoteUrl || "", platform) ||
-        validateStoreUrl(bundledUrl || "", platform);
-      if (!url) throw new Error("STORE_URL_NOT_CONFIGURED");
-      await Linking.openURL(url);
-    } catch {
-      Alert.alert(t("modal.hardUpdate.storeErrorTitle"), t("modal.hardUpdate.storeError"));
-    } finally {
-      if (mounted.current) setOpeningStore(false);
-    }
+    const extra = Constants.expoConfig?.extra as
+      | { androidStoreUrl?: string; iosStoreUrl?: string }
+      | undefined;
+    const platform = Platform.OS === "android" ? "android" : "ios";
+    const remoteUrl = platform === "android" ? policy?.androidStoreUrl : policy?.iosStoreUrl;
+    const bundledUrl = platform === "android" ? extra?.androidStoreUrl : extra?.iosStoreUrl;
+    const url = validateStoreUrl(remoteUrl || "", platform) ||
+      validateStoreUrl(bundledUrl || "", platform);
+    if (!url) throw new Error("STORE_URL_NOT_CONFIGURED");
+    await Linking.openURL(url);
   };
 
   if (policy === null) {
@@ -83,14 +78,13 @@ export function AppUpdateGate({ children }: { children: ReactNode }) {
   }
 
   if (result.status === "hardUpdate") {
-    return <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    return <View style={{ flex: 1, backgroundColor: "#FFFFFF", justifyContent: "center" }}>
+      <ActivityIndicator />
       <HardUpdateDialog
         currentVersion={result.currentVersion}
         latestVersion={result.latestVersion}
-        onConfirm={() => void openStore()}
-        onRecheck={() => void refresh(true)}
-        openingStore={openingStore}
-        checking={refreshing}
+        onConfirm={openStore}
+        onRecheck={() => refresh(true)}
       />
     </View>;
   }

@@ -261,6 +261,7 @@ export default {
       recheck: 'Check for updates again',
       storeErrorTitle: 'Unable to open the store',
       storeError: 'Please try again shortly. If this continues, contact support.',
+      storeErrorConfirm: 'OK',
     },
   },
   diaryWrite: {
