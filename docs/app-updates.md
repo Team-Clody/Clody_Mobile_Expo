@@ -32,6 +32,8 @@ Firebase Remote Config의 기존 `rn_update_version_hard`를 설치된 앱 버�
 
 Firebase 네이티브 모듈이 추가되어 Expo Go 대신 새 개발 빌드가 필요하다. `google-services.json`과 동일한 Firebase 프로젝트의 iOS용 `GoogleService-Info.plist`를 루트에 준비한다. 파일 경로는 `GOOGLE_SERVICES_JSON` / `GOOGLE_SERVICES_PLIST`로 대체할 수 있다. iOS는 static frameworks를 사용한다.
 
+Expo SDK 54의 React 헤더와 호환되도록 `forceStaticLinking`에 `RNFBApp`, `RNFBAnalytics`, `RNFBRemoteConfig`를 지정한다. Firebase SDK는 static frameworks를 유지하고, React 헤더를 사용하는 RNFB 모듈만 정적 라이브러리로 연결한다. 이 설정은 새 prebuild에도 적용된다.
+
 ```bash
 npm ci
 npm run test:updates
@@ -41,5 +43,17 @@ npx expo run:android --device
 실기기 테스트에서는 로컬 코드에만 임시 필수 버전 `99.0.0`을 넣어 모달 표시, 뒤로가기·배경 터치 차단, 스토어 오류 후 유지, 앱 복귀 및 정책 해제 후 진입을 확인한다. 테스트 설정은 코드에서 제거하며, 검증을 위해 전체 사용자의 Remote Config 값을 바꾸지 않는다.
 
 2026-11-12 연결된 Android 13 기기에서 시스템 팝업 표시·뒤로가기와 바깥 터치 차단·재확인 후 팝업 유지·정책 해제 후 정상 진입, 카카오·구글 로그인 버튼 표시를 확인했다. 개발 APK 빌드·설치, 정책 테스트 21개와 시스템 팝업 테스트 12개, 전체 TypeScript 검사, Android/iOS JavaScript 번들 생성이 통과했다. 시스템 팝업 버튼으로 실제 클로디 Google Play 상세 페이지가 열리고 앱 복귀 후에도 차단이 유지되는 것을 확인했다. iOS 주소는 공식 페이지와 URL 검증으로 확인했으며, iOS 실기기 실행은 아직 확인하지 않았다.
+
+
+### iOS 시뮬레이터 결과 (2026-11-12)
+
+별도로 생성한 iPhone 16e / iOS 26.1 시뮬레이터에서 `feat/#47`을 단독으로 prebuild·Pods 설치·서명된 Debug 네이티브 빌드 후 확인했다. RNFB 모듈의 framework 헤더 오류를 위 `forceStaticLinking` 설정으로 해결했다. 시뮬레이터 서명을 포함한 빌드에서 SecureStore 초기화와 로그인 화면 진입을 확인했다.
+
+- 정상 정책에서 카카오·Apple 로그인 버튼 표시 확인.
+- 로컬 임시 최소 버전 `99.0.0`으로 기본 시스템 팝업 표시, 취소 동작 없음, 재확인 후 차단 유지 확인.
+- 스토어 버튼으로 앱을 벗어나 Safari로 이동하고, 앱 복귀 후 시스템 팝업과 차단이 유지되는 것 확인.
+- 재확인으로 임시 정책을 해제한 뒤 정상 로그인 화면 진입 확인.
+
+스토어 왕복 테스트 중 Safari에 주소가 유효하지 않다는 오류가 표시되어 **App Store 상세 페이지 렌더링은 검증하지 못했다**. 이 검증 항목은 통과로 기록하지 않으며, iOS 실기기의 App Store 이동·업데이트 설치를 별도로 확인해야 한다. 실제 Firebase Remote Config는 변경하지 않았고 임시 정책 코드는 모두 제거했다.
 
 참고: [React Native Firebase Remote Config](https://rnfirebase.io/remote-config/usage).
