@@ -12,11 +12,28 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { initializeAdMob } from "@/shared/ads";
 import { useAppStore } from "@/store/useAppStore";
+import { AppUpdateGate } from "@/shared/updates/AppUpdateGate";
 
 const APP_BACKGROUND = "#FFFFFF";
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    PretendardRegular: require("@/assets/fonts/Pretendard-Regular.otf"),
+    PretendardMedium: require("@/assets/fonts/Pretendard-Medium.otf"),
+    PretendardSemiBold: require("@/assets/fonts/Pretendard-SemiBold.otf"),
+    PretendardBold: require("@/assets/fonts/Pretendard-Bold.otf"),
+  });
+
+  if (!fontsLoaded) return null;
+  return (
+    <AppUpdateGate>
+      <AppLayout />
+    </AppUpdateGate>
+  );
+}
+
+function AppLayout() {
   const pathname = usePathname();
   // 배경이 회색인 화면은 상태바 영역도 같은 색으로 맞춰 색 단절을 없앤다
   const topBackground =
@@ -25,21 +42,9 @@ export default function RootLayout() {
       : pathname === "/teamClody"
         ? "#F3F3F6"
         : APP_BACKGROUND;
-  const [fontsLoaded] = useFonts({
-    PretendardRegular: require("@/assets/fonts/Pretendard-Regular.otf"),
-    PretendardMedium: require("@/assets/fonts/Pretendard-Medium.otf"),
-    PretendardSemiBold: require("@/assets/fonts/Pretendard-SemiBold.otf"),
-    PretendardBold: require("@/assets/fonts/Pretendard-Bold.otf"),
-  });
-
   useEffect(() => {
     void SystemUI.setBackgroundColorAsync(APP_BACKGROUND);
   }, []);
-
-  useEffect(() => {
-    if (!fontsLoaded) return;
-    void SplashScreen.hideAsync();
-  }, [fontsLoaded]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;
@@ -74,11 +79,8 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (!fontsLoaded) return;
     void useAppStore.getState().hydrateAuthFromStorage();
-  }, [fontsLoaded]);
-
-  if (!fontsLoaded) return null;
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

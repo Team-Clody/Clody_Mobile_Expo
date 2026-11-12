@@ -256,8 +256,11 @@ export default {
     hardUpdate: {
       title: 'A new version is required for you',
       description:
-        'Current version : {{currentVersion}} -> Latest version : {{latestVersion}}',
+        'Current version: %{currentVersion}\nRequired version: %{latestVersion}',
       confirm: 'Move to store',
+      recheck: 'Check for updates again',
+      storeErrorTitle: 'Unable to open the store',
+      storeError: 'Please try again shortly. If this continues, contact support.',
     },
   },
   diaryWrite: {

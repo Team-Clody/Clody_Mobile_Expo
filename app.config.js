@@ -17,6 +17,8 @@ export default {
       supportsTablet: true,
       bundleIdentifier: "com.clody.corp",
       buildNumber: "7",
+      googleServicesFile:
+        process.env.GOOGLE_SERVICES_PLIST || "./GoogleService-Info.plist",
       infoPlist: {
         GADApplicationIdentifier: ADMOB_APP_IDS.ios,
       },
@@ -50,6 +52,7 @@ export default {
         },
       ],
       "expo-secure-store",
+      "@react-native-firebase/app",
       [
         "@react-native-google-signin/google-signin",
         {
@@ -75,6 +78,7 @@ export default {
           },
           ios: {
             newArchEnabled: true,
+            useFrameworks: "static",
           },
         },
       ],
@@ -97,6 +101,8 @@ export default {
     },
     extra: {
       router: {},
+      androidStoreUrl: process.env.EXPO_PUBLIC_ANDROID_STORE_URL || "",
+      iosStoreUrl: process.env.EXPO_PUBLIC_IOS_STORE_URL || "",
       /** JS에서 `initializeKakaoSDK` 호출 시 사용 (네이티브 플러그인 nativeAppKey와 동일해야 함) */
       kakaoNativeAppKey: "b520fc6d759caf1cb41ec2a7be31fb75",
       /** iOS Google Sign-In configure용 Client ID */

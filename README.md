@@ -48,3 +48,7 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+## 강제 업데이트
+
+Firebase 버전 정책과 스토어 주소 설정은 [강제 업데이트 문서](docs/app-updates.md)를 참고하세요.
