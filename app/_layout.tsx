@@ -6,17 +6,40 @@ import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
-import { useEffect } from "react";
-import { Platform } from "react-native";
+import { useEffect, useState } from "react";
+import { AppState, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { initializeAdMob } from "@/shared/ads";
 import { useAppStore } from "@/store/useAppStore";
+import { usePushNotifications } from "@/shared/notifications/usePushNotifications";
+import { isBackgroundPushLaunch } from "@/shared/notifications/pushClient";
 
 const APP_BACKGROUND = "#FFFFFF";
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const [showApp, setShowApp] = useState(false);
+  useEffect(() => {
+    let active = true;
+    // A silent iOS background launch should not initialize ads or navigate.
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") setShowApp(true);
+    });
+    void isBackgroundPushLaunch().then((headless) => {
+      if (active && !headless) setShowApp(true);
+    });
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
+
+  return showApp ? <AppLayout /> : null;
+}
+
+function AppLayout() {
+  usePushNotifications();
   const pathname = usePathname();
   // 배경이 회색인 화면은 상태바 영역도 같은 색으로 맞춰 색 단절을 없앤다
   const topBackground =

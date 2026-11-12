@@ -20,6 +20,10 @@ import { BASE_URL } from "@/shared/http";
 import { tokenStorage } from "@/shared/storage/tokenStorage";
 import { getLanguageCode } from "@/shared/utils/locale";
 import authService from "@/services/authService";
+import {
+  saveOnboardingReminder,
+  type OnboardingReminder,
+} from "@/services/onboardingReminderService";
 import IcBack from "@/assets/icons/ic_back.svg";
 import IcCheckGreen from "@/assets/icons/ic_check_green.svg";
 import IcCheckGray from "@/assets/icons/ic_check_gray.svg";
@@ -166,7 +170,30 @@ export default function RegisterScreen() {
     setGender("none");
   };
 
-  const submitSignup = async () => {
+  const showReminderSaveError = (choice: OnboardingReminder) => {
+    Alert.alert(
+      isKorean ? "알림 설정 저장 실패" : "Reminder settings not saved",
+      isKorean
+        ? "회원가입은 완료됐지만 알림 설정을 저장하지 못했어요. 알림 설정만 다시 저장할 수 있어요."
+        : "Your account is ready, but your reminder settings couldn't be saved. You can retry saving just these settings.",
+      [
+        { text: isKorean ? "나중에" : "Later", style: "cancel" },
+        {
+          text: isKorean ? "다시 저장" : "Retry",
+          onPress: () => {
+            void saveOnboardingReminder(choice).then(() => {
+              Alert.alert(
+                isKorean ? "저장 완료" : "Settings saved",
+                isKorean ? "알림 설정을 저장했어요." : "Your reminder settings have been saved.",
+              );
+            }).catch(() => showReminderSaveError(choice));
+          },
+        },
+      ],
+    );
+  };
+
+  const submitSignup = async (enableReminder = true) => {
     if (!nicknameValid) {
       Alert.alert(
         isKorean ? "입력 확인" : "Check your input",
@@ -201,7 +228,7 @@ export default function RegisterScreen() {
       const fcmToken = await authService.getPushToken();
       const payload = {
         platform,
-        fcmToken: fcmToken ? fcmToken : null,
+        fcmToken,
         name: nickname,
         gender,
         birthDate: isKorean
@@ -221,13 +248,25 @@ export default function RegisterScreen() {
       }
 
       await tokenStorage.saveTokens(accessToken, refreshToken);
-      await Promise.all([
+      const reminder: OnboardingReminder = enableReminder
+        ? { enabled: true, time: reminderTime }
+        : { enabled: false };
+      let reminderSaved = true;
+      try {
+        await saveOnboardingReminder(reminder);
+      } catch {
+        // Signup has already succeeded. Retrying must only save the reminder.
+        reminderSaved = false;
+      }
+
+      await Promise.allSettled([
         AsyncStorage.removeItem("kakao_accessToken"),
         AsyncStorage.removeItem("google_accessToken"),
       ]);
 
       setIsLoggedIn(true);
       router.replace("/(home)/(tabs)/main");
+      if (!reminderSaved) showReminderSaveError(reminder);
     } catch (error) {
       console.error(error);
       Alert.alert(
@@ -264,7 +303,7 @@ export default function RegisterScreen() {
     }
 
     if (isKorean && step === 2) {
-      await submitSignup();
+      await submitSignup(false);
       return;
     }
 
@@ -276,7 +315,7 @@ export default function RegisterScreen() {
     }
 
     if (!isKorean && step === 3) {
-      await submitSignup();
+      await submitSignup(false);
     }
   };
 

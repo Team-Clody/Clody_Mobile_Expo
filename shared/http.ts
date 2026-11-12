@@ -2,11 +2,13 @@ import axios, {
   AxiosRequestConfig,
   AxiosError,
   InternalAxiosRequestConfig,
+  isAxiosError,
 } from 'axios';
 import { ReissueTokenResponseDTO } from '@/api/dto/response/reissueTokenResponseDTO';
 import { tokenStorage } from '@/shared/storage/tokenStorage';
 import { getDeviceTimeZone } from '@/shared/utils/timezone';
 import { getDeviceLocale } from '@/shared/utils/locale';
+import { useAppStore } from '@/store/useAppStore';
 
 export const BASE_URL = 'https://test.clodycorp.com';
 
@@ -168,45 +170,48 @@ export const APIKit = axios.create({
   timeoutErrorMessage: 'timeout',
 });
 
-let isRefreshing = false;
 let refreshPromise: Promise<string> | null = null;
 
 const refreshAccessToken = async (): Promise<string> => {
-  if (isRefreshing && refreshPromise) {
-    return refreshPromise;
-  }
+  if (refreshPromise) return refreshPromise;
 
-  isRefreshing = true;
-  refreshPromise = (async () => {
+  const operation = (async () => {
+    const expectedRefreshToken = await tokenStorage.getRefreshToken();
     try {
-      const headers = await getHeaders(HeaderType.REFRESH_TOKEN);
+      if (!expectedRefreshToken) {
+        throw new ApiError(401, 'refreshToken이 없습니다.');
+      }
       const resp = await APIKit.get<ApiResponse<ReissueTokenResponseDTO>>(
         '/api/v1/auth/reissue',
-        { headers },
+        { headers: { Authorization: `Bearer ${expectedRefreshToken}` } },
       );
       const { accessToken, refreshToken } = resp.data.data;
 
+      if (await tokenStorage.getRefreshToken() !== expectedRefreshToken) {
+        throw new ApiError(409, '로그인 상태가 변경되어 이전 재발급 결과를 무시했습니다.');
+      }
       await tokenStorage.saveTokens(accessToken, refreshToken);
-
-      isRefreshing = false;
-      refreshPromise = null;
-
       return accessToken;
-    } catch {
-      isRefreshing = false;
-      refreshPromise = null;
-
-      await tokenStorage.clearTokens();
-
-      const apiError = new ApiError(
-        401,
-        '토큰 재발급에 실패했습니다. 다시 로그인해주세요.',
-      );
-      throw apiError;
+    } catch (error) {
+      const expired = !expectedRefreshToken ||
+        (isAxiosError(error) && error.response?.status === 401);
+      const sameSession = await tokenStorage.getRefreshToken() === expectedRefreshToken;
+      if (expired && sameSession) {
+        await tokenStorage.clearTokens();
+        useAppStore.getState().setIsLoggedIn(false);
+        throw new ApiError(401, '토큰 재발급에 실패했습니다. 다시 로그인해주세요.');
+      }
+      // A temporary outage must not clear authentication or delete the FCM token.
+      // Likewise, an older request cannot invalidate a newer login session.
+      throw error;
     }
   })();
-
-  return refreshPromise;
+  refreshPromise = operation;
+  try {
+    return await operation;
+  } finally {
+    if (refreshPromise === operation) refreshPromise = null;
+  }
 };
 
 export const createAPIRequest = async <T>(

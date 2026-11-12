@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import { clearPushToken } from '@/shared/notifications/pushClient';
 
 const TOKEN_KEYS = {
   ACCESS_TOKEN: 'accessToken',
@@ -42,6 +43,11 @@ class TokenStorage {
       SecureStore.deleteItemAsync(TOKEN_KEYS.ACCESS_TOKEN),
       SecureStore.deleteItemAsync(TOKEN_KEYS.REFRESH_TOKEN),
     ]);
+
+    // Start invalidation immediately, while allowing logout to finish offline.
+    void clearPushToken().catch(() => {
+      console.warn('[FCM] Failed to clear the device push token.');
+    });
   }
 
   async updateAccessToken(accessToken: string): Promise<void> {

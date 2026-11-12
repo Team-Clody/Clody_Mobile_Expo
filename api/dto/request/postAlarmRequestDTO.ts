@@ -1,7 +1,7 @@
 export interface PostAlarmRequestDTO {
-  isDiaryAlarm: boolean;
-  isReplyAlarm: boolean;
-  isDraftAlarm: boolean;
-  fcmToken: string;
-  time: string | null;
+  isDiaryAlarm?: boolean | null;
+  isReplyAlarm?: boolean | null;
+  isDraftAlarm?: boolean | null;
+  fcmToken?: string | null;
+  time?: string | null;
 }
