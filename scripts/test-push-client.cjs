@@ -203,8 +203,8 @@ test("provisional iOS notification authorization can register with FCM", async (
   assert.equal(await env.client.getFcmToken(), "fcm-registration-token");
 });
 
-test("simulators and Expo Go leave native notification services untouched", async () => {
-  for (const options of [{ device: false }, { expoGo: true }]) {
+test("Android emulators and Expo Go leave native notification services untouched", async () => {
+  for (const options of [{ device: false }, { expoGo: true }, { os: "ios", device: false, expoGo: true }]) {
     const env = environment(options);
     assert.equal(await env.client.getFcmToken({ requestPermission: true }), null);
     await env.client.clearPushToken();
@@ -212,6 +212,27 @@ test("simulators and Expo Go leave native notification services untouched", asyn
     assert.deepEqual(env.calls, []);
     assert.deepEqual(env.handlers, {});
   }
+});
+
+test("iOS simulators can request permission and register only after an APNs token is ready", async () => {
+  const permission = { status: "undetermined", granted: false, canAskAgain: true };
+  const supported = environment({ os: "ios", device: false, permission });
+  assert.equal(await supported.client.getFcmToken({ requestPermission: true }), "fcm-registration-token");
+  assert.ok(supported.calls.indexOf("requestPermissions") < supported.calls.indexOf("registerAPNs"));
+  assert.ok(supported.calls.indexOf("getAPNsToken") < supported.calls.indexOf("getFcmToken"));
+
+  const unavailable = environment({ os: "ios", device: false, apnsToken: "" });
+  assert.equal(await unavailable.client.getFcmToken({ requestPermission: true }), null);
+  assert.equal(unavailable.calls.includes("getFcmToken"), false);
+});
+
+test("iOS simulators deliver injected remote opens through the same listener path", async () => {
+  const env = environment({ os: "ios", device: false });
+  const stop = env.client.listenForPushNotifications(env.listeners);
+  env.handlers.remoteOpen({ messageId: "simulated-push", data: { type: "diary_reminder" } });
+  assert.deepEqual(env.opens, [{ id: "simulated-push", data: { type: "diary_reminder" } }]);
+  stop();
+  assert.deepEqual(env.removed.sort(), ["localOpen", "message", "refresh", "remoteOpen"]);
 });
 
 test("simultaneous callers share a single permission prompt and token registration", async () => {
@@ -318,10 +339,13 @@ test("iOS identifies headless launches and treats normal launches or native fail
   assert.equal(await normal.client.isBackgroundPushLaunch(), false);
   const failed = environment({ os: "ios", headlessError: new Error("native lookup failed") });
   assert.equal(await failed.client.isBackgroundPushLaunch(), false);
+  const simulator = environment({ os: "ios", device: false, headless: true });
+  assert.equal(await simulator.client.isBackgroundPushLaunch(), true);
+  assert.ok(simulator.calls.includes("getIsHeadless"));
 });
 
 test("Android and unsupported devices skip native headless launch detection", async () => {
-  for (const options of [{ os: "android", headless: true }, { os: "ios", device: false }, { os: "ios", expoGo: true }]) {
+  for (const options of [{ os: "android", headless: true }, { os: "ios", expoGo: true }]) {
     const env = environment(options);
     assert.equal(await env.client.isBackgroundPushLaunch(), false);
     assert.deepEqual(env.calls, []);

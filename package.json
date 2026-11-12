@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test:ads": "node scripts/test-admob-controller.cjs",
-    "test:notifications": "node scripts/test-notifications.cjs && node scripts/test-push-client.cjs && node scripts/test-onboarding-reminder.cjs && node scripts/test-auth-session.cjs"
+    "test:notifications": "node scripts/test-notifications.cjs && node scripts/test-push-client.cjs && node scripts/test-onboarding-reminder.cjs && node scripts/test-auth-session.cjs && node scripts/test-notification-manifest.cjs"
   },
   "dependencies": {
     "@expo/ui": "~0.2.0-beta.9",

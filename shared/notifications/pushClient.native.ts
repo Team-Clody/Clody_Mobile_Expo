@@ -34,7 +34,10 @@ function registrationDeadline(request: Promise<string | null>): Promise<string |
 }
 
 function isSupported() {
-  return Device.isDevice &&
+  // iOS Simulator supports notification UI and injected remote notifications;
+  // modern ARM64 runtimes may also provide a sandbox APNs token. APNs readiness
+  // is checked below before requesting an FCM token.
+  return (Device.isDevice || Platform.OS === "ios") &&
     Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
 }
 

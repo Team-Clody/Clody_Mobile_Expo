@@ -92,6 +92,7 @@ export default {
           ios: {
             newArchEnabled: true,
             useFrameworks: "static",
+            forceStaticLinking: ["RNFBApp", "RNFBMessaging"],
           },
         },
       ],

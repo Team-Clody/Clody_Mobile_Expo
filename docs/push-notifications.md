@@ -31,6 +31,8 @@ npx expo run:ios --device
 
 React Native Firebase는 앱의 Expo SDK 및 광고 모듈과 함께 사용하도록 23 계열을 고정한다. iOS는 `expo-build-properties`의 `useFrameworks: "static"` 설정을 사용한다.
 
+Expo SDK 54에서 React 헤더를 사용하는 RNFB 모듈이 framework로 컴파일되지 않도록 `forceStaticLinking`에 `RNFBApp`, `RNFBMessaging`을 지정한다. Firebase SDK의 static frameworks 설정은 유지하며, 새 prebuild에도 같은 연결 방식이 적용된다.
+
 Android에서는 Expo와 Firebase가 함께 선언하는 기본 알림 채널·색상 때문에 Manifest 병합 충돌이 발생할 수 있다. `withFirebaseNotificationOverrides` 플러그인이 앱의 채널·색상을 우선하도록 `tools:replace`를 설정하며, `prebuild`로 네이티브 폴더를 다시 만들어도 적용된다.
 
 ## 서버 연동
@@ -86,6 +88,28 @@ Android에서는 Expo와 Firebase가 함께 선언하는 기본 알림 채널·�
 6. 로그아웃 후 기존 토큰 대상으로 알림이 더 이상 전달되지 않는지 확인하고, 재로그인 후 새 토큰으로 다시 확인한다.
 
 강제 업데이트 모달은 별도 이슈의 작업 범위다.
+
+## iOS 시뮬레이터 검증 범위
+
+iOS 시뮬레이터에서도 알림 권한 요청과 수신·클릭 리스너를 활성화한다. Android 에뮬레이터와 Expo Go는 기존처럼 지원 대상에서 제외한다. FCM 토큰은 시뮬레이터에서도 APNs 토큰이 실제로 준비됐을 때만 요청하므로, 시뮬레이터 실행 성공을 FCM 등록 성공으로 간주하지 않는다.
+
+[Apple의 Xcode 14 릴리스 노트](https://developer.apple.com/documentation/xcode-release-notes/xcode-14-release-notes)에는 Apple Silicon/T2 Mac의 macOS 13·iOS 16 이상에서 시뮬레이터가 APNs Sandbox를 지원한다고 명시되어 있다. 이 프로젝트가 고정한 [React Native Firebase 23.8.8](https://github.com/invertase/react-native-firebase/blob/v23.8.8/packages/messaging/ios/RNFBMessaging/RNFBMessagingModule.m#L289)도 ARM64 시뮬레이터에서 등록을 시도한다. 실제 등록·수신 가능 여부는 실행 환경과 APNs 설정을 확인해야 한다.
+
+`xcrun simctl push`로 알림을 주입할 때에는 `aps`와 함께 고유한 최상위 `gcm.message_id`를 넣어 RNFB의 수신·클릭 이벤트로 전달되게 한다. 라우팅용 `type`·`date`도 최상위 필드로 전달한다. 이 검증은 알림 UI와 앱의 이벤트 처리를 확인하며, FCM/APNs 전송 경로나 서버의 예약 발송을 검증하지 않는다. APNs 토큰을 임의 문자열로 대체해 성공으로 기록하지 않는다.
+
+
+### 실행 결과 (2026-11-12)
+
+별도로 생성한 iPhone 16e / iOS 26.1 시뮬레이터에서 `feat/#46`만 prebuild·Pods 설치·서명된 Debug 네이티브 빌드 후 검증했다. 위 `forceStaticLinking` 설정으로 RNFB framework의 React 헤더 오류를 해결했고, SecureStore 초기화와 로그인 화면 진입을 확인했다.
+
+- 시스템 알림 권한 창 표시와 허용 동작 확인. 실제 가입을 만들지 않고 개발용 임시 호출로 권한 API를 실행했으므로 온보딩 전체 흐름의 실행 검증으로 기록하지 않는다.
+- `simctl push`로 앱 실행 중 배너 표시, 백그라운드·프로세스 종료 후 배너 클릭과 앱 진입 확인.
+- 백그라운드·종료 상태 모두 RNFB 클릭 콜백에서 주입한 메시지 ID와 `diary_reminder` 데이터를 수신했다. 로그아웃 상태에서 로그인 화면을 유지해 인증을 우회하지 않는 것 확인.
+- 최초 허용 대기 중 등록 제한 시간이 경과했으나, 앱을 다시 시작한 뒤 FCM 토큰 준비 여부가 `true`인 것 확인. 토큰 원문은 출력하지 않았다.
+
+위 수신·클릭 테스트는 시뮬레이터에 주입한 알림으로 수행했다. 실제 FCM/APNs를 통한 전송, 로그인 계정의 목적 화면 이동, 온보딩 완료 시점의 권한 요청, iOS 실기기 수신 및 07:10 예약 발송은 이 결과에 포함하지 않는다. 알림 센터 제스처 자동화가 실패해 배너를 직접 클릭하는 방식으로 검증했으며, 알림 센터 클릭은 확인하지 않았다. 임시 권한 호출과 확인용 로그는 검증 후 소스에서 제거했다.
+
+회귀 검사는 `npm run test:notifications` 49개(알림 라우팅·토큰 동기화 11, 네이티브 클라이언트 22, 온보딩 5, 인증 7, Android manifest 4)와 TypeScript·변경 파일 ESLint로 확인한다. Android manifest 테스트는 새 prebuild에서 Expo가 메타데이터를 나중에 추가하는 순서에도 Firebase 병합 재정의가 유지되는지 포함한다.
 
 ## 예약 알림: 백엔드 수정 대기
 
