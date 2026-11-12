@@ -2,10 +2,8 @@ import { login, me } from "@react-native-kakao/user";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
-import { Platform } from "react-native";
 import {
   GoogleSignin,
   statusCodes,
@@ -48,8 +46,7 @@ const ensureGoogleSigninConfigured = () => {
 
 const AppleLogin = async () => {
   const { accessToken, refreshToken } = await onAppleLogin();
-  console.log("eheheheh");
-  console.log(accessToken, refreshToken);
+  if (!accessToken || !refreshToken) throw new Error("APPLE_TOKEN_MISSING");
   return Promise.all([
     SecureStore.setItemAsync("accessToken", accessToken),
     SecureStore.setItemAsync("refreshToken", refreshToken),
@@ -89,15 +86,13 @@ const googleLogin = async () => {
   try {
     ensureGoogleSigninConfigured();
     const userInfo = await GoogleSignin.signIn();
-    console.log(userInfo);
-    const { idToken } = userInfo.data;
-    const email = userInfo.data?.user.email;
+    if (userInfo.type !== "success") {
+      throw Object.assign(new Error("Google sign-in cancelled"), { code: statusCodes.SIGN_IN_CANCELLED });
+    }
+    const { idToken, user: { email } } = userInfo.data;
+    if (!idToken || !email) throw new Error("GOOGLE_SIGNIN_CONTEXT_MISSING");
     const accessToken = idToken;
-    console.log("here");
-    console.log("idToken: ", idToken);
     let fcmToken = await getPushToken();
-    console.log("bye");
-    console.log(fcmToken);
     await AsyncStorage.setItem("email", email);
     await AsyncStorage.setItem("google_accessToken", accessToken);
     await AsyncStorage.setItem("platform", "google");
@@ -108,9 +103,6 @@ const googleLogin = async () => {
         fcmToken: fcmToken,
       },
     );
-    console.log(res.data);
-    console.log("here");
-    console.log();
     return {
       accessToken: res.data.data.accessToken,
       refreshToken: res.data.data.refreshToken,
@@ -172,7 +164,6 @@ const reissueWithRefreshToken = async (
 
     await SecureStore.setItemAsync("accessToken", newAccessToken);
     await SecureStore.setItemAsync("refreshToken", newRefreshToken);
-    console;
     return true;
   } catch (err: any) {
     console.error("reissue failed:", err?.response?.status, err?.message);
@@ -183,7 +174,13 @@ const reissueWithRefreshToken = async (
     return false;
   }
 };
-const kakaoSignUp = async (form) => {
+interface SignupForm {
+  nickname: string;
+  birthDate: string;
+  gender?: string;
+}
+
+const kakaoSignUp = async (form: SignupForm) => {
   try {
     const { nickname, birthDate, gender } = form;
     const accessToken = await AsyncStorage.getItem("kakao_accessToken");
@@ -215,7 +212,7 @@ const kakaoSignUp = async (form) => {
     throw e;
   }
 };
-const googleSignUp = async (form) => {
+const googleSignUp = async (form: SignupForm) => {
   try {
     const { nickname, birthDate, gender } = form;
     const accessToken = await AsyncStorage.getItem("google_accessToken");

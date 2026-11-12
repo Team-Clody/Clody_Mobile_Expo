@@ -54,7 +54,6 @@ export default function Home() {
       try {
         // 1. 토큰 가져오기
         const accessToken = await SecureStore.getItemAsync("accessToken");
-        console.log(accessToken);
         if (!accessToken) return;
 
         // 2. API 호출
@@ -68,7 +67,6 @@ export default function Home() {
         );
 
         const user = res.data.data;
-        console.log(user);
         // 3. form에 데이터 세팅
         setForm({
           email: user.email || "",

@@ -20,6 +20,7 @@ import IntroduceSecondImage from "@/assets/introduce/2.svg";
 import IntroduceThirdImage from "@/assets/introduce/3.svg";
 import GoogleIcon from "@/assets/icons/ic_google.svg";
 import type { AxiosError } from "axios";
+import { statusCodes } from "@react-native-google-signin/google-signin";
 
 import KakaoLoginButton from "@/components/KakaoLoginButton";
 import { useApp } from "@/store/useAppStore";
@@ -128,6 +129,7 @@ export default function Introduce() {
       setIsLoggedIn(true);
       router.replace("/(home)/(tabs)/main");
     } catch (error) {
+      if ((error as { code?: string })?.code === statusCodes.SIGN_IN_CANCELLED) return;
       console.error(error);
       const status = (error as AxiosError)?.response?.status;
       if (status === 404) {
