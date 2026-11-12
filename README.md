@@ -2,6 +2,8 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
+FCM 푸시 알림 설정과 실기기 테스트 방법은 [푸시 알림 가이드](docs/push-notifications.md)를 참고하세요.
+
 ## Get started
 
 1. Install dependencies

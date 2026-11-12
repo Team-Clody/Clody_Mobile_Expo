@@ -19,8 +19,12 @@ export default {
       buildNumber: "7",
       googleServicesFile:
         process.env.GOOGLE_SERVICES_PLIST || "./GoogleService-Info.plist",
+      entitlements: {
+        "aps-environment": "development",
+      },
       infoPlist: {
         GADApplicationIdentifier: ADMOB_APP_IDS.ios,
+        UIBackgroundModes: ["remote-notification"],
       },
     },
     android: {
@@ -53,6 +57,15 @@ export default {
       ],
       "expo-secure-store",
       "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
+      [
+        "expo-notifications",
+        {
+          defaultChannel: "default",
+          color: "#8FF76F",
+          enableBackgroundRemoteNotifications: true,
+        },
+      ],
       [
         "@react-native-google-signin/google-signin",
         {
@@ -94,6 +107,7 @@ export default {
           },
         },
       ],
+      "./plugins/withFirebaseNotificationOverrides",
     ],
     experiments: {
       typedRoutes: true,
