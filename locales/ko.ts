@@ -263,8 +263,12 @@ export default {
     hardUpdate: {
       title: '최신버전으로 업데이트가 필요합니다',
       description:
-        '현재 버전 : {{currentVersion}} -> 최신 버전 : {{latestVersion}}',
+        '현재 버전: %{currentVersion}\n필수 버전: %{latestVersion}',
       confirm: '스토어로 이동',
+      recheck: '업데이트 다시 확인',
+      storeErrorTitle: '스토어를 열 수 없어요',
+      storeError: '잠시 후 다시 시도해 주세요. 문제가 계속되면 고객센터에 문의해 주세요.',
+      storeErrorConfirm: '확인',
     },
   },
   diaryWrite: {

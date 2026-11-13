@@ -12,6 +12,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { initializeAdMob } from "@/shared/ads";
 import { useAppStore } from "@/store/useAppStore";
+import { AppUpdateGate } from "@/shared/updates/AppUpdateGate";
 import { usePushNotifications } from "@/shared/notifications/usePushNotifications";
 import { isBackgroundPushLaunch } from "@/shared/notifications/pushClient";
 
@@ -22,7 +23,7 @@ export default function RootLayout() {
   const [showApp, setShowApp] = useState(false);
   useEffect(() => {
     let active = true;
-    // A silent iOS background launch should not initialize ads or navigate.
+    // Keep silent iOS background launches outside authentication, ads and updates.
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") setShowApp(true);
     });
@@ -35,7 +36,23 @@ export default function RootLayout() {
     };
   }, []);
 
-  return showApp ? <AppLayout /> : null;
+  return showApp ? <AppRoot /> : null;
+}
+
+function AppRoot() {
+  const [fontsLoaded] = useFonts({
+    PretendardRegular: require("@/assets/fonts/Pretendard-Regular.otf"),
+    PretendardMedium: require("@/assets/fonts/Pretendard-Medium.otf"),
+    PretendardSemiBold: require("@/assets/fonts/Pretendard-SemiBold.otf"),
+    PretendardBold: require("@/assets/fonts/Pretendard-Bold.otf"),
+  });
+
+  if (!fontsLoaded) return null;
+  return (
+    <AppUpdateGate>
+      <AppLayout />
+    </AppUpdateGate>
+  );
 }
 
 function AppLayout() {
@@ -48,21 +65,9 @@ function AppLayout() {
       : pathname === "/teamClody"
         ? "#F3F3F6"
         : APP_BACKGROUND;
-  const [fontsLoaded] = useFonts({
-    PretendardRegular: require("@/assets/fonts/Pretendard-Regular.otf"),
-    PretendardMedium: require("@/assets/fonts/Pretendard-Medium.otf"),
-    PretendardSemiBold: require("@/assets/fonts/Pretendard-SemiBold.otf"),
-    PretendardBold: require("@/assets/fonts/Pretendard-Bold.otf"),
-  });
-
   useEffect(() => {
     void SystemUI.setBackgroundColorAsync(APP_BACKGROUND);
   }, []);
-
-  useEffect(() => {
-    if (!fontsLoaded) return;
-    void SplashScreen.hideAsync();
-  }, [fontsLoaded]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;
@@ -97,11 +102,8 @@ function AppLayout() {
   }, []);
 
   useEffect(() => {
-    if (!fontsLoaded) return;
     void useAppStore.getState().hydrateAuthFromStorage();
-  }, [fontsLoaded]);
-
-  if (!fontsLoaded) return null;
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

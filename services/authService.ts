@@ -3,7 +3,7 @@ import * as SecureStore from "expo-secure-store";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { getFcmToken } from "@/shared/notifications/pushClient";
 
 type SignupForm = {
@@ -92,7 +92,7 @@ const googleLogin = async () => {
     ensureGoogleSigninConfigured();
     const userInfo = await GoogleSignin.signIn();
     if (userInfo.type !== "success" || !userInfo.data) {
-      throw new Error("GOOGLE_SIGN_IN_CANCELLED");
+      throw Object.assign(new Error("Google sign-in cancelled"), { code: statusCodes.SIGN_IN_CANCELLED });
     }
 
     const { idToken, user } = userInfo.data;

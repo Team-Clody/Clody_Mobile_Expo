@@ -4,6 +4,7 @@ import {
   Alert,
   Dimensions,
   LayoutChangeEvent,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -19,6 +20,7 @@ import IntroduceSecondImage from "@/assets/introduce/2.svg";
 import IntroduceThirdImage from "@/assets/introduce/3.svg";
 import GoogleIcon from "@/assets/icons/ic_google.svg";
 import type { AxiosError } from "axios";
+import { statusCodes } from "@react-native-google-signin/google-signin";
 
 import KakaoLoginButton from "@/components/KakaoLoginButton";
 import { useApp } from "@/store/useAppStore";
@@ -127,6 +129,7 @@ export default function Introduce() {
       setIsLoggedIn(true);
       router.replace("/(home)/(tabs)/main");
     } catch (error) {
+      if ((error as { code?: string })?.code === statusCodes.SIGN_IN_CANCELLED) return;
       console.error(error);
       const status = (error as AxiosError)?.response?.status;
       if (status === 404) {
@@ -171,6 +174,21 @@ export default function Introduce() {
     <Pressable style={styles.appleSlot} onPress={() => {}}>
       <Ionicons name="logo-apple" size={18} color="#FFFFFF" />
       <Text style={styles.appleSlotText}>{appleLoginLabel}</Text>
+    </Pressable>
+  );
+  const googleLoginButton = (
+    <Pressable
+      style={[styles.googleSlot, googleLoading && styles.loadingDisabled]}
+      onPress={() => {
+        void handleGoogleLogin();
+      }}
+      disabled={googleLoading}
+      accessibilityRole="button"
+    >
+      <GoogleIcon width={18} height={18} />
+      <Text style={styles.googleSlotText}>
+        {isKorean ? "구글로 로그인" : "Sign up with Google"}
+      </Text>
     </Pressable>
   );
 
@@ -271,35 +289,20 @@ export default function Introduce() {
         ]}
       >
         {isKorean ? (
-          <>
-            <View style={styles.kakaoWrap}>
-              <KakaoLoginButton
-                onPress={handleKakaoLogin}
-                disabled={kakaoLoading}
-              />
-              {kakaoLoading ? (
-                <View style={styles.kakaoLoadingOverlay} pointerEvents="none">
-                  <ActivityIndicator color="#000" />
-                </View>
-              ) : null}
-            </View>
-            {appleLoginButton}
-          </>
-        ) : (
-          <>
-            {appleLoginButton}
-            <Pressable
-              style={[styles.googleSlot, googleLoading && styles.loadingDisabled]}
-              onPress={() => {
-                void handleGoogleLogin();
-              }}
-              disabled={googleLoading}
-            >
-              <GoogleIcon width={18} height={18} />
-              <Text style={styles.googleSlotText}>Sign up with Google</Text>
-            </Pressable>
-          </>
-        )}
+          <View style={styles.kakaoWrap}>
+            <KakaoLoginButton
+              onPress={handleKakaoLogin}
+              disabled={kakaoLoading}
+            />
+            {kakaoLoading ? (
+              <View style={styles.kakaoLoadingOverlay} pointerEvents="none">
+                <ActivityIndicator color="#000" />
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+        {Platform.OS === "ios" ? appleLoginButton : null}
+        {!isKorean || Platform.OS !== "ios" ? googleLoginButton : null}
       </View>
     </View>
   );

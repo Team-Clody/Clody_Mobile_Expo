@@ -11,6 +11,7 @@ export type ModalType =
 export interface UpdateModalData {
   currentVersion: string;
   latestVersion: string;
+  storeUrl?: string;
 }
 
 export interface InspectionModalData {

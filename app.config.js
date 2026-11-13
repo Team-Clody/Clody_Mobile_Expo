@@ -92,7 +92,12 @@ export default {
           ios: {
             newArchEnabled: true,
             useFrameworks: "static",
-            forceStaticLinking: ["RNFBApp", "RNFBMessaging"],
+            forceStaticLinking: [
+              "RNFBApp",
+              "RNFBAnalytics",
+              "RNFBMessaging",
+              "RNFBRemoteConfig",
+            ],
           },
         },
       ],
@@ -116,6 +121,12 @@ export default {
     },
     extra: {
       router: {},
+      androidStoreUrl:
+        process.env.EXPO_PUBLIC_ANDROID_STORE_URL ||
+        "https://play.google.com/store/apps/details?id=com.sopt.clody&hl=ko",
+      iosStoreUrl:
+        process.env.EXPO_PUBLIC_IOS_STORE_URL ||
+        "https://apps.apple.com/kr/app/%ED%81%B4%EB%A1%9C%EB%94%94-%ED%96%89%EC%9A%B4%EC%9D%84-%EC%A0%84%ED%95%98%EB%8A%94-%EA%B0%90%EC%82%AC%EC%9D%BC%EA%B8%B0/id6511215518",
       /** JS에서 `initializeKakaoSDK` 호출 시 사용 (네이티브 플러그인 nativeAppKey와 동일해야 함) */
       kakaoNativeAppKey: "b520fc6d759caf1cb41ec2a7be31fb75",
       /** iOS Google Sign-In configure용 Client ID */
