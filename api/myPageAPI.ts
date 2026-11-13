@@ -4,6 +4,7 @@ import { GetAlarmResponseDTO } from './dto/myPage/response/getAlarmResponseDTO';
 import { createAPIRequest, HeaderType } from '@/shared/http';
 import { PostAlarmSetRequestDTO } from './dto/myPage/request/postAlarmSetRequestDTO';
 import { PatchNicknameResponseDTO } from './dto/myPage/response/patchNicknameResponseDTO';
+import { PostAlarmSetResponseDTO } from './dto/myPage/response/postAlarmSetResponseDTO';
 
 export const MyPageAPI = {
   getAccount: async (headerType: HeaderType = HeaderType.ACCESS_TOKEN) => {
@@ -26,11 +27,11 @@ export const MyPageAPI = {
     requestDTO: PostAlarmSetRequestDTO,
     headerType: HeaderType = HeaderType.ACCESS_TOKEN,
   ) => {
-    const resp = await createAPIRequest<GetAlarmResponseDTO>(
+    const resp = await createAPIRequest<PostAlarmSetResponseDTO>(
       'post',
       '/api/v1/alarm',
       headerType,
-      { data: requestDTO },
+      requestDTO,
     );
     return resp.data.data;
   },

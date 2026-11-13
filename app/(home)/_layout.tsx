@@ -1,4 +1,4 @@
-import { Stack } from "expo-router";
+import { Redirect, Stack } from "expo-router";
 import { createContext, useState, useEffect } from "react";
 import * as SecureStore from "expo-secure-store";
 
@@ -7,6 +7,7 @@ import axios from "axios";
 import {
   DEV_BYPASS_AUTH,
 } from "@/shared/config/devAuth";
+import { useAppStore } from "@/store/useAppStore";
 
 interface HomeForm {
   email: string;
@@ -26,6 +27,8 @@ interface HomeContextType {
 export const HomeContext = createContext<HomeContextType | null>(null);
 
 export default function Home() {
+  const authReady = useAppStore((state) => state.authReady);
+  const isLoggedIn = useAppStore((state) => state.isLoggedIn);
   const [form, setForm] = useState<HomeForm>({
     email: "",
     nickname: "",
@@ -37,6 +40,8 @@ export default function Home() {
   });
 
   useEffect(() => {
+    if (!authReady || (!isLoggedIn && !DEV_BYPASS_AUTH)) return;
+    let active = true;
     const loadUser = async () => {
       if (DEV_BYPASS_AUTH) {
         setForm({
@@ -54,8 +59,7 @@ export default function Home() {
       try {
         // 1. 토큰 가져오기
         const accessToken = await SecureStore.getItemAsync("accessToken");
-        console.log(accessToken);
-        if (!accessToken) return;
+        if (!active || !accessToken) return;
 
         // 2. API 호출
         const res = await axios.get(
@@ -67,8 +71,8 @@ export default function Home() {
           },
         );
 
+        if (!active) return;
         const user = res.data.data;
-        console.log(user);
         // 3. form에 데이터 세팅
         setForm({
           email: user.email || "",
@@ -79,13 +83,17 @@ export default function Home() {
           alarm: user.alarm || "",
           cloverCount: user.cloverCount,
         });
-      } catch (err) {
-        console.log("유저 정보 가져오기 실패", err);
+      } catch {
+        if (active) console.warn("[Home] Failed to load user profile.");
       }
     };
 
-    loadUser();
-  }, []);
+    void loadUser();
+    return () => { active = false; };
+  }, [authReady, isLoggedIn]);
+
+  if (!authReady) return null;
+  if (!isLoggedIn && !DEV_BYPASS_AUTH) return <Redirect href="/introduce" />;
 
   return (
     <HomeContext.Provider value={{ form, setForm }}>

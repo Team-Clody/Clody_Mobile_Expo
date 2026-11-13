@@ -1,7 +1,3 @@
-export interface PostAlarmSetRequestDTO {
-  isDiaryAlarm: boolean;
-  isDraftAlarm: boolean;
-  isReplyAlarm: boolean;
-  time: string;
-  fcmToken: string;
-}
+import type { PostAlarmRequestDTO } from '../../request/postAlarmRequestDTO';
+
+export type PostAlarmSetRequestDTO = PostAlarmRequestDTO;
