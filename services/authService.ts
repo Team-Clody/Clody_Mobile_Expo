@@ -2,12 +2,15 @@ import { login, me } from "@react-native-kakao/user";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
-import {
-  GoogleSignin,
-  statusCodes,
-} from "@react-native-google-signin/google-signin";
+import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
+import { getFcmToken } from "@/shared/notifications/pushClient";
+
+type SignupForm = {
+  nickname: string;
+  birthDate: string;
+  gender: string;
+};
 
 function convertBirth(raw: string) {
   if (!raw) {
@@ -46,7 +49,9 @@ const ensureGoogleSigninConfigured = () => {
 
 const AppleLogin = async () => {
   const { accessToken, refreshToken } = await onAppleLogin();
-  if (!accessToken || !refreshToken) throw new Error("APPLE_TOKEN_MISSING");
+  if (!accessToken || !refreshToken) {
+    throw new Error("APPLE_AUTH_TOKENS_MISSING");
+  }
   return Promise.all([
     SecureStore.setItemAsync("accessToken", accessToken),
     SecureStore.setItemAsync("refreshToken", refreshToken),
@@ -60,7 +65,7 @@ const kakaoLogin = async () => {
     await AsyncStorage.setItem("email", user.email);
     await AsyncStorage.setItem("kakao_accessToken", accessToken);
     await AsyncStorage.setItem("platform", "kakao");
-    let fcmToken = await getPushToken();
+    const fcmToken = await getPushToken();
     const res = await axios.post(
       "https://test.clodycorp.com/api/v1/auth/signin",
       {
@@ -86,13 +91,17 @@ const googleLogin = async () => {
   try {
     ensureGoogleSigninConfigured();
     const userInfo = await GoogleSignin.signIn();
-    if (userInfo.type !== "success") {
+    if (userInfo.type !== "success" || !userInfo.data) {
       throw Object.assign(new Error("Google sign-in cancelled"), { code: statusCodes.SIGN_IN_CANCELLED });
     }
-    const { idToken, user: { email } } = userInfo.data;
-    if (!idToken || !email) throw new Error("GOOGLE_SIGNIN_CONTEXT_MISSING");
+
+    const { idToken, user } = userInfo.data;
+    const email = user.email;
+    if (!idToken || !email) {
+      throw new Error("GOOGLE_SIGN_IN_CREDENTIALS_MISSING");
+    }
     const accessToken = idToken;
-    let fcmToken = await getPushToken();
+    const fcmToken = await getPushToken();
     await AsyncStorage.setItem("email", email);
     await AsyncStorage.setItem("google_accessToken", accessToken);
     await AsyncStorage.setItem("platform", "google");
@@ -116,17 +125,11 @@ const onAppleLogin = async (): Promise<{
   accessToken: string | null;
   refreshToken: string | null;
 }> => {
-  //console.log(await getKeyHashAndroid());
-  try {
-    // 구현중
-    return {
-      accessToken: "123",
-      refreshToken: "123",
-    };
-  } catch (e) {
-    console.error(e);
-    throw e;
-  }
+  // 구현중
+  return {
+    accessToken: "123",
+    refreshToken: "123",
+  };
 };
 const isAccessTokenValid = async (accessToken: string): Promise<boolean> => {
   try {
@@ -174,23 +177,17 @@ const reissueWithRefreshToken = async (
     return false;
   }
 };
-interface SignupForm {
-  nickname: string;
-  birthDate: string;
-  gender?: string;
-}
-
 const kakaoSignUp = async (form: SignupForm) => {
   try {
     const { nickname, birthDate, gender } = form;
     const accessToken = await AsyncStorage.getItem("kakao_accessToken");
     const email = await AsyncStorage.getItem("email");
-    let fcmToken = await getPushToken();
+    const fcmToken = await getPushToken();
     const res = await axios.post(
       "https://test.clodycorp.com/api/v1/auth/signup",
       {
         platform: "kakao",
-        fcmToken: fcmToken ? fcmToken : null,
+        fcmToken,
         name: nickname,
         gender: gender,
         birthDate: convertBirth(birthDate),
@@ -217,12 +214,12 @@ const googleSignUp = async (form: SignupForm) => {
     const { nickname, birthDate, gender } = form;
     const accessToken = await AsyncStorage.getItem("google_accessToken");
     const email = await AsyncStorage.getItem("email");
-    let fcmToken = await getPushToken();
+    const fcmToken = await getPushToken();
     const res = await axios.post(
       "https://test.clodycorp.com/api/v1/auth/signup",
       {
         platform: "google",
-        fcmToken: fcmToken ? fcmToken : null,
+        fcmToken,
         name: nickname,
         gender: gender,
         birthDate: convertBirth(birthDate),
@@ -244,13 +241,13 @@ const googleSignUp = async (form: SignupForm) => {
     throw e;
   }
 };
-async function getPushToken() {
+async function getPushToken(): Promise<string> {
   try {
-    let fcmToken = (await Notifications.getDevicePushTokenAsync()).data;
-    return fcmToken;
-  } catch (e) {
-    console.log(e);
-    return null;
+    // Ask only after onboarding/login completes and the home stack is ready.
+    return (await getFcmToken({ requestPermission: false })) ?? "";
+  } catch {
+    // 알림을 사용할 수 없어도 로그인과 회원가입은 계속 진행한다.
+    return "";
   }
 }
 export default {

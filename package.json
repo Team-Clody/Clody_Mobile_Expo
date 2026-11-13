@@ -1,6 +1,6 @@
 {
   "name": "clody_mobile_expo",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "version": "2.0.1",
   "scripts": {
     "start": "expo start",
@@ -10,13 +10,15 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test:ads": "node scripts/test-admob-controller.cjs",
-    "test:updates": "node scripts/test-app-updates.cjs && node scripts/test-native-update-prompt.cjs"
+    "test:updates": "node scripts/test-app-updates.cjs && node scripts/test-native-update-prompt.cjs",
+    "test:notifications": "node scripts/test-notifications.cjs && node scripts/test-push-client.cjs && node scripts/test-onboarding-reminder.cjs && node scripts/test-auth-session.cjs && node scripts/test-notification-manifest.cjs"
   },
   "dependencies": {
     "@expo/ui": "~0.2.0-beta.9",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-firebase/app": "23.8.8",
+    "@react-native-firebase/messaging": "23.8.8",
     "@react-native-firebase/remote-config": "23.8.8",
     "@react-native-google-signin/google-signin": "^16.1.1",
     "@react-native-kakao/core": "^2.4.4",
