@@ -2,7 +2,7 @@ import { Pressable, Text, StyleSheet, Image, View } from "react-native";
 import { useFonts } from "expo-font";
 
 export default function KakaoLoginButton({ onPress, disabled }: any) {
-  const [fontsLoaded] = useFonts({
+  useFonts({
     PretendardSemiBold: require("../assets/fonts/Pretendard-SemiBold.otf"),
   });
   return (
@@ -26,12 +26,11 @@ export default function KakaoLoginButton({ onPress, disabled }: any) {
 const styles = StyleSheet.create({
   button: {
     backgroundColor: "#FEE500",
-    height: 50,
+    height: 48,
     width: "100%",
-    borderRadius: 8,
+    borderRadius: 6,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
   },
   content: {
     flexDirection: "row",

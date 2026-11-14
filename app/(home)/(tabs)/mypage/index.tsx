@@ -3,7 +3,7 @@ import { Icon } from "@/shared/components/Icon";
 import { typography } from "@/shared/theme/typography";
 import { useRouter } from "expo-router";
 import { useContext } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { HomeContext } from "../../_layout";
 
 export default function MyPage() {
@@ -15,12 +15,12 @@ export default function MyPage() {
 
   return (
     <View style={styles.safe}>
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>{i18n.t("mypage")}</Text>
 
         <View style={styles.card}>
           <TouchableOpacity
-            style={styles.row}
+            style={[styles.row, styles.profileRow]}
             onPress={() => router.push("/(home)/profile")}
           >
             <View style={styles.profileLeft}>
@@ -34,7 +34,7 @@ export default function MyPage() {
 
           <View style={styles.divider} />
 
-          <TouchableOpacity style={styles.row}>
+          <TouchableOpacity style={[styles.row, styles.cloverRow]}>
             <Text style={styles.menuText}>{i18n.t("myCover")}</Text>
 
             <View style={styles.cloverRight}>
@@ -48,7 +48,7 @@ export default function MyPage() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.card}>
+        <View style={[styles.card, styles.settingsCard]}>
           <Menu label={i18n.t("notification")} />
           <Menu label={i18n.t("notice")} />
           <Menu label={i18n.t("support")} />
@@ -69,7 +69,7 @@ export default function MyPage() {
             last
           />
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -100,29 +100,35 @@ function Menu({
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#EFEFF4",
+    backgroundColor: "#F2F3F6",
   },
   container: {
-    padding: 16,
+    paddingHorizontal: 14,
+    paddingTop: 4,
+    paddingBottom: 12,
   },
   title: {
-    fontSize: 22,
-    fontWeight: "600",
-    marginBottom: 16,
+    ...typography.head2,
+    height: 32,
+    paddingTop: 3,
+    marginBottom: 12,
   },
   card: {
-    backgroundColor: "#F9F9F9",
-    borderRadius: 16,
-    marginBottom: 20,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    marginBottom: 12,
     overflow: "hidden",
   },
   row: {
-    paddingHorizontal: 16,
-    paddingVertical: 18,
+    paddingHorizontal: 14,
+    height: 48,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
+  profileRow: { height: 70 },
+  cloverRow: { height: 44 },
+  settingsCard: { paddingVertical: 2 },
   border: {
     borderBottomWidth: 1,
     borderColor: "#E5E5EA",
@@ -130,7 +136,7 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: "#E5E5EA",
-    marginHorizontal: 16,
+    marginHorizontal: 14,
   },
   profileLeft: {
     flexDirection: "row",
@@ -138,8 +144,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   name: {
-    fontSize: 16,
-    fontWeight: "500",
+    ...typography.body1,
   },
   menuText: {
     ...typography.body9,

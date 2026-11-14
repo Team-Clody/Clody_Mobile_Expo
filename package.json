@@ -11,7 +11,8 @@
     "lint": "expo lint",
     "test:ads": "node scripts/test-admob-controller.cjs",
     "test:updates": "node scripts/test-app-updates.cjs && node scripts/test-native-update-prompt.cjs",
-    "test:notifications": "node scripts/test-notifications.cjs && node scripts/test-push-client.cjs && node scripts/test-onboarding-reminder.cjs && node scripts/test-auth-session.cjs && node scripts/test-notification-manifest.cjs"
+    "test:notifications": "node scripts/test-notifications.cjs && node scripts/test-push-client.cjs && node scripts/test-onboarding-reminder.cjs && node scripts/test-auth-session.cjs && node scripts/test-notification-manifest.cjs",
+    "test:home": "node scripts/test-home-lifecycle.cjs && node scripts/test-reply-opening.cjs && node scripts/test-reply-screen.cjs && node scripts/test-home-character.cjs && node scripts/test-wardrobe.cjs && node scripts/test-design-qa.cjs"
   },
   "dependencies": {
     "@expo/ui": "~0.2.0-beta.9",
@@ -72,7 +73,8 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "react-test-renderer": "19.1.0"
   },
   "private": true
 }

@@ -66,7 +66,7 @@ export function WeeklyCalendarStrip({
       })}
       onMomentumScrollEnd={onScrollEnd}
       renderItem={({ item }) => (
-        <View style={{ width: SCREEN_WIDTH }}>
+        <View style={{ width: SCREEN_WIDTH, paddingHorizontal: 14 }}>
           <View style={{ flexDirection: "row" }}>
             {weekDays.map((d, index) => {
               const columnDate = item[index];

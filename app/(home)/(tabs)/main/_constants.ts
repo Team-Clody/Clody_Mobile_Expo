@@ -9,7 +9,7 @@ export const WEEK_DAYS_EN = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 export const WEEK_DAYS_KO = ["월", "화", "수", "목", "금", "토", "일"];
 export const WEEKDAY_LABEL_CIRCLE_SIZE = 28;
 export const TODAY_WEEKDAY_LABEL_CIRCLE_SIZE = 24;
-export const MONTHLY_SHEET_CLOVER_ROW_GAP = 24;
+export const MONTHLY_SHEET_CLOVER_ROW_GAP = 10;
 export const MONTHLY_TODAY_BADGE_SIZE = {
   ko: { width: 30, height: 32, top: -24 },
   en: { width: 34, height: 38, top: -29 },
@@ -25,7 +25,7 @@ export const WEEK_STRIP_LENGTH = WEEK_STRIP_HALF_SPAN * 2 + 1;
 export const GRATITUDE_SLOT_MARGIN_TOP = 40;
 export const GRATITUDE_SLOT_HEIGHT = 326;
 export const GRATITUDE_SCROLL_PADDING_TOP = 92;
-export const BG_DEFAULT_ASPECT_RATIO = 1;
+export const BG_DEFAULT_ASPECT_RATIO = 375 / 404;
 export const BG_CENTER_TRANSLATE_Y = 18;
 export const CHARACTER_TOP_RATIO = 0.4;
 export const GRATITUDE_ABOVE_TAB_BAR = 12;

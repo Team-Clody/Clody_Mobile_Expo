@@ -76,10 +76,15 @@ export default {
     unavailable: "Couldn't load the ad. Please try again shortly.",
   },
   storage: {
+    loading: "Loading your outfits.",
+    loadError: "Could not load your outfits.",
+    retry: "Try again",
+    saveError: "Could not save your outfit. Please try again.",
     empty: "You haven't received any outfits yet.",
     save: 'Save',
   },
   skin: {
+    maxLevel: "Max level reached",
     title: 'Clover Rewards',
     subtitle: 'Write gratitude diaries and collect Lody outfits.',
     myClover: 'My Clover',
@@ -320,7 +325,8 @@ export default {
     },
     reward: {
       title: 'You got 1 clover',
-      description: 'Level 1 mission 1/2 complete',
+      description: 'Level %{level} mission %{completed}/%{required} complete',
+      descriptionFallback: 'Your luck is growing',
       confirm: 'Done',
     },
     toast: {

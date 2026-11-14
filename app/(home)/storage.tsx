@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
-  ImageBackground,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Image as SkinImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useStorageStore } from "@/store/useStorageStore";
@@ -17,6 +18,11 @@ import IcBack from "@/assets/icons/ic_back.svg";
 import IcFarmer from "@/assets/icons/ic_farmer.svg";
 import IcPrincess from "@/assets/icons/ic_princess.svg";
 import IcDevil from "@/assets/icons/ic_devil.svg";
+import { saveWardrobeSelection } from "@/services/wardrobeService";
+import { palette } from "@/shared/theme/palette";
+import { typography } from "@/shared/theme/typography";
+import { useWardrobe } from "@/shared/skins/useWardrobe";
+import { getSkinCharacterSource } from "@/shared/skins/skinAppearance";
 
 const COSTUME_ICONS: Record<
   number,
@@ -26,16 +32,6 @@ const COSTUME_ICONS: Record<
   2: { Icon: IcPrincess, width: 40, height: 40 },
   3: { Icon: IcDevil, width: 50, height: 50 },
 };
-import { SkinAPI } from "@/api/skinAPI";
-import { InventoryAPI } from "@/api/inventoryAPI";
-import { SkinStatusItemResponseDTO } from "@/api/dto/skin/response/getSkinStatusListResponseDTO";
-import { UserInventoryItemResponseDTO } from "@/api/dto/inventory/response/getUserInventoryListResponseDTO";
-
-const COSTUME_LODY: Record<number, any> = {
-  1: require("@/assets/images/farmer.png"),
-  2: require("@/assets/images/princess.png"),
-  3: require("@/assets/images/devil.png"),
-};
 
 function getCostumeName(stage: number): string {
   const key = `skin.costumeName.${stage}` as const;
@@ -44,77 +40,19 @@ function getCostumeName(stage: number): string {
   return i18n.t("skin.level", { stage });
 }
 
-interface OwnedSkin {
-  inventoryItemId: number;
-  skinId: number;
-  stage: number;
-  url: string;
-  name: string;
-  isEquipped: boolean;
-}
-
 export default function StorageScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const setShouldReopenReward = useStorageStore(
     (s: { setShouldReopenReward: (value: boolean) => void }) =>
       s.setShouldReopenReward,
   );
 
-  const [owned, setOwned] = useState<OwnedSkin[]>([]);
-  const [selectedInventoryId, setSelectedInventoryId] = useState<number | null>(
-    null,
-  );
-  const [equippedInventoryId, setEquippedInventoryId] = useState<number | null>(
-    null,
-  );
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [skinList, invList] = await Promise.all([
-        SkinAPI.getSkinStatusList(),
-        InventoryAPI.getUserInventories(),
-      ]);
-
-      const parseStage = (s: string) => {
-        const m = String(s ?? "").match(/\d+/);
-        return m ? parseInt(m[0], 10) : 0;
-      };
-      const receivedSkins: SkinStatusItemResponseDTO[] = skinList.skins
-        .filter((s) => s.status === "RECEIVED")
-        .sort((a, b) => parseStage(a.cloverStage) - parseStage(b.cloverStage));
-      const inventories: UserInventoryItemResponseDTO[] = [
-        ...invList.inventories,
-      ].sort(
-        (a, b) =>
-          new Date(a.acquiredAt).getTime() - new Date(b.acquiredAt).getTime(),
-      );
-
-      const merged: OwnedSkin[] = receivedSkins.map((skin, idx) => {
-        const inv = inventories[idx];
-        const stageMatch = String(skin.cloverStage ?? "").match(/\d+/);
-        const stage = stageMatch ? parseInt(stageMatch[0], 10) : 0;
-        return {
-          inventoryItemId: inv?.inventoryItemId ?? -1,
-          skinId: skin.skinId,
-          stage,
-          url: skin.url,
-          name: getCostumeName(stage),
-          isEquipped: inv?.isEquipped ?? false,
-        };
-      });
-
-      const equipped = merged.find((m) => m.isEquipped);
-      setOwned(merged);
-      setEquippedInventoryId(equipped?.inventoryItemId ?? null);
-      setSelectedInventoryId(equipped?.inventoryItemId ?? null);
-    } catch (e) {
-      console.log("보관함 조회 실패", e);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const { items: owned, equippedId: equippedInventoryId, selectedId: selectedInventoryId,
+    setSelectedId: setSelectedInventoryId, loading, error, retry } = useWardrobe();
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  const savingRef = useRef(false);
 
   const selectedItem = useMemo(
     () => owned.find((o) => o.inventoryItemId === selectedInventoryId) ?? null,
@@ -122,7 +60,7 @@ export default function StorageScreen() {
   );
 
   const isDirty = selectedInventoryId !== equippedInventoryId;
-  const canSave = isDirty && selectedInventoryId !== null;
+  const canSave = isDirty && (selectedInventoryId === null || selectedItem !== null) && !loading && !saving;
   const isEmpty = owned.length === 0;
 
   const handleSelect = (inventoryItemId: number) => {
@@ -137,45 +75,51 @@ export default function StorageScreen() {
   };
 
   const handleSave = async () => {
-    if (!canSave || selectedInventoryId == null) return;
+    if (!canSave || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    setSaveError(false);
     try {
-      await SkinAPI.equipSkin(selectedInventoryId);
+      await saveWardrobeSelection(selectedInventoryId);
       router.replace("/(home)/(tabs)/main");
-    } catch (e) {
-      console.log("스킨 장착 실패", e);
+    } catch {
+      setSaveError(true);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <View style={styles.header}>
-        <Pressable onPress={goBackToReward} hitSlop={12}>
-          <IcBack width={24} height={24} />
-        </Pressable>
+    <View style={styles.safe}>
+      <View style={[styles.scene, { height: Math.max(260, 339 - insets.top) }]}>
+        <Image
+          source={require("@/assets/images/bg_default.png")}
+          style={[styles.background, { top: -14 - insets.top }]}
+          resizeMode="cover"
+        />
+        <View style={styles.header}>
+          <Pressable onPress={goBackToReward} hitSlop={12} accessibilityRole="button" accessibilityLabel={i18n.t("diaryWrite.back")}>
+            <IcBack width={28} height={28} />
+          </Pressable>
+        </View>
+        <SkinImage
+          source={selectedItem
+            ? getSkinCharacterSource(selectedItem.stage, selectedItem.url) ?? require("@/assets/images/lody_default.png")
+            : require("@/assets/images/lody_default.png")}
+          style={[styles.character, { top: 91 - insets.top }]}
+          contentFit="contain"
+        />
       </View>
 
-      <ImageBackground
-        source={require("@/assets/images/bg_default.png")}
-        style={styles.characterArea}
-        resizeMode="cover"
-      >
-        <Image
-          source={
-            selectedItem && COSTUME_LODY[selectedItem.stage]
-              ? COSTUME_LODY[selectedItem.stage]
-              : require("@/assets/images/lody_default.png")
-          }
-          style={styles.character}
-          resizeMode="contain"
-        />
-      </ImageBackground>
-
       <View style={styles.itemsArea}>
-        {isEmpty ? (
+        {loading && isEmpty ? (
+          <View style={styles.emptyWrap}><ActivityIndicator accessibilityLabel={i18n.t("storage.loading")} /></View>
+        ) : isEmpty && !error ? (
           <View style={styles.emptyWrap}>
             <Text style={styles.emptyText}>{i18n.t("storage.empty")}</Text>
           </View>
-        ) : (
+        ) : !isEmpty ? (
           <FlatList
             data={owned}
             keyExtractor={(item) => String(item.inventoryItemId)}
@@ -191,6 +135,10 @@ export default function StorageScreen() {
                     isSelected && styles.itemCardSelected,
                   ]}
                   onPress={() => handleSelect(item.inventoryItemId)}
+                  disabled={loading || saving}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={getCostumeName(item.stage)}
                 >
                   <View style={styles.itemIcon}>
                     {COSTUME_ICONS[item.stage] ? (
@@ -200,23 +148,32 @@ export default function StorageScreen() {
                         return <Icon width={width} height={height} />;
                       })()
                     ) : item.url ? (
-                      <Image
+                      <SkinImage
                         source={{ uri: item.url }}
                         style={{ width: 40, height: 40 }}
-                        resizeMode="contain"
+                        contentFit="contain"
                       />
                     ) : (
                       <Text style={styles.itemEmoji}>👔</Text>
                     )}
                   </View>
                   <Text style={styles.itemName} numberOfLines={1}>
-                    {item.name}
+                    {getCostumeName(item.stage)}
                   </Text>
                 </Pressable>
               );
             }}
           />
+        ) : null}
+        {error && !loading && (
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyText}>{i18n.t("storage.loadError")}</Text>
+            <Pressable onPress={retry} accessibilityRole="button" style={{ padding: 16 }}>
+              <Text>{i18n.t("storage.retry")}</Text>
+            </Pressable>
+          </View>
         )}
+        {saveError && <Text accessibilityRole="alert" style={styles.emptyText}>{i18n.t("storage.saveError")}</Text>}
       </View>
 
       <LinearGradient
@@ -245,34 +202,23 @@ export default function StorageScreen() {
           </Text>
         </Pressable>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  characterArea: {
-    height: 360,
-    justifyContent: "flex-end",
-    alignItems: "center",
-    backgroundColor: "transparent",
-  },
-  character: {
-    width: 200,
-    height: 240,
-    marginBottom: 40,
-  },
+  safe: { flex: 1, backgroundColor: palette.gray30 },
+  scene: { overflow: "hidden", backgroundColor: palette.gray30 },
+  background: { position: "absolute", width: "100%", height: 404 },
+  header: { height: 32, marginTop: 4, paddingHorizontal: 12, justifyContent: "center", zIndex: 1 },
+  character: { position: "absolute", width: 200, height: 210, alignSelf: "center" },
   itemsArea: {
     flex: 1,
+    backgroundColor: palette.gray0,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
     paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingTop: 20,
   },
   emptyWrap: {
     flex: 1,
@@ -315,9 +261,8 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   itemName: {
-    fontSize: 13,
-    color: "#111111",
-    fontWeight: "500",
+    ...typography.body4,
+    color: palette.gray600,
   },
   bottomGradient: {
     position: "absolute",
@@ -333,14 +278,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   saveButton: {
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: "#282A31",
+    height: 48,
+    borderRadius: 6,
+    backgroundColor: palette.gray800,
     justifyContent: "center",
     alignItems: "center",
   },
   saveButtonDisabled: {
-    backgroundColor: "#F0F0F0",
+    backgroundColor: palette.gray100,
   },
   saveButtonText: {
     fontSize: 16,
@@ -348,6 +293,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   saveButtonTextDisabled: {
-    color: "#9A9A9A",
+    color: palette.gray300,
   },
 });

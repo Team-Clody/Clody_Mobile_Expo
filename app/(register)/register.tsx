@@ -3,8 +3,9 @@ import axios from "axios";
 import { router } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
   Pressable,
   StyleSheet,
@@ -13,6 +14,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BottomActionButton } from "@/shared/components/BottomActionButton";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useApp } from "@/store/useAppStore";
@@ -96,6 +99,7 @@ function getKoreanBirthValidationError(value: string): string {
 
 export default function RegisterScreen() {
   const { setIsLoggedIn } = useApp();
+  const insets = useSafeAreaInsets();
   const isKorean = useMemo(() => getLanguageCode() === "ko", []);
 
   const [step, setStep] = useState<Step>(0);
@@ -284,6 +288,7 @@ export default function RegisterScreen() {
   };
 
   const handleNext = async () => {
+    Keyboard.dismiss();
     if (step < finalStep) {
       setStep((prev) => (prev + 1) as Step);
       return;
@@ -292,6 +297,7 @@ export default function RegisterScreen() {
   };
 
   const handleSkip = async () => {
+    Keyboard.dismiss();
     if (step === 1) {
       setBirthDate("");
       setKoreanBirthRaw("");
@@ -364,6 +370,7 @@ export default function RegisterScreen() {
   }, []);
 
   const handleBack = () => {
+    Keyboard.dismiss();
     if (step > 0) {
       setStep((prev) => (prev - 1) as Step);
       return;
@@ -372,7 +379,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={styles.safe}>
+    <KeyboardAvoidingView style={styles.safe} behavior="padding" keyboardVerticalOffset={insets.top}>
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} hitSlop={12}>
@@ -606,37 +613,6 @@ export default function RegisterScreen() {
           </View>
         )}
 
-        <View style={styles.bottomWrap}>
-          <Pressable
-            style={[
-              styles.nextButton,
-              ((step === 0 && !nicknameValid) ||
-                (step === 1 &&
-                  (isKorean ? koreanBirthRaw.length !== 7 || !!koreanBirthError : !birthDate)) ||
-                (!isKorean && step === 2 && !englishGenderChosen) ||
-                submitting)
-                ? styles.nextButtonDisabled
-                : null,
-            ]}
-            disabled={
-              (step === 0 && !nicknameValid) ||
-              (step === 1 &&
-                (isKorean ? koreanBirthRaw.length !== 7 || !!koreanBirthError : !birthDate)) ||
-              (!isKorean && step === 2 && !englishGenderChosen) ||
-              submitting
-            }
-            onPress={() => {
-              void handleNext();
-            }}
-          >
-            {submitting ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.nextText}>{isKorean ? "다음" : "Next"}</Text>
-            )}
-          </Pressable>
-        </View>
-
         <ReminderTimeBottomSheet
           visible={reminderSheetOpen}
           initialValue={reminderValue}
@@ -670,15 +646,24 @@ export default function RegisterScreen() {
           </View>
         </Modal>
       </View>
-    </View>
+      <BottomActionButton
+        title={isKorean ? "다음" : "Next"}
+        onPress={() => { void handleNext(); }}
+        isLoading={submitting}
+        isDisabled={(step === 0 && !nicknameValid) ||
+          (step === 1 && (isKorean ? koreanBirthRaw.length !== 7 || !!koreanBirthError : !birthDate)) ||
+          (!isKorean && step === 2 && !englishGenderChosen) || submitting}
+      />
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#FFFFFF" },
-  container: { flex: 1, paddingHorizontal: 20 },
+  container: { flex: 1, paddingHorizontal: 14 },
   header: {
-    height: 40,
+    height: 32,
+    marginTop: 4,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -693,14 +678,14 @@ const styles = StyleSheet.create({
     color: "#4A4C54",
     textAlign: "right",
   },
-  section: { flex: 1, paddingTop: 12 },
+  section: { flex: 1 },
   title: {
     fontFamily: "PretendardBold",
     fontSize: 24,
     lineHeight: 34,
     letterSpacing: -0.48,
     color: "#282A31",
-    marginTop: 6,
+    marginTop: 8,
   },
   subtitle: {
     fontFamily: "PretendardRegular",
@@ -708,14 +693,14 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     letterSpacing: -0.26,
     color: "#6B7684",
-    marginTop: 8,
-    marginBottom: 24,
+    marginTop: 6,
+    marginBottom: 40,
   },
   inputWrap: {
-    height: 52,
-    borderRadius: 8,
+    height: 46,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#E4E6EC",
+    borderColor: "#ABAFBB",
     paddingHorizontal: 14,
     justifyContent: "center",
     flexDirection: "row",
@@ -725,14 +710,14 @@ const styles = StyleSheet.create({
     height: "100%",
     flex: 1,
     paddingVertical: 0,
-    fontSize: 16,
-    color: "#17181C",
+    fontSize: 14,
+    color: "#1B1C20",
     textAlignVertical: "center",
     includeFontPadding: false,
   },
   nicknameInput: {
     fontFamily: "PretendardMedium",
-    letterSpacing: -0.05,
+    letterSpacing: -0.28,
     paddingTop: 0,
     paddingBottom: 0,
   },
@@ -837,8 +822,8 @@ const styles = StyleSheet.create({
     color: "#8791A0",
   },
   nicknameMetaRow: {
-    marginTop: 8,
-    minHeight: 22,
+    marginTop: 2,
+    minHeight: 17,
     width: "100%",
     position: "relative",
   },
@@ -849,20 +834,20 @@ const styles = StyleSheet.create({
   },
   counterText: {
     fontFamily: "PretendardRegular",
-    fontSize: 16,
-    lineHeight: 22,
-    letterSpacing: -0.32,
-    color: "#757980",
+    fontSize: 12,
+    lineHeight: 17,
+    letterSpacing: -0.24,
+    color: "#8791A0",
     position: "absolute",
     right: 0,
     top: 0,
     textAlign: "right",
   },
   timeSelector: {
-    height: 52,
-    borderRadius: 10,
+    height: 46,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#E4E6EC",
+    borderColor: "#ABAFBB",
     justifyContent: "center",
     paddingHorizontal: 14,
     flexDirection: "row",
@@ -877,10 +862,10 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   genderRow: {
-    height: 52,
-    borderRadius: 8,
+    height: 46,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#E4E6EC",
+    borderColor: "#ABAFBB",
     paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
@@ -888,7 +873,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   genderRowSelected: {
-    borderColor: "#00974E",
+    borderColor: "#13B567",
     borderWidth: 1.5,
   },
   genderRowLabel: {
@@ -902,23 +887,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   genderRowLabelSelected: {
-    color: "#00974E",
-  },
-  bottomWrap: { paddingBottom: 24 },
-  nextButton: {
-    height: 52,
-    borderRadius: 10,
-    backgroundColor: "#20232A",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  nextButtonDisabled: { backgroundColor: "#E5E7EB" },
-  nextText: {
-    fontFamily: "PretendardSemiBold",
-    color: "#FFFFFF",
-    fontSize: 16,
-    lineHeight: 22,
-    letterSpacing: -0.32,
+    color: "#13B567",
   },
   modalDim: {
     flex: 1,

@@ -61,9 +61,11 @@ function AppLayout() {
   // 배경이 회색인 화면은 상태바 영역도 같은 색으로 맞춰 색 단절을 없앤다
   const topBackground =
     pathname === "/mypage"
-      ? "#EFEFF4"
+      ? "#F2F3F6"
+      : pathname === "/storage"
+        ? "#F8F9FC"
       : pathname === "/teamClody"
-        ? "#F3F3F6"
+        ? "#F2F3F6"
         : APP_BACKGROUND;
   useEffect(() => {
     void SystemUI.setBackgroundColorAsync(APP_BACKGROUND);
