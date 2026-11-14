@@ -4,6 +4,7 @@ import {
   ReplyAPI,
   getSupportedReplyLanguage,
   type ReplyAdRequest,
+  type ReplyReadStatus,
 } from "@/api/replyAPI";
 import i18n from "@/app/i18n/i18n";
 import BackIcon from "@/assets/icons/ic_back.svg";
@@ -12,6 +13,8 @@ import LodyHead from "@/assets/images/lody_head.svg";
 import { useAdMobRewarded } from "@/shared/ads";
 import { DeleteActionSheet } from "@/shared/components/DeleteActionSheet";
 import { Toast } from "@/shared/components/Toast";
+import { CloverRewardModal } from "@/shared/components/modal/CloverRewardModal";
+import { openReplyWithReward, type getCloverMissionProgress } from "@/services/replyOpenService";
 import { palette } from "@/shared/theme/palette";
 import { typography } from "@/shared/theme/typography";
 import { diaryCreatedToReplyReadyMs } from "@/shared/utils/diaryReplyTimer";
@@ -20,7 +23,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -189,7 +191,7 @@ function WaitingReply({
   );
 }
 
-function ReadyReply({ onOpen }: { onOpen: () => void }) {
+function ReadyReply({ onOpen, disabled }: { onOpen: () => void; disabled: boolean }) {
   const contentTop = useCenteredReplyContentTop();
 
   return (
@@ -197,7 +199,7 @@ function ReadyReply({ onOpen }: { onOpen: () => void }) {
       <View style={[styles.imagePlaceholder, styles.readyLody]} />
       <Text style={styles.readyCaption}>{i18n.t("reply.ready.caption")}</Text>
       <Text style={styles.readyTimer}>00:00:00</Text>
-      <Pressable accessibilityRole="button" onPress={onOpen} style={styles.openButton}>
+      <Pressable accessibilityRole="button" disabled={disabled} accessibilityState={{ disabled }} onPress={onOpen} style={[styles.openButton, disabled && styles.disabledButton]}>
         <Text style={styles.openButtonText}>{i18n.t("reply.ready.open")}</Text>
         <ChevronIcon width={16} height={16} color={palette.gray0} />
       </Pressable>
@@ -216,23 +218,6 @@ function ReplyLetter({ reply }: { reply: GetReplyResponseDTO }) {
         <Text style={styles.from}>{i18n.t("reply.letter.from")}</Text>
       </ScrollView>
     </View>
-  );
-}
-
-function CloverRewardModal({ visible, onConfirm }: { visible: boolean; onConfirm: () => void }) {
-  return (
-    <Modal animationType="fade" transparent visible={visible} onRequestClose={onConfirm}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.rewardModal}>
-          <View style={[styles.imagePlaceholder, styles.cloverImage]} />
-          <Text style={styles.rewardTitle}>{i18n.t("reply.reward.title")}</Text>
-          <Text style={styles.rewardDescription}>{i18n.t("reply.reward.description")}</Text>
-          <Pressable accessibilityRole="button" onPress={onConfirm} style={styles.confirmButton}>
-            <Text style={styles.confirmButtonText}>{i18n.t("reply.reward.confirm")}</Text>
-          </Pressable>
-        </View>
-      </View>
-    </Modal>
   );
 }
 
@@ -256,6 +241,13 @@ export default function ReplyScreen() {
   const [loading, setLoading] = useState(true);
   const [opened, setOpened] = useState(false);
   const [showReward, setShowReward] = useState(false);
+  const [rewardProgress, setRewardProgress] = useState<ReturnType<typeof getCloverMissionProgress> | null>(null);
+  const [isOpeningReply, setIsOpeningReply] = useState(false);
+  const openingReplyRef = useRef(false);
+  const openedReplyRef = useRef(false);
+  const activeDateRef = useRef(date);
+  activeDateRef.current = date;
+  const readStatusRef = useRef<ReplyReadStatus | undefined>(undefined);
   const [isDeleteSheetVisible, setIsDeleteSheetVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [toast, setToast] = useState<{
@@ -284,50 +276,52 @@ export default function ReplyScreen() {
     });
   }, []);
 
-  const loadReply = useCallback(async () => {
-    if (!targetDate) return null;
-    try {
-      const result = await ReplyAPI.getReply(targetDate.year, targetDate.month, targetDate.day);
-      setReply(result);
-      return result;
-    } catch {
-      return null;
-    }
-  }, [targetDate]);
-
   useEffect(() => {
     if (!targetDate) {
       setLoading(false);
       return;
     }
     let cancelled = false;
+    setLoading(true);
+    setOpened(false);
+    setShowReward(false);
+    setRewardProgress(null);
+    setReply(null);
+    setIsOpeningReply(false);
+    openingReplyRef.current = false;
+    openedReplyRef.current = false;
     void (async () => {
       try {
-        const [diaryResult, timeResult] = await Promise.all([
+        const [diaryResult, timeResult, meta] = await Promise.all([
           DiaryAPI.getDiary(targetDate.year, targetDate.month, targetDate.day),
           DiaryAPI.getDiaryCreatedTime(
             targetDate.year,
             targetDate.month,
             targetDate.day,
-          ),
+          ).catch(() => null),
+          ReplyAPI.getReplyMeta(targetDate.year, targetDate.month, targetDate.day).catch(() => null),
         ]);
         const nowMs = Date.now();
-        const readyAtByCreatedTime = diaryCreatedToReplyReadyMs(timeResult);
-        const shouldLoadReply =
-          isReadyFromRoute ||
-          (readyAtByCreatedTime != null && readyAtByCreatedTime <= nowMs);
-        const replyResult = shouldLoadReply
-          ? await ReplyAPI.getReply(
-              targetDate.year,
-              targetDate.month,
-              targetDate.day,
-            ).catch(() => null)
+        const readyAtByCreatedTime = timeResult ? diaryCreatedToReplyReadyMs(timeResult) : null;
+        const knownStatus = meta?.replyStatus ?? (
+          ["READY_READ", "READY_NOT_READ", "UNREADY", "HAS_DRAFT", "INVALID_DRAFT"].includes(routeReplyStatus ?? "")
+            ? routeReplyStatus as ReplyReadStatus : undefined
+        );
+        // GET /reply marks it read before returning isRead=true. Only prefetch
+        // an already-read reply; unread content is fetched on the user's open.
+        const replyResult = knownStatus === "READY_READ"
+          ? await ReplyAPI.getReply(targetDate.year, targetDate.month, targetDate.day).catch(() => null)
           : null;
         if (cancelled) return;
+        readStatusRef.current = knownStatus;
         setDiary(diaryResult);
         setReply(replyResult);
         setNow(nowMs);
-        setReplyReadyAt(isReadyFromRoute ? nowMs : readyAtByCreatedTime);
+        const readyFromCalendar = isReplyReadyRouteStatus(knownStatus);
+        const availableAt = meta?.replyAvailableAt ? Date.parse(meta.replyAvailableAt) : NaN;
+        setReplyReadyAt(isReadyFromRoute || readyFromCalendar
+          ? nowMs
+          : Number.isFinite(availableAt) ? availableAt : readyAtByCreatedTime);
       } catch (error) {
         console.warn("[reply] 화면 데이터 불러오기 실패", error);
       } finally {
@@ -337,25 +331,54 @@ export default function ReplyScreen() {
     return () => {
       cancelled = true;
     };
-  }, [isReadyFromRoute, targetDate]);
+  }, [isReadyFromRoute, routeReplyStatus, targetDate]);
 
   useEffect(() => {
     const intervalId = setInterval(() => setNow(Date.now()), 1_000);
     return () => clearInterval(intervalId);
   }, []);
 
-  const revealReplyAfterAd = useCallback(async () => {
-    const loadedReply = await loadReply();
-    if (!loadedReply?.content?.trim()) {
-      showReplyUnavailableError();
-      return;
+  const openReply = useCallback(async (fromAd = false) => {
+    if (!targetDate || openingReplyRef.current || openedReplyRef.current) return;
+    const requestedDate = date;
+    openingReplyRef.current = true;
+    setIsOpeningReply(true);
+    try {
+      const result = await openReplyWithReward(
+        targetDate.year, targetDate.month, targetDate.day, readStatusRef.current,
+      );
+      if (activeDateRef.current !== requestedDate) return;
+      if (!result.reply.content?.trim()) {
+        showReplyUnavailableError();
+        return;
+      }
+      openedReplyRef.current = true;
+      readStatusRef.current = "READY_READ";
+      setReply(result.reply);
+      setOpened(true);
+      if (fromAd) {
+        const nowMs = Date.now();
+        setNow(nowMs);
+        setReplyReadyAt(nowMs);
+      }
+      if (result.firstRead) {
+        setRewardProgress(null);
+        setShowReward(true);
+        void result.progressPromise.then((progress) => {
+          if (activeDateRef.current === requestedDate) setRewardProgress(progress);
+        });
+      }
+    } catch {
+      if (activeDateRef.current === requestedDate) showReplyUnavailableError();
+    } finally {
+      if (activeDateRef.current === requestedDate) {
+        openingReplyRef.current = false;
+        setIsOpeningReply(false);
+      }
     }
-    const nowMs = Date.now();
-    setNow(nowMs);
-    setReplyReadyAt(nowMs);
-    setOpened(true);
-    if (!loadedReply.isRead) setShowReward(true);
-  }, [loadReply, showReplyUnavailableError]);
+  }, [date, targetDate, showReplyUnavailableError]);
+
+  const revealReplyAfterAd = useCallback(() => openReply(true), [openReply]);
 
   useEffect(() => {
     const pendingRequest = pendingFastReplyRequestRef.current;
@@ -406,15 +429,6 @@ export default function ReplyScreen() {
   const hasReplyContent = Boolean(reply?.content?.trim());
   const isReplyReadyByTime = replyReadyAt != null && remaining === 0;
 
-  useEffect(() => {
-    if (!isReplyReadyByTime || hasReplyContent) return;
-    void loadReply().then((loadedReply) => {
-      if (!loadedReply?.content?.trim()) {
-        console.error("[reply] 타이머 종료 후에도 답장이 준비되지 않음");
-      }
-    });
-  }, [hasReplyContent, isReplyReadyByTime, loadReply]);
-
   const phase: ReplyPhase = !isReplyReadyByTime
     ? "waiting"
     : opened || (hasReplyContent && reply?.isRead)
@@ -423,16 +437,6 @@ export default function ReplyScreen() {
   const changeTab = (tab: "diary" | "reply") => {
     setActiveTab(tab);
     pagerRef.current?.setPage(tab === "diary" ? 0 : 1);
-  };
-
-  const openReply = async () => {
-    const loadedReply = hasReplyContent ? reply : await loadReply();
-    if (!loadedReply?.content?.trim()) {
-      showReplyUnavailableError();
-      return;
-    }
-    setOpened(true);
-    if (!loadedReply.isRead) setShowReward(true);
   };
 
   const handleDeleteDiary = async () => {
@@ -589,13 +593,17 @@ export default function ReplyScreen() {
               onPressAd={handlePressAd}
             />
           ) : phase === "ready" ? (
-            <ReadyReply onOpen={openReply} />
+            <ReadyReply onOpen={() => void openReply()} disabled={isOpeningReply} />
           ) : reply ? (
             <ReplyLetter reply={reply} />
           ) : null}
         </View>
       </PagerView>
-      <CloverRewardModal visible={showReward} onConfirm={() => setShowReward(false)} />
+      <CloverRewardModal
+        visible={showReward && !fastReplyRewardAd.isShowing && activeTab === "reply"}
+        progress={rewardProgress}
+        onConfirm={() => setShowReward(false)}
+      />
       <DeleteActionSheet
         visible={isDeleteSheetVisible}
         disabled={isDeleting}
@@ -670,11 +678,5 @@ const styles = StyleSheet.create({
   to: { ...typography.body2, color: palette.gray800 },
   letterContent: { ...typography.body10, marginTop: 12, color: palette.gray1000, lineHeight: 26.6 },
   from: { ...typography.body10, marginTop: "auto", paddingTop: 18, color: palette.gray500, textAlign: "right" },
-  modalOverlay: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.2)" },
-  rewardModal: { width: 212, height: 251, alignItems: "center", borderRadius: 12, backgroundColor: palette.gray0, paddingTop: 20, paddingHorizontal: 16, paddingBottom: 16 },
-  cloverImage: { width: 110, height: 110 },
-  rewardTitle: { ...typography.display4, marginTop: 9, color: "#282A31" },
-  rewardDescription: { ...typography.body12, marginTop: 4, color: palette.gray500 },
-  confirmButton: { width: 180, height: 40, marginTop: 16, alignItems: "center", justifyContent: "center", borderRadius: 6, backgroundColor: palette.gray50 },
-  confirmButtonText: { ...typography.body3, color: palette.gray900 },
+
 });

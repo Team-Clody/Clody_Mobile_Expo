@@ -131,24 +131,26 @@ export function MonthlyCalendarSheet({
             }}
           >
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={[fontPreset.semibold, { fontSize: 22, fontWeight: "600" }]}>
+              <Text style={[fontPreset.semibold, { fontSize: 18, fontWeight: "600" }]}>
                 {formatMonth(calendarDate)}
               </Text>
               <Pressable onPress={onOpenDatePicker} hitSlop={10}>
                 <DownIcon
-                  width={30}
-                  height={30}
+                  width={24}
+                  height={24}
                   color="#324c3d"
                   style={{ marginLeft: 4 }}
                 />
               </Pressable>
             </View>
-            <Text style={[fontPreset.medium, { color: "#666" }]}>
-              {i18n.t("main.header.weekly")}
-            </Text>
+            <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel={i18n.t("main.header.weekly")}>
+              <Text style={[fontPreset.medium, { color: "#3C3E48" }]}>
+                {i18n.t("main.header.weekly")}
+              </Text>
+            </Pressable>
           </View>
 
-          <View style={{ flexDirection: "row", marginBottom: 28 }}>
+          <View style={{ flexDirection: "row", marginBottom: 18 }}>
             {weekDays.map((d, index) => {
               const isSelectedWeekday = index === selectedWeekdayIndex;
               const isTodayWeekday = index === todayWeekdayIndex;

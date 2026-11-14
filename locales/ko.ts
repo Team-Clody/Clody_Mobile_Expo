@@ -51,8 +51,8 @@ export default {
   main: {
     header: {
       today: '오늘',
-      monthly: '월별',
-      weekly: '주별보기',
+      monthly: '월별 보기',
+      weekly: '주별 보기',
     },
     datePicker: {
       title: '날짜 선택',
@@ -75,10 +75,15 @@ export default {
     unavailable: '광고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
   },
   storage: {
+    loading: "보관함을 불러오는 중이에요.",
+    loadError: "보관함을 불러오지 못했어요.",
+    retry: "다시 시도",
+    saveError: "스킨을 저장하지 못했어요. 다시 시도해 주세요.",
     empty: '아직 받은 옷이 없어요.',
     save: '저장하기',
   },
   skin: {
+    maxLevel: "최고 단계 달성",
     title: '클로버 획득 보상',
     subtitle: '감사일기 작성하고, 로디 옷을 받아보세요.',
     myClover: '내 클로버',
@@ -327,7 +332,8 @@ export default {
     },
     reward: {
       title: '클로버 1개 획득',
-      description: '레벨 1 미션 1/2 완료',
+      description: '레벨 %{level} 미션 %{completed}/%{required} 완료',
+      descriptionFallback: '행운이 차곡차곡 쌓이고 있어요',
       confirm: '확인',
     },
     toast: {

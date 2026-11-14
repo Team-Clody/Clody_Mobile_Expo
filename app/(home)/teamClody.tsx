@@ -5,32 +5,13 @@ import {
   TouchableOpacity,
   Pressable,
 } from "react-native";
-import { useContext, useEffect, useState } from "react";
-import { HomeContext } from "./_layout";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { Modal } from "react-native";
+
+import { useRouter } from "expo-router";
 import i18n from "../i18n/i18n";
-import BottomToast from "@/components/BottomToast";
+import { typography } from "@/shared/theme/typography";
 import { Icon } from "@/shared/components/Icon";
 export default function Profile() {
-  const context = useContext(HomeContext);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const params = useLocalSearchParams();
-
-  useEffect(() => {
-    if (params.toast) {
-      setToastMessage(params.toast as string);
-      setToastVisible(true);
-    }
-  }, []);
   const router = useRouter();
-
-  if (!context) return null;
-
-  const { form } = context;
 
   return (
     <View style={styles.safe}>
@@ -99,36 +80,19 @@ function InfoRow({
   );
 }
 
-function formatDate(date: string) {
-  if (!date) return "";
-  const d = new Date(date);
-  if (Number.isNaN(d.getTime())) return date;
-
-  return d.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function formatGender(gender: string) {
-  if (gender === "male") return i18n.t("male");
-  if (gender === "female") return i18n.t("female");
-  return "";
-}
-
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#F3F3F6",
+    backgroundColor: "#F2F3F6",
   },
   container: {
     flex: 1,
-    backgroundColor: "#F3F3F6",
+    backgroundColor: "#F2F3F6",
   },
 
   header: {
-    height: 56,
+    height: 32,
+    marginTop: 4,
     paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
@@ -151,18 +115,17 @@ const styles = StyleSheet.create({
   },
 
   infoCard: {
-    marginTop: 18,
-    backgroundColor: "#F3F3F6",
+    marginTop: 25,
+    backgroundColor: "#F2F3F6",
   },
 
   row: {
-    minHeight: 46,
-    paddingHorizontal: 15,
-    paddingVertical: 11,
+    height: 49,
+    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#F3F3F6",
+    backgroundColor: "#F2F3F6",
   },
   rowBorder: {
     borderBottomWidth: 1,
@@ -170,10 +133,8 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 16,
-    lineHeight: 22,
-    color: "#4A4A4A",
-    fontWeight: "400",
+    ...typography.body9,
+    color: "#4A4C54",
   },
   valueWrap: {
     flexDirection: "row",
@@ -181,10 +142,8 @@ const styles = StyleSheet.create({
     maxWidth: "55%",
   },
   value: {
-    fontSize: 16,
-    lineHeight: 22,
-    color: "#4A4A4A",
-    fontWeight: "400",
+    ...typography.body9,
+    color: "#4A4C54",
     textAlign: "right",
   },
   arrow: {
@@ -201,7 +160,7 @@ const styles = StyleSheet.create({
     height: 48,
     justifyContent: "center",
     paddingHorizontal: 15,
-    backgroundColor: "#F3F3F6",
+    backgroundColor: "#F2F3F6",
   },
   actionText: {
     fontSize: 16,
