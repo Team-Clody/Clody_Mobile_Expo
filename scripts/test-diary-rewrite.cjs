@@ -175,3 +175,20 @@ test("list entries distinguish rewritten journals from regular replies and pass 
   await React.act(async () => { journal.props.onPress(); reply.props.onPress(); });
   assert.deepEqual(calls, [["2026-11-13", true], ["2026-11-14", false]]);
 });
+
+for (const replyStatus of ["UNREADY", "READY_NOT_READ", "READY_READ"]) {
+  test(`a normal ${replyStatus} journal never displays View Journal or disables replies`, async (t) => {
+    const date = dates.formatDateKey(new Date());
+    const env = await home(t, [{ date, diaryCount: 3, replyStatus, isDeleted: false }]);
+    assert.notEqual(env.card().actionLabel, "reply.viewDiary");
+    if (replyStatus === "UNREADY") {
+      assert.equal(env.card().isUnready, true);
+    } else {
+      assert.equal(env.card().actionLabel, "답장확인");
+      assert.equal(env.card().isUnready, false);
+      await React.act(async () => env.card().onPressAction());
+      assert.equal(env.navigation[0].params.replyUnavailable, undefined);
+      assert.equal(env.navigation[0].params.tab, undefined);
+    }
+  });
+}
