@@ -4,7 +4,6 @@ import {
   Alert,
   Dimensions,
   LayoutChangeEvent,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -14,7 +13,6 @@ import PagerView from "react-native-pager-view";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import IntroduceFirstImage from "@/assets/introduce/1.svg";
 import IntroduceSecondImage from "@/assets/introduce/2.svg";
 import IntroduceThirdImage from "@/assets/introduce/3.svg";
@@ -30,6 +28,7 @@ import {
   DEV_BYPASS_AUTH,
   enterAppWithDevBypass,
 } from "@/shared/config/devAuth";
+import { getAvailableLoginButtons } from "@/shared/utils/loginButtons";
 import { getLanguageCode } from "@/shared/utils/locale";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -73,9 +72,10 @@ export default function Introduce() {
     PretendardSemiBold: require("@/assets/fonts/Pretendard-SemiBold.otf"),
     PretendardBold: require("@/assets/fonts/Pretendard-Bold.otf"),
   });
-  const insets = useSafeAreaInsets();
   const { setIsLoggedIn } = useApp();
-  const isKorean = useMemo(() => getLanguageCode() === "ko", []);
+  const languageCode = useMemo(() => getLanguageCode(), []);
+  const isKorean = languageCode === "ko";
+  const loginButtons = useMemo(() => getAvailableLoginButtons(), []);
   const [pageIndex, setPageIndex] = useState(0);
   const [kakaoLoading, setKakaoLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -157,11 +157,10 @@ export default function Introduce() {
 
   const slides = isKorean ? KO_SLIDES : EN_SLIDES;
   const appleLoginLabel = isKorean ? "Apple로 로그인" : "Sign up with Apple";
-  const dotsBottom = useMemo(() => {
-    if (!pagerWrapHeight) return 170;
-    const responsiveBottom = Math.round(pagerWrapHeight * 0.26);
-    return Math.max(130, Math.min(210, responsiveBottom));
-  }, [pagerWrapHeight]);
+  const heroHeight = SCREEN_WIDTH * 173 / 375;
+  const pagerTop = Math.max(24, Math.round(pagerWrapHeight * 0.165));
+  const titleHeight = isKorean ? 56 : 84;
+  const dotsTop = pagerTop + 30 + 16 + titleHeight + 16 + heroHeight + 16;
   const handlePagerWrapLayout = useCallback((e: LayoutChangeEvent) => {
     setPagerWrapHeight(e.nativeEvent.layout.height);
   }, []);
@@ -203,7 +202,7 @@ export default function Introduce() {
           {slides.map((slide, index) => (
             <View
               key={String(index)}
-              style={styles.pagerPage}
+              style={[styles.pagerPage, { paddingTop: pagerTop }]}
               collapsable={false}
             >
               <View style={styles.badgeSlot}>
@@ -211,13 +210,13 @@ export default function Introduce() {
                   <Text style={styles.badgeText}>{slide.badge}</Text>
                 </View>
               </View>
-              <View style={styles.titleSlot}>
+              <View style={[styles.titleSlot, { minHeight: titleHeight }]}>
                 <Text style={styles.title}>{slide.title}</Text>
               </View>
               <View
                 style={[
                   styles.heroPlaceholder,
-                  index === 0 && styles.heroPlaceholderFirst,
+                  { height: heroHeight },
                 ]}
               >
                 {index === 0 ? (
@@ -225,7 +224,7 @@ export default function Introduce() {
                     <IntroduceFirstImage
                       width="100%"
                       height="100%"
-                      preserveAspectRatio="xMidYMid slice"
+                      preserveAspectRatio="xMidYMid meet"
                     />
                   </View>
                 ) : index === 1 ? (
@@ -233,7 +232,7 @@ export default function Introduce() {
                     <IntroduceSecondImage
                       width="100%"
                       height="100%"
-                      preserveAspectRatio="xMidYMid slice"
+                      preserveAspectRatio="xMidYMid meet"
                     />
                   </View>
                 ) : index === 2 ? (
@@ -241,7 +240,7 @@ export default function Introduce() {
                     <IntroduceThirdImage
                       width="100%"
                       height="100%"
-                      preserveAspectRatio="xMidYMid slice"
+                      preserveAspectRatio="xMidYMid meet"
                     />
                   </View>
                 ) : (
@@ -261,7 +260,7 @@ export default function Introduce() {
           ))}
         </PagerView>
         <View
-          style={[styles.dotsRow, { bottom: dotsBottom }]}
+          style={[styles.dotsRow, { top: dotsTop }]}
           accessibilityRole="tablist"
         >
           {Array.from({ length: HERO_PAGE_COUNT }, (_, i) => (
@@ -285,10 +284,10 @@ export default function Introduce() {
       <View
         style={[
           styles.bottomActions,
-          { paddingBottom: Math.max(insets.bottom, 16) + 8 },
+          { paddingBottom: 2 },
         ]}
       >
-        {isKorean ? (
+        {loginButtons.includes("kakao") ? (
           <View style={styles.kakaoWrap}>
             <KakaoLoginButton
               onPress={handleKakaoLogin}
@@ -301,8 +300,8 @@ export default function Introduce() {
             ) : null}
           </View>
         ) : null}
-        {Platform.OS === "ios" ? appleLoginButton : null}
-        {!isKorean || Platform.OS !== "ios" ? googleLoginButton : null}
+        {loginButtons.includes("apple") ? appleLoginButton : null}
+        {loginButtons.includes("google") ? googleLoginButton : null}
       </View>
     </View>
   );
@@ -315,15 +314,13 @@ const styles = StyleSheet.create({
   },
   badgeSlot: {
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 16,
   },
   badge: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 5,
+    borderRadius: 4,
     backgroundColor: "#F2F3F6",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E3E6ED",
   },
   badgeText: {
     fontFamily: "PretendardMedium",
@@ -334,8 +331,7 @@ const styles = StyleSheet.create({
   },
   titleSlot: {
     alignItems: "center",
-    marginBottom: 18,
-    minHeight: 84,
+    marginBottom: 16,
     justifyContent: "center",
   },
   title: {
@@ -357,8 +353,7 @@ const styles = StyleSheet.create({
   pagerPage: {
     flex: 1,
     width: SCREEN_WIDTH,
-    paddingHorizontal: 24,
-    paddingTop: 74,
+    paddingHorizontal: 0,
     justifyContent: "flex-start",
     alignItems: "center",
   },
@@ -369,17 +364,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "transparent",
   },
-  heroPlaceholderFirst: {
-    width: "100%",
-    height: 214,
-    backgroundColor: "transparent",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 0,
-  },
   firstHeroImageWrap: {
     width: "100%",
-    maxWidth: 340,
     aspectRatio: 375 / 173,
     alignSelf: "center",
     alignItems: "center",
@@ -406,9 +392,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   dotActive: {
     backgroundColor: "#1B1C20",
@@ -417,7 +403,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#D1D5DD",
   },
   bottomActions: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 14,
     paddingTop: 0,
     gap: 10,
   },

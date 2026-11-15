@@ -59,7 +59,7 @@ export function MainHeader({
         ],
       }}
     >
-      <View style={{ paddingTop: 8, paddingHorizontal: 20 }}>
+      <View style={{ paddingTop: 8, paddingHorizontal: 14 }}>
         <View
           style={{
             flexDirection: "row",
@@ -69,11 +69,11 @@ export function MainHeader({
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-            <Text style={[fontPreset.semibold, { fontSize: 22, fontWeight: "600" }]}>
+            <Text style={[fontPreset.semibold, { fontSize: 18, fontWeight: "600" }]}>
               {formatMonth(calendarDate)}
             </Text>
             <Pressable onPress={onOpenDatePicker} hitSlop={10}>
-              <DownIcon width={30} height={30} color="#212124" />
+              <DownIcon width={24} height={24} color="#212124" />
             </Pressable>
           </View>
           <View

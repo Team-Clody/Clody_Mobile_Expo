@@ -19,39 +19,49 @@ export const Toast: React.FC<ToastProps> = ({
   onHide,
 }) => {
   const translateY = useRef(new Animated.Value(20)).current;
+  const onHideRef = useRef(onHide);
 
   useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.timing(translateY, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
+    onHideRef.current = onHide;
+  }, [onHide]);
 
-      const timer = setTimeout(() => {
-        Animated.parallel([
-          Animated.timing(translateY, {
-            toValue: 20,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
-          onHide();
-        });
-      }, duration);
+  useEffect(() => {
+    if (!visible) return;
+    let active = true;
+    let exitAnimation: Animated.CompositeAnimation | undefined;
+    translateY.setValue(20);
+    const enterAnimation = Animated.timing(translateY, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    });
+    enterAnimation.start();
 
-      return () => clearTimeout(timer);
-    }
-  }, [visible, duration, translateY, onHide]);
+    const timer = setTimeout(() => {
+      exitAnimation = Animated.timing(translateY, {
+        toValue: 20,
+        duration: 300,
+        useNativeDriver: true,
+      });
+      exitAnimation.start(({ finished }) => {
+        if (active && finished) onHideRef.current();
+      });
+    }, duration);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      enterAnimation.stop();
+      exitAnimation?.stop();
+    };
+  }, [visible, duration, message, variant, translateY]);
 
   if (!visible) {
     return null;
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} pointerEvents="none" accessibilityLiveRegion="polite">
       <Animated.View
         style={[
           styles.toast,

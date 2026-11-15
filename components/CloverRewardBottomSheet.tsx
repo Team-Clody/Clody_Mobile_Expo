@@ -1,3 +1,4 @@
+import { getCloverProgress } from "@/shared/clover/cloverProgress";
 import { useRouter } from "expo-router";
 import i18n from "@/app/i18n/i18n";
 import IcLock from "@/assets/icons/ic_lock.svg";
@@ -5,19 +6,11 @@ import IcFarmer from "@/assets/icons/ic_farmer.svg";
 import IcPrincess from "@/assets/icons/ic_princess.svg";
 import IcDevil from "@/assets/icons/ic_devil.svg";
 
-const COSTUME_ICONS: Record<
-  number,
-  { Icon: React.FC<{ width: number; height: number }>; width: number; height: number }
-> = {
-  1: { Icon: IcFarmer, width: 28, height: 25 },
-  2: { Icon: IcPrincess, width: 34, height: 29 },
-  3: { Icon: IcDevil, width: 50, height: 27 },
-};
+import { Image } from "expo-image";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -32,6 +25,15 @@ import {
   GetSkinStatusListResponseDTO,
   SkinStatusItemResponseDTO,
 } from "@/api/dto/skin/response/getSkinStatusListResponseDTO";
+
+const COSTUME_ICONS: Record<
+  number,
+  { Icon: React.FC<{ width: number; height: number }>; width: number; height: number }
+> = {
+  1: { Icon: IcFarmer, width: 28, height: 25 },
+  2: { Icon: IcPrincess, width: 34, height: 29 },
+  3: { Icon: IcDevil, width: 50, height: 27 },
+};
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } =
   Dimensions.get("window");
@@ -85,7 +87,6 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
   const fetchData = useCallback(async () => {
     try {
       const res = await SkinAPI.getSkinStatusList();
-      console.log("[skins]", JSON.stringify(res, null, 2));
       setData(res);
     } catch (e) {
       console.log("스킨 목록 조회 실패", e);
@@ -127,27 +128,21 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
         }
       });
     }
-  }, [visible, fetchData]);
+  }, [visible, fetchData, translateY, backdropOpacity]);
 
   const totalClovers = data?.totalCloverCount ?? 0;
-  const currentStageMax = data?.currentStageMaxClover ?? 0;
-  const skins = data?.skins ?? [];
-
-  const lastReceivedOrUnlocked = skins
-    .filter((s) => s.status === "RECEIVED" || s.status === "UNLOCKED")
-    .reduce((max, s) => Math.max(max, getStageNumber(s)), 0);
-  const currentStage =
-    lastReceivedOrUnlocked > 0
-      ? lastReceivedOrUnlocked + 1
-      : (data?.currentStage ?? 0);
+  const { level: currentStage, target: currentStageMax } = getCloverProgress(totalClovers, data
+    ? { stage: data.currentStage, target: data.currentStageMaxClover } : undefined);
+  const skins = [...(data?.skins ?? [])].sort((a, b) => getStageNumber(a) - getStageNumber(b));
 
   useEffect(() => {
     if (visible && scrollViewRef.current && currentStage > 1) {
       const itemHeight = 80;
       const scrollTo = (currentStage - 2) * itemHeight;
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         scrollViewRef.current?.scrollTo({ y: scrollTo, animated: true });
       }, 400);
+      return () => clearTimeout(timer);
     }
   }, [visible, currentStage]);
 
@@ -207,7 +202,7 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
                 <Image
                   source={{ uri: skin.url }}
                   style={{ width: 36, height: 36 }}
-                  resizeMode="contain"
+                  contentFit="contain"
                 />
               ) : (
                 <Text style={[styles.iconEmoji, isLocked && { opacity: 0.4 }]}>
@@ -351,7 +346,7 @@ export default function CloverRewardBottomSheet({ visible, onClose }: Props) {
                     <Image
                       source={{ uri: acquiredItem.url }}
                       style={{ width: 56, height: 56 }}
-                      resizeMode="contain"
+                      contentFit="contain"
                     />
                   ) : (
                     <Text style={styles.dialogIcon}>👔</Text>

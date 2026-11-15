@@ -1,103 +1,34 @@
-import { useEffect, useState } from 'react';
-import {
-  Animated,
-  Keyboard,
-  KeyboardEvent,
-  Platform,
-  StyleProp,
-  StyleSheet,
-  ViewStyle,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button } from './Button';
+import { useEffect, useState } from "react";
+import { Keyboard, Platform, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import { Button } from "./Button";
 
 interface BottomActionButtonProps {
   title: string;
   onPress: () => void;
   isDisabled?: boolean;
+  isLoading?: boolean;
   containerStyle?: StyleProp<ViewStyle>;
   buttonStyle?: StyleProp<ViewStyle>;
   buttonStyleOnKeyboard?: StyleProp<ViewStyle>;
 }
 
-export const BottomActionButton = ({
-  title,
-  onPress,
-  isDisabled,
-  containerStyle,
-  buttonStyle,
-  buttonStyleOnKeyboard,
-}: BottomActionButtonProps) => {
-  const insets = useSafeAreaInsets();
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const [keyboardHeight] = useState(new Animated.Value(0));
-
+/** Place inside a KeyboardAvoidingView; the parent owns keyboard positioning. */
+export function BottomActionButton({ title, onPress, isDisabled, isLoading, containerStyle, buttonStyle, buttonStyleOnKeyboard }: BottomActionButtonProps) {
+  const [keyboardVisible, setKeyboardVisible] = useState(Keyboard.isVisible());
   useEffect(() => {
-    const showEvent =
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent =
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    const showSubscription = Keyboard.addListener(showEvent, (e: KeyboardEvent) => {
-      setIsKeyboardVisible(true);
-      if (Platform.OS === 'ios') {
-        Animated.timing(keyboardHeight, {
-          toValue: e.endCoordinates.height,
-          duration: e.duration || 250,
-          useNativeDriver: false,
-        }).start();
-      }
-    });
-    const hideSubscription = Keyboard.addListener(hideEvent, (e: KeyboardEvent) => {
-      setIsKeyboardVisible(false);
-      if (Platform.OS === 'ios') {
-        Animated.timing(keyboardHeight, {
-          toValue: 0,
-          duration: e.duration || 250,
-          useNativeDriver: false,
-        }).start();
-      }
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, [keyboardHeight]);
-
+    const show = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide", () => setKeyboardVisible(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
   return (
-    <Animated.View
-      style={[
-        styles.container,
-        !isKeyboardVisible && containerStyle,
-        isKeyboardVisible && styles.containerKeyboard,
-        !isKeyboardVisible && {
-          paddingBottom: Math.max(insets.bottom, 12),
-        },
-        Platform.OS === 'ios' && {
-          marginBottom: keyboardHeight,
-        },
-      ]}
-    >
-      <Button
-        title={title}
-        onPress={onPress}
-        isDisabled={isDisabled}
-        containerStyle={[
-          buttonStyle,
-          isKeyboardVisible && buttonStyleOnKeyboard,
-        ]}
-      />
-    </Animated.View>
+    <View style={[styles.container, containerStyle, keyboardVisible && styles.docked]}>
+      <Button title={title} onPress={onPress} isDisabled={isDisabled} isLoading={isLoading}
+        containerStyle={[buttonStyle, keyboardVisible && buttonStyleOnKeyboard, keyboardVisible && styles.square]} />
+    </View>
   );
-};
-
+}
 const styles = StyleSheet.create({
-  container: {
-    paddingBottom: 12,
-  },
-  containerKeyboard: {
-    paddingBottom: 0,
-    paddingHorizontal: 0,
-  },
+  container: { paddingHorizontal: 14, paddingBottom: 2 },
+  docked: { paddingHorizontal: 0, paddingBottom: 0 },
+  square: { borderRadius: 0 },
 });

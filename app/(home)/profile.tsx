@@ -103,7 +103,7 @@ export default function Profile() {
         <View style={styles.sectionDivider} />
 
         <TouchableOpacity
-          style={styles.actionRow}
+          style={[styles.actionRow, styles.logoutRow]}
           onPress={() => setShowLogoutModal(true)}
         >
           <Text style={styles.actionText}>{i18n.t("logout")}</Text>
@@ -203,7 +203,7 @@ function InfoRow({
   return (
     <>
       <Pressable onPress={onPress}>
-        <View style={[styles.row]}>
+        <View style={[styles.row, arrow && styles.editableRow]}>
           <Text style={styles.label}>{label}</Text>
 
           <View style={styles.valueWrap}>
@@ -249,7 +249,8 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    height: 56,
+    height: 32,
+    marginTop: 4,
     paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
@@ -272,29 +273,27 @@ const styles = StyleSheet.create({
   },
 
   infoCard: {
-    marginTop: 18,
+    marginTop: 25,
     backgroundColor: "#FFFFFF",
   },
 
   row: {
-    minHeight: 46,
-    paddingHorizontal: 15,
-    paddingVertical: 11,
+    height: 49,
+    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: "#FFFFFF",
   },
+  editableRow: { marginBottom: 4 },
   rowBorder: {
     borderBottomWidth: 1,
     borderBottomColor: "#E3E3E8",
   },
 
   label: {
-    fontSize: 16,
-    lineHeight: 22,
-    color: "#4A4A4A",
-    fontWeight: "400",
+    ...typography.body9,
+    color: "#4A4C54",
   },
   valueWrap: {
     flexDirection: "row",
@@ -302,10 +301,8 @@ const styles = StyleSheet.create({
     maxWidth: "55%",
   },
   value: {
-    fontSize: 16,
-    lineHeight: 22,
-    color: "#4A4A4A",
-    fontWeight: "400",
+    ...typography.body9,
+    color: "#4A4C54",
     textAlign: "right",
   },
   arrow: {
@@ -313,18 +310,18 @@ const styles = StyleSheet.create({
   },
 
   sectionDivider: {
-    height: 10,
-    backgroundColor: "#E9E9EE",
-    marginTop: 20,
+    height: 12,
+    backgroundColor: "#F2F3F6",
+    marginTop: 18,
   },
 
   actionRow: {
-    paddingTop: 29,
-    height: 48,
+    height: 43,
     justifyContent: "center",
     paddingHorizontal: 15,
     backgroundColor: "#FFFFFF",
   },
+  logoutRow: { marginTop: 17 },
   actionText: {
     fontSize: 16,
     lineHeight: 22,
@@ -354,8 +351,8 @@ const styles = StyleSheet.create({
 
   modalDesc: {
     ...typography.caption1,
-    marginTop: 10,
-    color: "#666",
+    marginTop: 4,
+    color: "#6B7684",
     textAlign: "center",
   },
 

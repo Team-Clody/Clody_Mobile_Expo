@@ -1,3 +1,4 @@
+import { useCloverSummary } from "@/shared/skins/useCloverSummary";
 import { useFocusEffect, useRouter } from "expo-router";
 import { isAxiosError } from "axios";
 import {
@@ -49,6 +50,9 @@ import { localeTextStyle } from "@/shared/theme/localeTypography";
 import { useJournalPrompt } from "./_hooks/useJournalPrompt";
 import { useMainCalendarData } from "./_hooks/useMainCalendarData";
 import { useReplyReadyTime } from "./_hooks/useReplyReadyTime";
+import { useSelectedDraft } from "@/shared/diary/useSelectedDraft";
+import { useEquippedSkin } from "@/shared/skins/useEquippedSkin";
+import { getCloverProgress } from "@/shared/clover/cloverProgress";
 import type { ReplyStatus } from "./_types";
 import { getDaysInMonth } from "./_utils/calendarDataUtils";
 import { formatRemainingTime } from "./_utils/cloverUtils";
@@ -66,6 +70,7 @@ export default function Main() {
   const router = useRouter();
   const homeContext = useContext(HomeContext);
   const { isLoggedIn, authReady } = useApp();
+  const equippedSkin = useEquippedSkin(authReady && isLoggedIn);
 
   const [showReward, setShowReward] = useState(false);
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
@@ -104,6 +109,7 @@ export default function Main() {
   const [diaryCountByDate, setDiaryCountByDate] = useState<Record<string, number>>({});
   const [replyStatusByDate, setReplyStatusByDate] = useState<Record<string, ReplyStatus>>({});
   const [replyReadyAtByDate, setReplyReadyAtByDate] = useState<Record<string, number>>({});
+  const [isDeletedByDate, setIsDeletedByDate] = useState<Record<string, boolean>>({});
   const [totalCloverCount, setTotalCloverCount] = useState(0);
   const [journalPromptText, setJournalPromptText] = useState("");
   const [nowTickMs, setNowTickMs] = useState(() => Date.now());
@@ -139,6 +145,7 @@ export default function Main() {
     setDiaryCountByDate,
     setReplyStatusByDate,
     setReplyReadyAtByDate,
+    setIsDeletedByDate,
     setTotalCloverCount,
     calendarRefreshKey,
   );
@@ -188,11 +195,10 @@ export default function Main() {
       : { weekday: "short", month: "short", day: "numeric" },
   );
 
-  const cloversPerLevel = 2;
+  const cloverSummary = useCloverSummary(authReady && isLoggedIn);
   const profileCloverCount = homeContext?.form?.cloverCount ?? 0;
-  const effectiveTotalCloverCount = Math.max(totalCloverCount, profileCloverCount);
-  const currentLevel = Math.floor(effectiveTotalCloverCount / cloversPerLevel) + 1;
-  const currentLevelProgress = effectiveTotalCloverCount % cloversPerLevel;
+  const effectiveTotalCloverCount = cloverSummary?.totalCloverCount ?? Math.max(totalCloverCount, profileCloverCount);
+  const { level: currentLevel, target: cloverTarget } = getCloverProgress(effectiveTotalCloverCount, cloverSummary ? { stage: cloverSummary.currentStage, target: cloverSummary.currentStageMaxClover } : undefined);
   const characterTop = useMemo(() => {
     if (!visualAreaSize.height) return 0;
     return Math.round(visualAreaSize.height * CHARACTER_TOP_RATIO);
@@ -200,6 +206,7 @@ export default function Main() {
 
   const selectedDateKey = formatDateKey(gratitudeDate);
   const selectedDiaryCount = diaryCountByDate[selectedDateKey] ?? 0;
+  const selectedHasDraft = useSelectedDraft(gratitudeDate, selectedDiaryCount > 0, authReady && isLoggedIn);
   const selectedReplyAdRequest = useMemo<ReplyAdRequest>(
     () => ({
       year: gratitudeDate.getFullYear(),
@@ -324,13 +331,13 @@ export default function Main() {
       ? Math.max(0, selectedReplyReadyAtMs - nowTickMs)
       : 0;
   const isFutureSelected = isFutureDate(gratitudeDate);
-  const isDraft =
-    selectedReplyStatus === "HAS_DRAFT" ||
-    selectedReplyStatus === "INVALID_DRAFT";
+  const isDraft = selectedReplyStatus === "HAS_DRAFT" ||
+    selectedReplyStatus === "INVALID_DRAFT" || selectedHasDraft === true;
   const hasSelectedDiary = selectedDiaryCount > 0;
-  const isUnready = selectedReplyStatus === "UNREADY" && hasSelectedDiary;
-  const isReadyNotRead = selectedReplyStatus === "READY_NOT_READ";
-  const isReadyRead = selectedReplyStatus === "READY_READ";
+  const isRewrittenDiary = hasSelectedDiary && isDeletedByDate[selectedDateKey] === true;
+  const isUnready = !isRewrittenDiary && selectedReplyStatus === "UNREADY" && hasSelectedDiary;
+  const isReadyNotRead = !isRewrittenDiary && selectedReplyStatus === "READY_NOT_READ";
+  const isReadyRead = !isRewrittenDiary && selectedReplyStatus === "READY_READ";
   const showReplyAction =
     hasSelectedDiary && (isReadyNotRead || isReadyRead);
   const showWriteEntry =
@@ -338,13 +345,15 @@ export default function Main() {
   const isWritableSelected = isDiaryWritableDate(gratitudeDate);
   const actionLabel = showWriteEntry
     ? i18n.t("main.gratitude.writeEntry")
-    : showReplyAction
-      ? isKo
-        ? "답장확인"
-        : "See My Reply"
-      : isKo
-        ? i18n.t("main.gratitude.continueWriting")
-        : "Continue Writing";
+    : isRewrittenDiary
+      ? i18n.t("reply.viewDiary")
+      : showReplyAction
+        ? isKo
+          ? "답장확인"
+          : "See My Reply"
+        : isKo
+          ? i18n.t("main.gratitude.continueWriting")
+          : "Continue Writing";
   const actionTextColor = showWriteEntry
     ? isWritableSelected
       ? "#13B567"
@@ -574,7 +583,7 @@ export default function Main() {
 
   const startFastReplyAdFlow = useCallback(
     async (request: ReplyAdRequest, dateKey: string) => {
-      if (fastReplyRewardAd.isShowing || isStartingFastReplyAd) return;
+      if (isDeletedByDate[dateKey] || fastReplyRewardAd.isShowing || isStartingFastReplyAd) return;
 
       setIsStartingFastReplyAd(true);
       try {
@@ -607,7 +616,7 @@ export default function Main() {
         variant: "warning",
       });
     },
-    [fastReplyRewardAd, isStartingFastReplyAd],
+    [fastReplyRewardAd, isStartingFastReplyAd, isDeletedByDate],
   );
 
   useEffect(() => {
@@ -732,12 +741,12 @@ export default function Main() {
         }}
       >
         <CharacterScene
+          equippedSkin={equippedSkin}
           characterTop={characterTop}
           isKo={!!isKo}
           currentLevel={currentLevel}
           effectiveTotalCloverCount={effectiveTotalCloverCount}
-          cloversPerLevel={cloversPerLevel}
-          currentLevelProgress={currentLevelProgress}
+          cloverTarget={cloverTarget}
           levelChipTextStyle={levelChipTextStyle}
           cloverCountTextStyle={cloverCountTextStyle}
           onOpenReward={() => setShowReward(true)}
@@ -783,6 +792,7 @@ export default function Main() {
                 date: selectedDateKey,
                 source: "home",
                 status: selectedReplyStatus,
+                ...(isRewrittenDiary ? { tab: "diary", replyUnavailable: "true" } : {}),
               },
             });
           }}

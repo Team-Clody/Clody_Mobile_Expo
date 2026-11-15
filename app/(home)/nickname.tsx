@@ -4,51 +4,32 @@ import {
   StyleSheet,
   TouchableOpacity,
   KeyboardAvoidingView,
-  Keyboard,
   TextInput,
   Pressable,
-  Platform,
 } from "react-native";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
 import { HomeContext } from "./_layout";
 import { useRouter } from "expo-router";
-import { Modal } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BottomActionButton } from "@/shared/components/BottomActionButton";
 import { Icon } from "@/shared/components/Icon";
 import i18n from "../i18n/i18n";
 import { Ionicons } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
 
-const KEYBOARD_BUTTON_GAP = 12;
+
 
 export default function Profile() {
   const context = useContext(HomeContext);
-  if (!context) return null;
-  const { form, setForm } = context;
+  const insets = useSafeAreaInsets();
   const [isValid, setIsValid] = useState(false);
   const [nickname, setNickname] = useState("");
   const router = useRouter();
-  const [keyboardShow, setKeyboardShow] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  useEffect(() => {
-    const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
-      const height = e.endCoordinates.height;
-      setKeyboardHeight(height);
-      setKeyboardShow(true);
-    });
-
-    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
-      setKeyboardHeight(0);
-      setKeyboardShow(false);
-    });
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
+  if (!context) return null;
+  const { form, setForm } = context;
   return (
-    <View style={styles.safe}>
+    <KeyboardAvoidingView style={styles.safe} behavior="padding" keyboardVerticalOffset={insets.top}>
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity
@@ -111,23 +92,13 @@ export default function Profile() {
             <Text style={styles.counterTotal}>/10</Text>
           </Text>
         </View>
-        <View
-          style={[
-            styles.bottomButtonWrap,
-            {
-              bottom: keyboardShow ? keyboardHeight + KEYBOARD_BUTTON_GAP : 0,
-            },
-          ]}
-        >
-          <Pressable
-            disabled={!isValid}
-            style={[
-              styles.button,
-              { backgroundColor: isValid ? "#2B2F36" : "#E5E7EB" },
-            ]}
+      </View>
+      <BottomActionButton
+        title={i18n.t("nicknameSubmit")}
+        isDisabled={!isValid}
             onPress={async () => {
               const accessToken = await SecureStore.getItemAsync("accessToken");
-              const res = await axios.patch(
+              await axios.patch(
                 "https://test.clodycorp.com/api/v1/user/nickname",
                 {
                   name: nickname,
@@ -139,27 +110,14 @@ export default function Profile() {
                 },
               );
 
-              const name = res.data.data;
-              console.log(name);
               setForm({ ...form, nickname });
               router.replace({
                 pathname: "/profile",
                 params: { toast: i18n.t("nicknameSuccess") },
               });
             }}
-          >
-            <Text
-              style={{
-                color: isValid ? "#fff" : "#757980",
-                fontSize: 18,
-              }}
-            >
-              {i18n.t("nicknameSubmit")}
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-    </View>
+      />
+    </KeyboardAvoidingView>
   );
 }
 
