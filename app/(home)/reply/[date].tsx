@@ -20,7 +20,7 @@ import { typography } from "@/shared/theme/typography";
 import { diaryCreatedToReplyReadyMs } from "@/shared/utils/diaryReplyTimer";
 import { isAxiosError } from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Children, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -614,29 +614,33 @@ export default function ReplyScreen() {
           setActiveTab(nativeEvent.position === 0 ? "diary" : "reply");
         }}
       >
-        <View key="diary" style={styles.page}>
-          <MyDiary
-            diary={diary}
-            onPressMore={() => setIsDeleteSheetVisible(true)}
-          />
-        </View>
-        {!replyDisabled && <View key="reply" style={styles.page}>
-          {phase === "waiting" ? (
-            <WaitingReply
-              remaining={remaining}
-              adDisabled={
-                fastReplyRewardAd.isShowing ||
-                isStartingFastReplyAd ||
-                isWaitingForFastReplyAdLoad
-              }
-              onPressAd={handlePressAd}
+        {Children.toArray([
+          <View key="diary" style={styles.page}>
+            <MyDiary
+              diary={diary}
+              onPressMore={() => setIsDeleteSheetVisible(true)}
             />
-          ) : phase === "ready" ? (
-            <ReadyReply onOpen={() => void openReply()} disabled={isOpeningReply} />
-          ) : reply ? (
-            <ReplyLetter reply={reply} />
-          ) : null}
-        </View>}
+          </View>,
+          !replyDisabled && (
+            <View key="reply" style={styles.page}>
+              {phase === "waiting" ? (
+                <WaitingReply
+                  remaining={remaining}
+                  adDisabled={
+                    fastReplyRewardAd.isShowing ||
+                    isStartingFastReplyAd ||
+                    isWaitingForFastReplyAdLoad
+                  }
+                  onPressAd={handlePressAd}
+                />
+              ) : phase === "ready" ? (
+                <ReadyReply onOpen={() => void openReply()} disabled={isOpeningReply} />
+              ) : reply ? (
+                <ReplyLetter reply={reply} />
+              ) : null}
+            </View>
+          ),
+        ])}
       </PagerView>
       <CloverRewardModal
         visible={!replyDisabled && showReward && !fastReplyRewardAd.isShowing && activeTab === "reply"}

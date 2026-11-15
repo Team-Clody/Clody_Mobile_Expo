@@ -4,6 +4,9 @@ const React = require("react");
 const Renderer = require("react-test-renderer");
 const load = require("./helpers/load-typescript.cjs");
 global.IS_REACT_ACT_ENVIRONMENT = true;
+const { childrenWithOverriddenStyle } = load("node_modules/react-native-pager-view/src/utils.tsx", {
+  "react-native": { View: "View", StyleSheet: { absoluteFill: {} } },
+});
 
 async function screen(t, { alreadyRead = false, content = "A real reply", cloverRequest, isDeleted = false, metaDeleted = false, routeUnavailable = false, routeTab, replyStatus, deletedAtOpen = false } = {}) {
   const calls = [];
@@ -48,7 +51,7 @@ async function screen(t, { alreadyRead = false, content = "A real reply", clover
       StyleSheet: { create: (value) => value, hairlineWidth: 0.5 },
       useWindowDimensions: () => ({ width: 390, height: 844 }),
     },
-    "react-native-pager-view": { __esModule: true, default: React.forwardRef(function Pager(props, ref) { React.useImperativeHandle(ref, () => ({ setPage: (index) => pageChanges.push(index) })); return React.createElement("PagerView", props); }) },
+    "react-native-pager-view": { __esModule: true, default: React.forwardRef(function Pager(props, ref) { React.useImperativeHandle(ref, () => ({ setPage: (index) => pageChanges.push(index) })); return React.createElement("PagerView", { ...props, children: childrenWithOverriddenStyle(props.children) }); }) },
     "react-native-safe-area-context": { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) },
   });
   let root;
