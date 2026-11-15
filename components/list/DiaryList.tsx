@@ -59,7 +59,7 @@ function getDateParts(date: string, isKo: boolean) {
 interface DiarySectionProps {
   diary: DiaryItem;
   isKo: boolean;
-  onPressReply?: (date: string) => void;
+  onPressReply?: (date: string, replyUnavailable: boolean) => void;
   onPressMore?: (date: string) => void;
 }
 
@@ -96,15 +96,15 @@ function DiarySection({
         <HStack alignment={4} style={styles.controls}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={i18n.t("list.reply")}
+            accessibilityLabel={i18n.t(diary.isDeleted ? "reply.viewDiary" : "list.reply")}
             accessibilityState={{ disabled: !onPressReply }}
             disabled={!onPressReply}
             hitSlop={4}
-            onPress={() => onPressReply?.(diary.date)}
+            onPress={() => onPressReply?.(diary.date, diary.isDeleted === true)}
             style={styles.replyButton}
           >
             <Typo.Body variant="body5" color="gray600">
-              {i18n.t("list.reply")}
+              {i18n.t(diary.isDeleted ? "reply.viewDiary" : "list.reply")}
             </Typo.Body>
           </Pressable>
           <Pressable
@@ -150,7 +150,7 @@ interface DiaryListProps {
   refreshing?: boolean;
   onRefresh?: () => void;
   onPressWrite?: () => void;
-  onPressReply?: (date: string) => void;
+  onPressReply?: (date: string, replyUnavailable: boolean) => void;
   onPressMore?: (date: string) => void;
 }
 

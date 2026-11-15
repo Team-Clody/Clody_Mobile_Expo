@@ -310,6 +310,8 @@ export default {
     },
   },
   reply: {
+    viewDiary: '일기확인',
+    unavailableRewritten: '다시 작성한 일기에는 답장이 제공되지 않아요.',
     titleFallback: '답장',
     back: '뒤로 가기',
     tabs: {

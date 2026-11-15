@@ -136,12 +136,15 @@ export function GratitudeCard({
                   overflow: "visible",
                 }}
               >
-                <View
-                  style={{
-                    height: StyleSheet.hairlineWidth,
-                    backgroundColor: "#E5E7EB",
-                  }}
-                />
+                {isToday && (
+                  <View
+                    testID="journal-prompt-divider"
+                    style={{
+                      height: StyleSheet.hairlineWidth,
+                      backgroundColor: "#E5E7EB",
+                    }}
+                  />
+                )}
                 {isUnready && (
                   <Pressable
                     disabled={isFastReplyAdDisabled}

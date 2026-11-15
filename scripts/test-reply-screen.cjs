@@ -5,12 +5,12 @@ const Renderer = require("react-test-renderer");
 const load = require("./helpers/load-typescript.cjs");
 global.IS_REACT_ACT_ENVIRONMENT = true;
 
-async function screen(t, { alreadyRead = false, content = "A real reply", cloverRequest } = {}) {
+async function screen(t, { alreadyRead = false, content = "A real reply", cloverRequest, isDeleted = false, metaDeleted = false, routeUnavailable = false, routeTab, replyStatus, deletedAtOpen = false } = {}) {
   const calls = [];
-  const status = () => alreadyRead ? "READY_READ" : "READY_NOT_READ";
+  const status = () => replyStatus ?? (alreadyRead ? "READY_READ" : "READY_NOT_READ");
   const navigationStatus = status();
   const replyAPI = {
-    async getReplyMeta() { calls.push("meta"); return { replyStatus: status() }; },
+    async getReplyMeta() { calls.push("meta"); return { replyStatus: status(), isDeleted: metaDeleted || (deletedAtOpen && calls.filter((call) => call === "meta").length > 1) }; },
     async getReply() { calls.push("reply"); alreadyRead = true; return { nickname: "QA", content, isRead: true }; },
   };
   const service = load("services/replyOpenService.ts", {
@@ -19,10 +19,11 @@ async function screen(t, { alreadyRead = false, content = "A real reply", clover
     "@/api/cloverAPI": { CloverAPI: { async getCloverInfo() { calls.push("clover"); return cloverRequest ?? { cloverCount: 1, stage: 1 }; } } },
   });
   const empty = () => null;
-  const ad = { isEarnedReward: false, isClosed: false, isShowing: false, isLoaded: false, error: null };
+  const pageChanges = [];
+  const ad = { isEarnedReward: false, isClosed: false, isShowing: false, isLoaded: false, error: null, load() { calls.push("ad-load"); return true; }, showAd() { calls.push("ad-show"); return true; } };
   const { default: ReplyScreen } = load("app/(home)/reply/[date].tsx", {
     "@/api/diaryAPI": { DiaryAPI: {
-      getDiary: async () => ({ diaries: [], isDeleted: false, isDraft: false }),
+      getDiary: async () => ({ diaries: [], isDeleted, isDraft: false }),
       getDiaryCreatedTime: async () => ({ date: "2026-11-14" }),
     } },
     "@/api/replyAPI": { ReplyAPI: replyAPI, getSupportedReplyLanguage: () => "KO" },
@@ -40,14 +41,14 @@ async function screen(t, { alreadyRead = false, content = "A real reply", clover
     "@/shared/utils/diaryReplyTimer": { diaryCreatedToReplyReadyMs: () => Date.now() - 1000 },
     "expo-router": {
       useRouter: () => ({ back() {} }),
-      useLocalSearchParams: () => ({ date: "2026-11-14", status: navigationStatus }),
+      useLocalSearchParams: () => ({ date: "2026-11-14", status: navigationStatus, tab: routeTab, replyUnavailable: routeUnavailable ? "true" : undefined }),
     },
     "react-native": {
       ActivityIndicator: "ActivityIndicator", Pressable: "Pressable", ScrollView: "ScrollView", Text: "Text", View: "View",
       StyleSheet: { create: (value) => value, hairlineWidth: 0.5 },
       useWindowDimensions: () => ({ width: 390, height: 844 }),
     },
-    "react-native-pager-view": { __esModule: true, default: React.forwardRef(function Pager(props, ref) { return React.createElement("PagerView", { ...props, ref }); }) },
+    "react-native-pager-view": { __esModule: true, default: React.forwardRef(function Pager(props, ref) { React.useImperativeHandle(ref, () => ({ setPage: (index) => pageChanges.push(index) })); return React.createElement("PagerView", props); }) },
     "react-native-safe-area-context": { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) },
   });
   let root;
@@ -56,7 +57,7 @@ async function screen(t, { alreadyRead = false, content = "A real reply", clover
   const openButton = () => root.root.findAllByType("Pressable").find((node) =>
     node.findAllByType("Text").some((text) => text.props.children === "reply.ready.open"));
   const reward = () => root.root.findByType("RewardModal").props;
-  return { calls, root, openButton, reward };
+  return { calls, root, openButton, reward, pageChanges };
 }
 
 test("mounting an unread ready reply never consumes it through a background prefetch", async (t) => {
@@ -101,4 +102,62 @@ test("a slow clover summary does not block the letter or first-read popup", asyn
   assert.ok(env.root.root.findAllByType("Text").some((node) => node.props.children === "A real reply"));
   await React.act(async () => finishSummary({ cloverCount: 1, stage: 1 }));
   assert.deepEqual(env.reward().progress, { level: 1, completed: 1, required: 2 });
+});
+
+
+for (const replyStatus of ["UNREADY", "READY_NOT_READ", "READY_READ"]) {
+  test(`rewritten ${replyStatus} journal opens the diary without reply, ad, or reward requests`, async (t) => {
+    const env = await screen(t, { isDeleted: true, replyStatus });
+    assert.deepEqual(env.calls, ["meta"]);
+    const tabs = env.root.root.findAllByType("Pressable").filter((node) => node.props.accessibilityRole === "tab");
+    assert.deepEqual(tabs[0].props.accessibilityState, { selected: true, disabled: false });
+    assert.deepEqual(tabs[1].props.accessibilityState, { selected: false, disabled: true });
+    assert.equal(tabs[1].props.disabled, true);
+    assert.equal(tabs[1].props.accessibilityHint, "reply.unavailableRewritten");
+    assert.ok(env.root.root.findAllByType("Text").some((node) => node.props.children === "reply.unavailableRewritten"));
+    const pager = env.root.root.findByType("PagerView");
+    assert.equal(pager.props.initialPage, 0);
+    assert.equal(pager.props.scrollEnabled, false);
+    assert.equal(React.Children.toArray(pager.props.children).length, 1);
+    await React.act(async () => {
+      tabs[1].props.onPress();
+      pager.props.onPageSelected({ nativeEvent: { position: 1 } });
+    });
+    assert.deepEqual(env.pageChanges, [0]);
+    assert.equal(tabs[0].props.accessibilityState.selected, true);
+    assert.equal(env.openButton(), undefined);
+    assert.equal(env.reward().visible, false);
+    assert.deepEqual(env.calls, ["meta"]);
+  });
+}
+
+test("calendar deletion metadata disables replies even when diary metadata is missing the flag", async (t) => {
+  const env = await screen(t, { metaDeleted: true, alreadyRead: true });
+  assert.deepEqual(env.calls, ["meta"]);
+  assert.equal(env.root.root.findByType("PagerView").props.scrollEnabled, false);
+});
+
+test("a normal journal retains both pages, swiping, and the reply tab", async (t) => {
+  const env = await screen(t);
+  const pager = env.root.root.findByType("PagerView");
+  assert.equal(pager.props.initialPage, 1);
+  assert.equal(pager.props.scrollEnabled, true);
+  assert.equal(React.Children.toArray(pager.props.children).length, 2);
+  const tabs = () => env.root.root.findAllByType("Pressable").filter((node) => node.props.accessibilityRole === "tab");
+  await React.act(async () => tabs()[0].props.onPress());
+  assert.equal(tabs()[0].props.accessibilityState.selected, true);
+  await React.act(async () => tabs()[1].props.onPress());
+  assert.equal(tabs()[1].props.accessibilityState.selected, true);
+  assert.deepEqual(env.pageChanges, [0, 1]);
+});
+
+
+test("deletion discovered after screen load returns to the disabled diary tab without consuming a reply", async (t) => {
+  const env = await screen(t, { deletedAtOpen: true });
+  await React.act(async () => env.openButton().props.onPress());
+  assert.deepEqual(env.calls, ["meta", "meta"]);
+  assert.equal(env.openButton(), undefined);
+  assert.equal(env.reward().visible, false);
+  assert.equal(env.root.root.findByType("PagerView").props.scrollEnabled, false);
+  assert.deepEqual(env.pageChanges, [0]);
 });

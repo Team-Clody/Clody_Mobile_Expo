@@ -40,6 +40,7 @@ export function useMainCalendarData(
   setReplyReadyAtByDate: React.Dispatch<
     React.SetStateAction<Record<string, number>>
   >,
+  setIsDeletedByDate: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
   setTotalCloverCount: React.Dispatch<React.SetStateAction<number>>,
   refreshKey = 0,
 ) {
@@ -69,7 +70,7 @@ export function useMainCalendarData(
         month: number,
       ) => {
         const diaryCountMap = buildDiaryCountMap(diaries);
-        const { replyStatusByDate: rs, replyReadyAtByDate: rr } =
+        const { replyStatusByDate: rs, replyReadyAtByDate: rr, isDeletedByDate } =
           buildReplyMetaMaps(diaries);
         setDiaryCountByDate((prev) =>
           replaceMonthValues(prev, year, month, diaryCountMap),
@@ -79,6 +80,9 @@ export function useMainCalendarData(
         );
         setReplyReadyAtByDate((prev) =>
           replaceMonthValues(prev, year, month, rr),
+        );
+        setIsDeletedByDate((prev) =>
+          replaceMonthValues(prev, year, month, isDeletedByDate),
         );
         setTotalCloverCount(totalClover);
       };
@@ -168,6 +172,7 @@ export function useMainCalendarData(
       setDiaryCountByDate,
       setReplyStatusByDate,
       setReplyReadyAtByDate,
+      setIsDeletedByDate,
       setTotalCloverCount,
     ],
   );

@@ -30,7 +30,9 @@ export const buildDiaryCountMap = (diaries: CalendarDiary[]) => {
 export const buildReplyMetaMaps = (diaries: CalendarDiary[]) => {
   const replyStatusByDate: Record<string, ReplyStatus> = {};
   const replyReadyAtByDate: Record<string, number> = {};
+  const isDeletedByDate: Record<string, boolean> = {};
   for (const diaryItem of diaries) {
+    isDeletedByDate[diaryItem.date] = diaryItem.isDeleted === true;
     if (diaryItem.replyStatus) {
       replyStatusByDate[diaryItem.date] = diaryItem.replyStatus;
     }
@@ -41,7 +43,7 @@ export const buildReplyMetaMaps = (diaries: CalendarDiary[]) => {
       }
     }
   }
-  return { replyStatusByDate, replyReadyAtByDate };
+  return { replyStatusByDate, replyReadyAtByDate, isDeletedByDate };
 };
 
 export const getMonthMatrix = (date: Date) => {

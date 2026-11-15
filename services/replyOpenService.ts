@@ -7,6 +7,13 @@ export function getCloverMissionProgress(cloverCount: number) {
   return { level, completed, required };
 }
 
+export class ReplyUnavailableError extends Error {
+  constructor() {
+    super("Replies are not available for rewritten journals.");
+    this.name = "ReplyUnavailableError";
+  }
+}
+
 /** Called only for an explicit open: GET /reply consumes the unread status. */
 export async function openReplyWithReward(
   year: number,
@@ -15,6 +22,7 @@ export async function openReplyWithReward(
   fallbackStatus?: ReplyReadStatus,
 ) {
   const meta = await ReplyAPI.getReplyMeta(year, month, date).catch(() => null);
+  if (meta?.isDeleted === true) throw new ReplyUnavailableError();
   const previousStatus = meta?.replyStatus ?? fallbackStatus;
   const reply = await ReplyAPI.getReply(year, month, date);
   const firstRead = Boolean(reply.content?.trim()) &&

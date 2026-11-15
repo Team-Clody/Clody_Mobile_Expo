@@ -88,8 +88,11 @@ export default function ListScreen() {
     });
   };
 
-  const handlePressReply = (date: string) => {
-    router.push({ pathname: "/(home)/reply/[date]" as never, params: { date } });
+  const handlePressReply = (date: string, replyUnavailable: boolean) => {
+    router.push({
+      pathname: "/(home)/reply/[date]" as never,
+      params: { date, ...(replyUnavailable ? { tab: "diary", replyUnavailable: "true" } : {}) },
+    });
   };
 
   const handleDeleteDiary = async () => {

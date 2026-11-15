@@ -2,11 +2,11 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const load = require("./helpers/load-typescript.cjs");
 
-function environment({ status = "READY_NOT_READ", content = "A reply", failMeta = false, failClover = false } = {}) {
+function environment({ status = "READY_NOT_READ", content = "A reply", failMeta = false, failClover = false, isDeleted = false } = {}) {
   const calls = [];
   let read = status === "READY_READ";
   const api = {
-    async getReplyMeta() { calls.push("meta"); if (failMeta) throw Error("offline"); return { replyStatus: read ? "READY_READ" : status }; },
+    async getReplyMeta() { calls.push("meta"); if (failMeta) throw Error("offline"); return { replyStatus: read ? "READY_READ" : status, isDeleted }; },
     async getReply() { calls.push("reply"); read = true; return { content, isRead: true }; },
   };
   const service = load("services/replyOpenService.ts", {
@@ -98,4 +98,11 @@ test("reply preview reads the calendar and matches a zero-padded date without re
   assert.equal((await ReplyAPI.getReplyMeta(2026, 11, 4)).replyStatus, "READY_NOT_READ");
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0], ["get", "/api/v1/calendar/list", "time-zone", undefined, { params: { year: 2026, month: 11 } }]);
+});
+
+
+test("deletion discovered at explicit open blocks consuming the reply or requesting a reward", async () => {
+  const env = environment({ isDeleted: true });
+  await assert.rejects(env.open("READY_NOT_READ"), env.ReplyUnavailableError);
+  assert.deepEqual(env.calls, ["meta"]);
 });

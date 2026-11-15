@@ -18,7 +18,7 @@ export type ReplyAdRequest = {
 };
 
 export type ReplyReadStatus = "UNREADY" | "READY_NOT_READ" | "READY_READ" | "HAS_DRAFT" | "INVALID_DRAFT";
-export type ReplyMeta = { replyStatus?: ReplyReadStatus; replyAvailableAt?: string };
+export type ReplyMeta = { replyStatus?: ReplyReadStatus; replyAvailableAt?: string; isDeleted?: boolean };
 
 export const getSupportedReplyLanguage = (): SupportedReplyLanguage => {
   const isKo = getLanguageCode() === "ko";

@@ -109,6 +109,7 @@ export default function Main() {
   const [diaryCountByDate, setDiaryCountByDate] = useState<Record<string, number>>({});
   const [replyStatusByDate, setReplyStatusByDate] = useState<Record<string, ReplyStatus>>({});
   const [replyReadyAtByDate, setReplyReadyAtByDate] = useState<Record<string, number>>({});
+  const [isDeletedByDate, setIsDeletedByDate] = useState<Record<string, boolean>>({});
   const [totalCloverCount, setTotalCloverCount] = useState(0);
   const [journalPromptText, setJournalPromptText] = useState("");
   const [nowTickMs, setNowTickMs] = useState(() => Date.now());
@@ -144,6 +145,7 @@ export default function Main() {
     setDiaryCountByDate,
     setReplyStatusByDate,
     setReplyReadyAtByDate,
+    setIsDeletedByDate,
     setTotalCloverCount,
     calendarRefreshKey,
   );
@@ -332,9 +334,10 @@ export default function Main() {
   const isDraft = selectedReplyStatus === "HAS_DRAFT" ||
     selectedReplyStatus === "INVALID_DRAFT" || selectedHasDraft === true;
   const hasSelectedDiary = selectedDiaryCount > 0;
-  const isUnready = selectedReplyStatus === "UNREADY" && hasSelectedDiary;
-  const isReadyNotRead = selectedReplyStatus === "READY_NOT_READ";
-  const isReadyRead = selectedReplyStatus === "READY_READ";
+  const isRewrittenDiary = hasSelectedDiary && isDeletedByDate[selectedDateKey] === true;
+  const isUnready = !isRewrittenDiary && selectedReplyStatus === "UNREADY" && hasSelectedDiary;
+  const isReadyNotRead = !isRewrittenDiary && selectedReplyStatus === "READY_NOT_READ";
+  const isReadyRead = !isRewrittenDiary && selectedReplyStatus === "READY_READ";
   const showReplyAction =
     hasSelectedDiary && (isReadyNotRead || isReadyRead);
   const showWriteEntry =
@@ -342,13 +345,15 @@ export default function Main() {
   const isWritableSelected = isDiaryWritableDate(gratitudeDate);
   const actionLabel = showWriteEntry
     ? i18n.t("main.gratitude.writeEntry")
-    : showReplyAction
-      ? isKo
-        ? "답장확인"
-        : "See My Reply"
-      : isKo
-        ? i18n.t("main.gratitude.continueWriting")
-        : "Continue Writing";
+    : isRewrittenDiary
+      ? i18n.t("reply.viewDiary")
+      : showReplyAction
+        ? isKo
+          ? "답장확인"
+          : "See My Reply"
+        : isKo
+          ? i18n.t("main.gratitude.continueWriting")
+          : "Continue Writing";
   const actionTextColor = showWriteEntry
     ? isWritableSelected
       ? "#13B567"
@@ -578,7 +583,7 @@ export default function Main() {
 
   const startFastReplyAdFlow = useCallback(
     async (request: ReplyAdRequest, dateKey: string) => {
-      if (fastReplyRewardAd.isShowing || isStartingFastReplyAd) return;
+      if (isDeletedByDate[dateKey] || fastReplyRewardAd.isShowing || isStartingFastReplyAd) return;
 
       setIsStartingFastReplyAd(true);
       try {
@@ -611,7 +616,7 @@ export default function Main() {
         variant: "warning",
       });
     },
-    [fastReplyRewardAd, isStartingFastReplyAd],
+    [fastReplyRewardAd, isStartingFastReplyAd, isDeletedByDate],
   );
 
   useEffect(() => {
@@ -787,6 +792,7 @@ export default function Main() {
                 date: selectedDateKey,
                 source: "home",
                 status: selectedReplyStatus,
+                ...(isRewrittenDiary ? { tab: "diary", replyUnavailable: "true" } : {}),
               },
             });
           }}

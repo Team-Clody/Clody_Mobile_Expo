@@ -303,6 +303,8 @@ export default {
     },
   },
   reply: {
+    viewDiary: 'View Journal',
+    unavailableRewritten: 'Replies are not available for rewritten journals.',
     titleFallback: 'Reply',
     back: 'Go back',
     tabs: {

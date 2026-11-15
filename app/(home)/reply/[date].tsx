@@ -14,7 +14,7 @@ import { useAdMobRewarded } from "@/shared/ads";
 import { DeleteActionSheet } from "@/shared/components/DeleteActionSheet";
 import { Toast } from "@/shared/components/Toast";
 import { CloverRewardModal } from "@/shared/components/modal/CloverRewardModal";
-import { openReplyWithReward, type getCloverMissionProgress } from "@/services/replyOpenService";
+import { openReplyWithReward, ReplyUnavailableError, type getCloverMissionProgress } from "@/services/replyOpenService";
 import { palette } from "@/shared/theme/palette";
 import { typography } from "@/shared/theme/typography";
 import { diaryCreatedToReplyReadyMs } from "@/shared/utils/diaryReplyTimer";
@@ -77,9 +77,11 @@ function ReplyHeader({
   activeTab,
   onBack,
   onChangeTab,
+  replyDisabled,
 }: {
   title: string;
   activeTab: "diary" | "reply";
+  replyDisabled: boolean;
   onBack: () => void;
   onChangeTab: (tab: "diary" | "reply") => void;
 }) {
@@ -100,15 +102,18 @@ function ReplyHeader({
       <View style={styles.tabs}>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.key;
+          const isDisabled = tab.key === "reply" && replyDisabled;
           return (
             <Pressable
               key={tab.key}
               accessibilityRole="tab"
-              accessibilityState={{ selected: isActive }}
-              onPress={() => onChangeTab(tab.key)}
+              accessibilityState={{ selected: isActive, disabled: isDisabled }}
+              accessibilityHint={isDisabled ? i18n.t("reply.unavailableRewritten") : undefined}
+              disabled={isDisabled}
+              onPress={() => { if (!isDisabled) onChangeTab(tab.key); }}
               style={styles.tab}
             >
-              <Text style={isActive ? styles.activeTabText : styles.inactiveTab}>{tab.label}</Text>
+              <Text style={isDisabled ? styles.disabledTabText : isActive ? styles.activeTabText : styles.inactiveTab}>{tab.label}</Text>
               <View style={[styles.tabIndicator, isActive && styles.activeTabIndicator]} />
             </Pressable>
           );
@@ -224,16 +229,23 @@ function ReplyLetter({ reply }: { reply: GetReplyResponseDTO }) {
 export default function ReplyScreen() {
   const router = useRouter();
   const pagerRef = useRef<PagerView>(null);
-  const params = useLocalSearchParams<{ date?: string | string[]; status?: string | string[] }>();
+  const params = useLocalSearchParams<{
+    date?: string | string[]; status?: string | string[];
+    tab?: string | string[]; replyUnavailable?: string | string[];
+  }>();
   const date = getParamValue(params.date);
   const routeReplyStatus = getParamValue(params.status);
+  const routeReplyUnavailable = getParamValue(params.replyUnavailable) === "true";
+  const initialTab = getParamValue(params.tab) === "diary" ? "diary" : "reply";
+  const [replyDisabled, setReplyDisabled] = useState(routeReplyUnavailable);
+  const canRequestReplyRef = useRef(false);
   const isReadyFromRoute = isReplyReadyRouteStatus(routeReplyStatus);
   const targetDate = useMemo(() => parseDate(date), [date]);
   const supportedLanguage = getSupportedReplyLanguage();
   const fastReplyRewardAd = useAdMobRewarded("fastReplyReward");
   const pendingFastReplyRequestRef = useRef<ReplyAdRequest | null>(null);
   const queuedFastReplyRequestRef = useRef<ReplyAdRequest | null>(null);
-  const [activeTab, setActiveTab] = useState<"diary" | "reply">("reply");
+  const [activeTab, setActiveTab] = useState<"diary" | "reply">(routeReplyUnavailable ? "diary" : initialTab);
   const [diary, setDiary] = useState<GetDiaryResponseDTO | null>(null);
   const [reply, setReply] = useState<GetReplyResponseDTO | null>(null);
   const [replyReadyAt, setReplyReadyAt] = useState<number | null>(null);
@@ -283,6 +295,7 @@ export default function ReplyScreen() {
     }
     let cancelled = false;
     setLoading(true);
+    canRequestReplyRef.current = false;
     setOpened(false);
     setShowReward(false);
     setRewardProgress(null);
@@ -301,6 +314,8 @@ export default function ReplyScreen() {
           ).catch(() => null),
           ReplyAPI.getReplyMeta(targetDate.year, targetDate.month, targetDate.day).catch(() => null),
         ]);
+        if (cancelled) return;
+        const unavailable = diaryResult.isDeleted === true || meta?.isDeleted === true || routeReplyUnavailable;
         const nowMs = Date.now();
         const readyAtByCreatedTime = timeResult ? diaryCreatedToReplyReadyMs(timeResult) : null;
         const knownStatus = meta?.replyStatus ?? (
@@ -309,10 +324,13 @@ export default function ReplyScreen() {
         );
         // GET /reply marks it read before returning isRead=true. Only prefetch
         // an already-read reply; unread content is fetched on the user's open.
-        const replyResult = knownStatus === "READY_READ"
+        const replyResult = !unavailable && knownStatus === "READY_READ"
           ? await ReplyAPI.getReply(targetDate.year, targetDate.month, targetDate.day).catch(() => null)
           : null;
         if (cancelled) return;
+        canRequestReplyRef.current = !unavailable;
+        setReplyDisabled(unavailable);
+        setActiveTab(unavailable ? "diary" : initialTab);
         readStatusRef.current = knownStatus;
         setDiary(diaryResult);
         setReply(replyResult);
@@ -331,7 +349,7 @@ export default function ReplyScreen() {
     return () => {
       cancelled = true;
     };
-  }, [isReadyFromRoute, routeReplyStatus, targetDate]);
+  }, [initialTab, isReadyFromRoute, routeReplyStatus, routeReplyUnavailable, targetDate]);
 
   useEffect(() => {
     const intervalId = setInterval(() => setNow(Date.now()), 1_000);
@@ -339,7 +357,7 @@ export default function ReplyScreen() {
   }, []);
 
   const openReply = useCallback(async (fromAd = false) => {
-    if (!targetDate || openingReplyRef.current || openedReplyRef.current) return;
+    if (!targetDate || !canRequestReplyRef.current || openingReplyRef.current || openedReplyRef.current) return;
     const requestedDate = date;
     openingReplyRef.current = true;
     setIsOpeningReply(true);
@@ -368,8 +386,16 @@ export default function ReplyScreen() {
           if (activeDateRef.current === requestedDate) setRewardProgress(progress);
         });
       }
-    } catch {
-      if (activeDateRef.current === requestedDate) showReplyUnavailableError();
+    } catch (error) {
+      if (activeDateRef.current !== requestedDate) return;
+      if (error instanceof ReplyUnavailableError) {
+        canRequestReplyRef.current = false;
+        setReplyDisabled(true);
+        setActiveTab("diary");
+        pagerRef.current?.setPage(0);
+      } else {
+        showReplyUnavailableError();
+      }
     } finally {
       if (activeDateRef.current === requestedDate) {
         openingReplyRef.current = false;
@@ -435,6 +461,7 @@ export default function ReplyScreen() {
       ? "opened"
       : "ready";
   const changeTab = (tab: "diary" | "reply") => {
+    if (tab === "reply" && replyDisabled) return;
     setActiveTab(tab);
     pagerRef.current?.setPage(tab === "diary" ? 0 : 1);
   };
@@ -464,7 +491,7 @@ export default function ReplyScreen() {
   };
 
   const startFastReplyAdFlow = useCallback(async (request: ReplyAdRequest) => {
-    if (fastReplyRewardAd.isShowing || isStartingFastReplyAd) {
+    if (!canRequestReplyRef.current || fastReplyRewardAd.isShowing || isStartingFastReplyAd) {
       return;
     }
     setIsStartingFastReplyAd(true);
@@ -533,6 +560,7 @@ export default function ReplyScreen() {
 
   const handlePressAd = async () => {
     if (
+      !canRequestReplyRef.current ||
       !replyAdRequest ||
       fastReplyRewardAd.isShowing ||
       isStartingFastReplyAd ||
@@ -566,14 +594,25 @@ export default function ReplyScreen() {
       <ReplyHeader
         title={formatDate(date)}
         activeTab={activeTab}
+        replyDisabled={replyDisabled}
         onBack={() => router.back()}
         onChangeTab={changeTab}
       />
+      {replyDisabled && (
+        <Text style={styles.unavailableReason}>{i18n.t("reply.unavailableRewritten")}</Text>
+      )}
       <PagerView
         ref={pagerRef}
         style={styles.pager}
-        initialPage={1}
-        onPageSelected={({ nativeEvent }) => setActiveTab(nativeEvent.position === 0 ? "diary" : "reply")}
+        initialPage={replyDisabled || initialTab === "diary" ? 0 : 1}
+        scrollEnabled={!replyDisabled}
+        onPageSelected={({ nativeEvent }) => {
+          if (replyDisabled && nativeEvent.position !== 0) {
+            pagerRef.current?.setPage(0);
+            return;
+          }
+          setActiveTab(nativeEvent.position === 0 ? "diary" : "reply");
+        }}
       >
         <View key="diary" style={styles.page}>
           <MyDiary
@@ -581,7 +620,7 @@ export default function ReplyScreen() {
             onPressMore={() => setIsDeleteSheetVisible(true)}
           />
         </View>
-        <View key="reply" style={styles.page}>
+        {!replyDisabled && <View key="reply" style={styles.page}>
           {phase === "waiting" ? (
             <WaitingReply
               remaining={remaining}
@@ -597,10 +636,10 @@ export default function ReplyScreen() {
           ) : reply ? (
             <ReplyLetter reply={reply} />
           ) : null}
-        </View>
+        </View>}
       </PagerView>
       <CloverRewardModal
-        visible={showReward && !fastReplyRewardAd.isShowing && activeTab === "reply"}
+        visible={!replyDisabled && showReward && !fastReplyRewardAd.isShowing && activeTab === "reply"}
         progress={rewardProgress}
         onConfirm={() => setShowReward(false)}
       />
@@ -631,6 +670,8 @@ const styles = StyleSheet.create({
   tabIndicator: { width: "100%", height: 2, borderRadius: 1 },
   activeTabIndicator: { backgroundColor: palette.gray800 },
   inactiveTab: { ...typography.body2, color: palette.gray400 },
+  disabledTabText: { ...typography.body2, color: palette.gray300 },
+  unavailableReason: { ...typography.body4, color: palette.gray500, marginHorizontal: 20, marginTop: 16 },
   activeTabText: { ...typography.body2, color: palette.gray800 },
   pager: { flex: 1 },
   page: { flex: 1 },
